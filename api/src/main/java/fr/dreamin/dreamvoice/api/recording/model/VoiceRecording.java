@@ -1,6 +1,5 @@
 package fr.dreamin.dreamvoice.api.recording.model;
 
-import fr.dreamin.dreamvoice.api.utils.ByteArrayUtils;
 import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -19,7 +18,7 @@ public final class VoiceRecording {
   private @Nullable Instant startTime;
   private @Nullable Duration duration;
 
-  private final @NotNull List<byte[]> audio = new ArrayList<>();
+  private final @NotNull List<TimedAudioFrame> audioFrames = new ArrayList<>();
 
   // ###############################################################
   // --------------------- CONSTRUCTOR METHODS ---------------------
@@ -36,6 +35,7 @@ public final class VoiceRecording {
   public void start() {
     this.startTime = Instant.now();
     this.duration = null;
+    this.audioFrames.clear();
   }
 
   public void stop() {
@@ -53,18 +53,29 @@ public final class VoiceRecording {
   }
 
   public void addAudio(final byte[] opusData) {
-    this.audio.add(opusData.clone());
-  }
+    if (this.startTime == null)
+      return;
 
-  public byte[] getAllOpusData() {
-    return this.audio.stream()
-      .reduce(new byte[0], ByteArrayUtils::concat);
+    final var offsetMs = Math.max(0, System.currentTimeMillis() - this.startTime.toEpochMilli());
+    this.audioFrames.add(new TimedAudioFrame(offsetMs, opusData.clone()));
   }
 
   public float getDurationSeconds() {
-    return this.duration != null ? (float) this.duration.toMillis() / 1000F : 0F;
+    if (this.duration != null)
+      return (float) this.duration.toMillis() / 1000F;
+    if (this.startTime != null)
+      return (float) (System.currentTimeMillis() - this.startTime.toEpochMilli()) / 1000F;
+    return 0F;
+  }
+
+  // ###############################################################
+  // ---------------------------- CLASS ----------------------------
+  // ###############################################################
+
+  public record TimedAudioFrame(long timestampMs, byte[] data) {
   }
 
 }
+
 
 

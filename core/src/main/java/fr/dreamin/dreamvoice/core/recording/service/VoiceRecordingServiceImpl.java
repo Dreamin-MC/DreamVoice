@@ -109,22 +109,39 @@ public final class VoiceRecordingServiceImpl implements VoiceRecordingService, L
     }
     channel.setCategory(this.volumeCategory.getId());
 
-    final var opusFrames = recording.getAudio();
-    if (opusFrames.isEmpty())
+    final var frames = recording.getAudioFrames();
+    if (frames.isEmpty())
       return;
 
     final var decoder = this.api.createDecoder();
-    final var pcmFrames = new ArrayList<short[]>();
+    final var pcmList = new ArrayList<short[]>();
     var totalSamples = 0;
 
+    var currentStreamTimeMs = 0L;
+
     try {
-      for (final var frame : opusFrames) {
-        if (frame.length == 0)
+      for (final var frame : frames) {
+        if (frame.data().length == 0)
           continue;
-        final var pcm = decoder.decode(frame);
-        if (pcm.length > 0) {
-          pcmFrames.add(pcm);
+
+        final var frameTime = frame.timestampMs();
+
+        // S'il y a un vrai silence (> 60ms d'écart), on insère les échantillons de silence
+        if (frameTime - currentStreamTimeMs >= 60) {
+          final var silenceMs = frameTime - currentStreamTimeMs;
+          final var silenceSamples = (int) (silenceMs * 48);
+          if (silenceSamples > 0) {
+            pcmList.add(new short[silenceSamples]);
+            totalSamples += silenceSamples;
+          }
+          currentStreamTimeMs = frameTime;
+        }
+
+        final var pcm = decoder.decode(frame.data());
+        if (pcm != null && pcm.length > 0) {
+          pcmList.add(pcm);
           totalSamples += pcm.length;
+          currentStreamTimeMs += (pcm.length / 48);
         }
       }
     } catch (Exception e) {
@@ -132,16 +149,26 @@ public final class VoiceRecordingServiceImpl implements VoiceRecordingService, L
       return;
     }
 
-    if (totalSamples == 0) {
-      this.plugin.getLogger().warning("Decoded audio is empty.");
-      return;
+    final var totalDurationMs = recording.getDuration() != null
+      ? recording.getDuration().toMillis()
+      : (long) (recording.getDurationSeconds() * 1000L);
+
+    if (totalDurationMs > currentStreamTimeMs) {
+      final var trailingSilenceSamples = (int) ((totalDurationMs - currentStreamTimeMs) * 48);
+      if (trailingSilenceSamples > 0) {
+        pcmList.add(new short[trailingSilenceSamples]);
+        totalSamples += trailingSilenceSamples;
+      }
     }
+
+    if (totalSamples == 0)
+      return;
 
     final var fullPcm = new short[totalSamples];
     var offset = 0;
-    for (final var frame : pcmFrames) {
-      System.arraycopy(frame, 0, fullPcm, offset, frame.length);
-      offset += frame.length;
+    for (final var chunk : pcmList) {
+      System.arraycopy(chunk, 0, fullPcm, offset, chunk.length);
+      offset += chunk.length;
     }
 
     try {
@@ -153,6 +180,8 @@ public final class VoiceRecordingServiceImpl implements VoiceRecordingService, L
       this.plugin.getLogger().severe("Error creating audio player: " + e.getMessage());
     }
   }
+
+
 
   @Override
   public VoiceRecording startRecording(final @NonNull UUID speakerUUID) {
