@@ -1,0 +1,77 @@
+package fr.dreamin.dreamvoice.core;
+
+import de.maxhenkel.voicechat.api.BukkitVoicechatService;
+import fr.dreamin.dreamapi.plugin.DreamPlugin;
+import fr.dreamin.dreaminvoice.api.codex.service.CodexService;
+import fr.dreamin.dreaminvoice.api.player.service.PlayerService;
+import fr.dreamin.dreaminvoice.api.recording.service.VoiceRecordingService;
+import fr.dreamin.dreaminvoice.api.speaker.service.VoiceSpeakerService;
+import fr.dreamin.dreaminvoice.api.transmitter.service.VoiceTransmitterService;
+import fr.dreamin.dreaminvoice.api.voice.service.VoiceService;
+import fr.dreamin.dreaminvoice.api.wall.service.VoiceWallService;
+import fr.dreamin.dreamvoice.core.cmd.DebugCmd;
+import fr.dreamin.dreamvoice.core.codex.service.CodexServiceImpl;
+import fr.dreamin.dreamvoice.core.player.service.PlayerServiceImpl;
+import fr.dreamin.dreamvoice.core.recording.cmd.RecordingCmd;
+import fr.dreamin.dreamvoice.core.recording.service.VoiceRecordingServiceImpl;
+import fr.dreamin.dreamvoice.core.speaker.service.VoiceSpeakerServiceImpl;
+import fr.dreamin.dreamvoice.core.transmitter.cmd.TransmitterCmd;
+import fr.dreamin.dreamvoice.core.transmitter.service.VoiceTransmitterServiceImpl;
+import fr.dreamin.dreamvoice.core.voice.service.VoiceServiceImpl;
+import fr.dreamin.dreamvoice.core.wall.service.VoiceWallServiceImpl;
+import lombok.Getter;
+import org.bukkit.Bukkit;
+import org.bukkit.event.Listener;
+import org.bukkit.plugin.ServicePriority;
+
+@Getter
+public final class DreamVoice extends DreamPlugin implements Listener {
+
+  @Override
+  public void onDreamEnable() {
+    instance = this;
+
+    initVoiceService();
+
+    registerCommand(new DebugCmd());
+    registerCommand(new RecordingCmd());
+    registerCommand(new TransmitterCmd());
+
+  }
+
+  @Override
+  public void onDreamDisable() {
+    getService(VoiceService.class).clearAllSounds();
+  }
+
+  // ###############################################################
+  // ----------------------- PRIVATE METHODS -----------------------
+  // ###############################################################
+
+  private void initVoiceService() {
+    final var service = getServer().getServicesManager().load(BukkitVoicechatService.class);
+    if (service == null) {
+      getServer().getPluginManager().disablePlugin(this);
+      return;
+    }
+
+    final var playerService = new PlayerServiceImpl(this);
+    final var voiceRecordingService = new VoiceRecordingServiceImpl(this);
+    final var voiceTransmitterService = new VoiceTransmitterServiceImpl(this);
+    final var voiceSpeakerService = new VoiceSpeakerServiceImpl(this);
+    final var voiceWallService = new VoiceWallServiceImpl(this, playerService);
+    final var codexService = new CodexServiceImpl(this, voiceWallService);
+    final var voiceService = new VoiceServiceImpl(this, codexService, playerService, voiceWallService);
+
+    Bukkit.getServicesManager().register(CodexService.class, codexService, this, ServicePriority.Normal);
+    Bukkit.getServicesManager().register(PlayerService.class, playerService, this, ServicePriority.Normal);
+    Bukkit.getServicesManager().register(VoiceWallService.class, voiceWallService, this, ServicePriority.Normal);
+    Bukkit.getServicesManager().register(VoiceSpeakerService.class, voiceSpeakerService, this, ServicePriority.Normal);
+    Bukkit.getServicesManager().register(VoiceTransmitterService.class, voiceTransmitterService, this, ServicePriority.Normal);
+    Bukkit.getServicesManager().register(VoiceRecordingService.class, voiceRecordingService, this, ServicePriority.Normal);
+    Bukkit.getServicesManager().register(VoiceService.class, voiceService, this, ServicePriority.Normal);
+    service.registerPlugin(voiceService);
+
+  }
+
+}

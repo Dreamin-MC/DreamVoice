@@ -1,0 +1,13 @@
+name: DreamVoice
+version: ${project.version}
+main: fr.dreamin.dreamvoice.core.DreamVoice
+api-version: 1.21
+authors: [ "Dreamin" ]
+dependencies:
+  server:
+    LuckPerms:
+      required: true
+      load: BEFORE
+    voicechat:
+      required: true
+      load: BEFORE
