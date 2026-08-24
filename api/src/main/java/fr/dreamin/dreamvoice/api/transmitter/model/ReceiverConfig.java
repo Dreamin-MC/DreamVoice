@@ -1,9 +1,9 @@
 package fr.dreamin.dreamvoice.api.transmitter.model;
 
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.UUID;
 
@@ -11,15 +11,28 @@ import java.util.UUID;
 public final class ReceiverConfig {
 
   private final @NotNull UUID uuid;
-  private double maxDistance;
+  private @Nullable Double maxDistance;
 
   // ###############################################################
   // --------------------- CONSTRUCTOR METHODS ---------------------
   // ###############################################################
 
-  public ReceiverConfig(@NotNull UUID uuid, double maxDistance) {
+  public ReceiverConfig(final @NotNull UUID uuid) {
+    this(uuid, null);
+  }
+
+  public ReceiverConfig(final @NotNull UUID uuid, final @Nullable Double maxDistance) {
     this.uuid = uuid;
-    this.maxDistance = maxDistance;
+    this.maxDistance = (maxDistance != null && maxDistance > 0) ? maxDistance : null;
+  }
+
+  // ###############################################################
+  // ----------------------- PUBLIC METHODS ------------------------
+  // ###############################################################
+
+  public boolean hasMaxDistance() {
+    return this.maxDistance != null && this.maxDistance > 0;
   }
 
 }
+

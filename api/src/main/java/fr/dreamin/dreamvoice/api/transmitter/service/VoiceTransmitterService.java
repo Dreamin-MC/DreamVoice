@@ -38,14 +38,15 @@ public interface VoiceTransmitterService {
   @NotNull Collection<ReceiverConfig> getReceivers(@NotNull Player player);
   @NotNull Collection<ReceiverConfig> getReceivers(@NotNull UUID uuid);
 
-  void addReceiver(@NotNull Player transmitter, @NotNull Player receiver, double maxDistance);
+  void addReceiver(@NotNull Player transmitter, @NotNull Player receiver);
+  void addReceiver(@NotNull UUID transmitter, @NotNull UUID receiver);
 
+  void addReceiver(@NotNull Player transmitter, @NotNull Player receiver, double maxDistance);
   void addReceiver(@NotNull UUID transmitter, @NotNull UUID receiver, double maxDistance);
 
   void addReceiver(@NotNull UUID transmitter, @NotNull ReceiverConfig receiverConfig);
 
   void removeReceiver(@NotNull Player transmitter, @NotNull Player receiver);
-
   void removeReceiver(@NotNull UUID transmitter, @NotNull UUID receiver);
 
   void clearReceivers(@NotNull Player transmitter);
@@ -55,9 +56,13 @@ public interface VoiceTransmitterService {
   // Global Operations
   // ------------------------------------------------
 
+  void addReceiverToAll(@NotNull Player receiver);
+  void addReceiverToAll(@NotNull UUID receiver);
+
   void addReceiverToAll(@NotNull Player receiver, double maxDistance);
   void addReceiverToAll(@NotNull UUID receiver, double maxDistance);
 
   void removeReceiverFromAll(@NotNull Player receiver);
   void removeReceiverFromAll(@NotNull UUID receiver);
 }
+

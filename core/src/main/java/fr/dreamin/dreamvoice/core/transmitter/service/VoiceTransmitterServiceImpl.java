@@ -111,6 +111,17 @@ public final class VoiceTransmitterServiceImpl implements VoiceTransmitterServic
   }
 
   @Override
+  public void addReceiver(final @NotNull Player transmitter, final @NotNull Player receiver) {
+    addReceiver(transmitter.getUniqueId(), receiver.getUniqueId());
+  }
+
+  @Override
+  public void addReceiver(final @NotNull UUID transmitter, final @NotNull UUID receiver) {
+    this.transmitters.computeIfAbsent(transmitter, k -> new ConcurrentHashMap<>())
+      .put(receiver, new ReceiverConfig(receiver));
+  }
+
+  @Override
   public void addReceiver(final @NotNull Player transmitter, final @NotNull Player receiver, final double maxDistance) {
     addReceiver(transmitter.getUniqueId(), receiver.getUniqueId(), maxDistance);
   }
@@ -158,6 +169,20 @@ public final class VoiceTransmitterServiceImpl implements VoiceTransmitterServic
   // ------------------------------------------------
   // Global Operations
   // ------------------------------------------------
+
+  @Override
+  public void addReceiverToAll(final @NotNull Player receiver) {
+    addReceiverToAll(receiver.getUniqueId());
+  }
+
+  @Override
+  public void addReceiverToAll(final @NotNull UUID receiver) {
+    this.transmitters.forEach((transmitter, map) -> {
+      if (transmitter == receiver)
+        return;
+      map.put(receiver, new ReceiverConfig(receiver));
+    });
+  }
 
   @Override
   public void addReceiverToAll(final @NotNull Player receiver, final double maxDistance) {
@@ -216,11 +241,14 @@ public final class VoiceTransmitterServiceImpl implements VoiceTransmitterServic
       if (receiverPlayer == null)
         continue;
 
-      if (!receiverPlayer.getWorld().equals(senderLocation.getWorld()))
-        continue;
+      if (config.hasMaxDistance()) {
+        if (!receiverPlayer.getWorld().equals(senderLocation.getWorld()))
+          continue;
 
-      if (senderLocation.distanceSquared(receiverPlayer.getLocation()) > config.getMaxDistance() * config.getMaxDistance())
-        continue;
+        final var maxDist = config.getMaxDistance();
+        if (maxDist != null && senderLocation.distanceSquared(receiverPlayer.getLocation()) > maxDist * maxDist)
+          continue;
+      }
 
       final var receiverConnection = this.api.getConnectionOf(config.getUuid());
       if (receiverConnection == null)
@@ -231,6 +259,7 @@ public final class VoiceTransmitterServiceImpl implements VoiceTransmitterServic
 
     channel.send(event.getPacket());
   }
+
 
   @EventHandler
   private void onPlayerQuit(final @NotNull PlayerQuitEvent event) {

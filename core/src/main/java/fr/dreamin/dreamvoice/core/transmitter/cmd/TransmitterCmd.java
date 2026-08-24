@@ -12,6 +12,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public final class TransmitterCmd {
 
@@ -62,13 +63,13 @@ public final class TransmitterCmd {
   // ADD RECEIVER
   // ------------------------------------------------
 
-  @CommandMethod("transmitter add <player> <distance>")
+  @CommandMethod("transmitter add <player> [distance]")
   @CommandPermission("dreamvoice.transmitter.modify")
-  @CommandDescription("Add receiver with distance")
+  @CommandDescription("Add receiver with optional distance")
   private void addReceiver(
     final @NotNull CommandSender sender,
     @Argument("player") final @NotNull Player target,
-    @Argument("distance") final double distance
+    @Argument("distance") final @Nullable Double distance
   ) {
     if (!(sender instanceof Player player)) {
       sender.sendMessage(Component.text("Player only!", NamedTextColor.RED));
@@ -80,18 +81,26 @@ public final class TransmitterCmd {
       return;
     }
 
-    if (distance <= 0) {
+    if (distance != null && distance <= 0) {
       sender.sendMessage(Component.text("Distance must be > 0.", NamedTextColor.RED));
       return;
     }
 
-    this.transmissionService.addReceiver(player, target, distance);
-
-    sender.sendMessage(
-      Component.text("Added receiver: ", NamedTextColor.GREEN)
-        .append(Component.text(target.getName(), NamedTextColor.AQUA))
-        .append(Component.text(" (range: " + distance + ")", NamedTextColor.GRAY))
-    );
+    if (distance != null) {
+      this.transmissionService.addReceiver(player, target, distance);
+      sender.sendMessage(
+        Component.text("Added receiver: ", NamedTextColor.GREEN)
+          .append(Component.text(target.getName(), NamedTextColor.AQUA))
+          .append(Component.text(" (range: " + distance + ")", NamedTextColor.GRAY))
+      );
+    } else {
+      this.transmissionService.addReceiver(player, target);
+      sender.sendMessage(
+        Component.text("Added receiver: ", NamedTextColor.GREEN)
+          .append(Component.text(target.getName(), NamedTextColor.AQUA))
+          .append(Component.text(" (infinite range)", NamedTextColor.GRAY))
+      );
+    }
   }
 
   // ------------------------------------------------
@@ -152,13 +161,18 @@ public final class TransmitterCmd {
       if (target == null)
         continue;
 
+      final var rangeText = config.hasMaxDistance()
+        ? String.valueOf(config.getMaxDistance())
+        : "infinite";
+
       sender.sendMessage(
         Component.text("- ", NamedTextColor.GRAY)
           .append(Component.text(target.getName(), NamedTextColor.AQUA))
           .append(Component.text(" | range: ", NamedTextColor.GRAY))
-          .append(Component.text(config.getMaxDistance(), NamedTextColor.GREEN))
+          .append(Component.text(rangeText, NamedTextColor.GREEN))
       );
     }
   }
 
-}
+}
+
