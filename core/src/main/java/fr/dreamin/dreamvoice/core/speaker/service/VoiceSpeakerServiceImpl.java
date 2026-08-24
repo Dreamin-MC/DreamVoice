@@ -2,9 +2,9 @@ package fr.dreamin.dreamvoice.core.speaker.service;
 
 import de.maxhenkel.voicechat.api.VoicechatServerApi;
 import de.maxhenkel.voicechat.api.VolumeCategory;
-import fr.dreamin.dreaminvoice.api.speaker.model.Speaker;
-import fr.dreamin.dreaminvoice.api.speaker.service.VoiceSpeakerService;
-import fr.dreamin.dreaminvoice.api.voice.event.MicrophonePacketEvent;
+import fr.dreamin.dreamvoice.api.speaker.model.Speaker;
+import fr.dreamin.dreamvoice.api.speaker.service.VoiceSpeakerService;
+import fr.dreamin.dreamvoice.api.voice.event.MicrophonePacketEvent;
 import fr.dreamin.dreamvoice.core.DreamVoice;
 import lombok.RequiredArgsConstructor;
 import org.bukkit.Bukkit;
@@ -65,17 +65,17 @@ public final class VoiceSpeakerServiceImpl implements VoiceSpeakerService, Liste
   }
 
   @Override
-  public void register(@NotNull Speaker speaker) {
+  public void register(final @NotNull Speaker speaker) {
     this.speakers.put(speaker.getUuid(), speaker);
   }
 
   @Override
-  public void unregister(@NotNull UUID uuid) {
+  public void unregister(final @NotNull UUID uuid) {
     this.speakers.remove(uuid);
   }
 
   @Override
-  public void unregister(@NotNull Speaker speaker) {
+  public void unregister(final @NotNull Speaker speaker) {
     unregister(speaker.getUuid());
   }
 
@@ -95,9 +95,8 @@ public final class VoiceSpeakerServiceImpl implements VoiceSpeakerService, Liste
 
   @EventHandler
   private void onMicrophonePacket(final @NotNull MicrophonePacketEvent event) {
-    getSpeakers().forEach(speaker -> {
-      speaker.getSpeakerChannel().send(event.getPacket());
-    });
+    getSpeakers().forEach(speaker -> speaker.getSpeakerChannel().send(event.getPacket()));
   }
 
 }
+

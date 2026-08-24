@@ -1,9 +1,9 @@
 package fr.dreamin.dreamvoice.core.codex.service;
 
 import fr.dreamin.dreamapi.api.config.Configurations;
-import fr.dreamin.dreaminvoice.api.codex.model.Codex;
-import fr.dreamin.dreaminvoice.api.codex.service.CodexService;
-import fr.dreamin.dreaminvoice.api.wall.service.VoiceWallService;
+import fr.dreamin.dreamvoice.api.codex.model.Codex;
+import fr.dreamin.dreamvoice.api.codex.service.CodexService;
+import fr.dreamin.dreamvoice.api.wall.service.VoiceWallService;
 import fr.dreamin.dreamvoice.core.DreamVoice;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -22,7 +22,7 @@ public final class CodexServiceImpl implements CodexService {
     this.plugin = plugin;
     load();
 
-    if (this.codex.getVoiceWall().enabled())
+    if (this.codex.getVoiceWall() != null && this.codex.getVoiceWall().enabled())
       voiceWallService.setEnable(true);
   }
 
@@ -41,4 +41,6 @@ public final class CodexServiceImpl implements CodexService {
   public @NonNull Codex getConfig() {
     return this.codex;
   }
+
 }
+

@@ -1,22 +1,13 @@
 plugins {
-  id 'xyz.jpenilla.run-paper' version '2.3.1'
-  id 'com.github.johnrengelman.shadow' version '8.1.1'
+  id 'xyz.jpenilla.run-paper' version '3.1.0'
 }
 
 repositories {
   mavenCentral()
 }
 
-def paperVersion = "1.21.10-R0.1"
-def cloudCommandVersion = "1.8.4"
-
 dependencies {
   api project(":api")
-  compileOnly "io.papermc.paper:paper-api:$paperVersion-SNAPSHOT"
-
-  implementation("cloud.commandframework:cloud-paper:$cloudCommandVersion")
-  implementation("cloud.commandframework:cloud-annotations:$cloudCommandVersion")
-  //implementation files("../libs/voicechat.jar")
 }
 
 base {
@@ -29,24 +20,22 @@ tasks {
     manifest {
       attributes["Main-Class"] = "fr.dreamin.dreamvoice.core.DreamVoice"
     }
-
   }
 
   runServer {
-    minecraftVersion"1.21.10"
+    minecraftVersion("26.1.2")
   }
-
 }
 
 processResources {
   def props = [
     'version': version,
     'description': description,
-    'apiVersion': '1.21'
+    'apiVersion': '26.1'
   ]
   inputs.properties(props)
   filteringCharset 'UTF-8'
-  filesMatching('plugin-paper.yml') {
+  filesMatching('paper-plugin.yml') {
     expand(props)
   }
-}
+}

@@ -4,7 +4,7 @@ import cloud.commandframework.annotations.Argument;
 import cloud.commandframework.annotations.CommandDescription;
 import cloud.commandframework.annotations.CommandMethod;
 import cloud.commandframework.annotations.CommandPermission;
-import fr.dreamin.dreaminvoice.api.transmitter.service.VoiceTransmitterService;
+import fr.dreamin.dreamvoice.api.transmitter.service.VoiceTransmitterService;
 import fr.dreamin.dreamvoice.core.DreamVoice;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -25,8 +25,7 @@ public final class TransmitterCmd {
   @CommandMethod("transmitter enable")
   @CommandPermission("dreamvoice.transmitter.enable")
   @CommandDescription("Enable transmitter mode")
-  private void enable(CommandSender sender) {
-
+  private void enable(final @NotNull CommandSender sender) {
     if (!(sender instanceof Player player)) {
       sender.sendMessage(Component.text("Player only!", NamedTextColor.RED));
       return;
@@ -46,8 +45,7 @@ public final class TransmitterCmd {
   @CommandMethod("transmitter disable")
   @CommandPermission("dreamvoice.transmitter.disable")
   @CommandDescription("Disable transmitter mode")
-  private void disable(CommandSender sender) {
-
+  private void disable(final @NotNull CommandSender sender) {
     if (!(sender instanceof Player player)) {
       sender.sendMessage(Component.text("Player only!", NamedTextColor.RED));
       return;
@@ -68,11 +66,10 @@ public final class TransmitterCmd {
   @CommandPermission("dreamvoice.transmitter.modify")
   @CommandDescription("Add receiver with distance")
   private void addReceiver(
-    CommandSender sender,
-    @Argument("player") Player target,
-    @Argument("distance") double distance
+    final @NotNull CommandSender sender,
+    @Argument("player") final @NotNull Player target,
+    @Argument("distance") final double distance
   ) {
-
     if (!(sender instanceof Player player)) {
       sender.sendMessage(Component.text("Player only!", NamedTextColor.RED));
       return;
@@ -105,10 +102,9 @@ public final class TransmitterCmd {
   @CommandPermission("dreamvoice.transmitter.modify")
   @CommandDescription("Remove receiver")
   private void removeReceiver(
-    CommandSender sender,
-    @Argument("player") Player target
+    final @NotNull CommandSender sender,
+    @Argument("player") final @NotNull Player target
   ) {
-
     if (!(sender instanceof Player player)) {
       sender.sendMessage(Component.text("Player only!", NamedTextColor.RED));
       return;
@@ -129,8 +125,7 @@ public final class TransmitterCmd {
   @CommandMethod("transmitter list")
   @CommandPermission("dreamvoice.transmitter.list")
   @CommandDescription("List receivers")
-  private void list(CommandSender sender) {
-
+  private void list(final @NotNull CommandSender sender) {
     if (!(sender instanceof Player player)) {
       sender.sendMessage(Component.text("Player only!", NamedTextColor.RED));
       return;
@@ -154,7 +149,8 @@ public final class TransmitterCmd {
 
     for (final var config : receivers) {
       final var target = Bukkit.getPlayer(config.getUuid());
-      if (target == null) continue;
+      if (target == null)
+        continue;
 
       sender.sendMessage(
         Component.text("- ", NamedTextColor.GRAY)
@@ -164,4 +160,5 @@ public final class TransmitterCmd {
       );
     }
   }
-}
+
+}

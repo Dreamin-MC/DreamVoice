@@ -5,7 +5,11 @@ import org.jetbrains.annotations.NotNull;
 
 import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioSystem;
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -13,6 +17,8 @@ import java.net.http.HttpResponse;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.file.Files;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 public final class RawUtils {
 
@@ -22,26 +28,19 @@ public final class RawUtils {
     final var tempMp3 = Files.createTempFile("audio", ".mp3");
     try {
       Files.write(tempMp3, mp3Data);
-      System.out.println("🔍 Debug MP3: " + tempMp3.toFile().length() + " bytes");
 
-      try (var ais = AudioSystem.getAudioInputStream(tempMp3.toFile())) {
-        System.out.println("✅ MP3SPI OK: " + ais.getFormat());
-
+      try (final var ais = AudioSystem.getAudioInputStream(tempMp3.toFile())) {
         final var targetFormat = new AudioFormat(48000f, 16, 1, true, false);
-        try (var convertedAis = AudioSystem.getAudioInputStream(targetFormat, ais)) {
+        try (final var convertedAis = AudioSystem.getAudioInputStream(targetFormat, ais)) {
           final var buffer = new byte[4096];
           final var out = new ByteArrayOutputStream();
           int bytesRead;
-          while ((bytesRead = convertedAis.read(buffer)) != -1) {
+          while ((bytesRead = convertedAis.read(buffer)) != -1)
             out.write(buffer, 0, bytesRead);
-          }
-          System.out.println("✅ PCM: " + out.size() + " bytes");
           return out.toByteArray();
         }
       }
     } catch (Exception e) {
-      System.err.println("❌ MP3SPI fail: " + e.getMessage());
-      // FFmpeg automatique
       return urlToPcm48HzFFmpeg(mp3Data);
     } finally {
       Files.delete(tempMp3);
@@ -55,29 +54,23 @@ public final class RawUtils {
     try {
       Files.write(tempMp3, mp3Data);
 
-      // FFmpeg portable (copie plugins/ffmpeg.exe)
       final var ffmpeg = new File(DreamVoice.getInstance().getDataFolder(), "ffmpeg.exe").getAbsolutePath();
 
-      System.out.println(ffmpeg);
-
-      var pb = new ProcessBuilder(
+      final var pb = new ProcessBuilder(
         ffmpeg, "-y", "-i", tempMp3.toString(),
         "-ar", "48000", "-ac", "1", "-f", "s16le", tempPcm.toString()
       );
       pb.redirectErrorStream(true);
 
-      var process = pb.start();
-      var finished = process.waitFor(10, java.util.concurrent.TimeUnit.SECONDS);
+      final var process = pb.start();
+      final var finished = process.waitFor(10, TimeUnit.SECONDS);
 
       if (!finished || process.exitValue() != 0) {
-        var error = new BufferedReader(new InputStreamReader(process.getInputStream())).lines().collect(java.util.stream.Collectors.joining("\n"));
+        final var error = new BufferedReader(new InputStreamReader(process.getInputStream())).lines().collect(Collectors.joining("\n"));
         throw new IOException("FFmpeg failed: " + error);
       }
 
-      final var pcm = Files.readAllBytes(tempPcm);
-      System.out.println("✅ FFmpeg → " + pcm.length + " bytes PCM");
-      return pcm;
-
+      return Files.readAllBytes(tempPcm);
     } finally {
       Files.deleteIfExists(tempMp3);
       Files.deleteIfExists(tempPcm);
@@ -91,16 +84,15 @@ public final class RawUtils {
     if (response.statusCode() != 200)
       throw new IOException("HTTP error " + response.statusCode());
 
-    // Direct bytes → pas temp file !
     return mp3toPcm48Hz(response.body());
   }
 
-  public static byte[] generateBeep(double frequency, int durationMs) {
+  public static byte[] generateBeep(final double frequency, final int durationMs) {
     final var sampleRate = 48000;
     final var samples = sampleRate * durationMs / 1000;
     final var buffer = ByteBuffer.allocate(samples * 2).order(ByteOrder.LITTLE_ENDIAN);
 
-    for (var i = 0; i < samples; i++) {
+    for (int i = 0; i < samples; i++) {
       final var t = i / (double) sampleRate;
       final var sample = (short) (Math.sin(2 * Math.PI * frequency * t) * 16000);
       buffer.putShort(sample);
@@ -114,3 +106,4 @@ public final class RawUtils {
   }
 
 }
+

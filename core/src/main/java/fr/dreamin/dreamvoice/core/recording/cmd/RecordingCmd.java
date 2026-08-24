@@ -1,10 +1,13 @@
 package fr.dreamin.dreamvoice.core.recording.cmd;
 
-import cloud.commandframework.annotations.*;
+import cloud.commandframework.annotations.Argument;
+import cloud.commandframework.annotations.CommandDescription;
+import cloud.commandframework.annotations.CommandMethod;
+import cloud.commandframework.annotations.CommandPermission;
 import cloud.commandframework.annotations.suggestions.Suggestions;
 import cloud.commandframework.context.CommandContext;
-import fr.dreamin.dreaminvoice.api.recording.model.VoiceRecording;
-import fr.dreamin.dreaminvoice.api.recording.service.VoiceRecordingService;
+import fr.dreamin.dreamvoice.api.recording.model.VoiceRecording;
+import fr.dreamin.dreamvoice.api.recording.service.VoiceRecordingService;
 import fr.dreamin.dreamvoice.core.DreamVoice;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -26,7 +29,7 @@ public final class RecordingCmd {
   // ------------------------------------------------------------
 
   @Suggestions("recordings")
-  public @NotNull List<String> suggestRecordings(CommandContext<CommandSender> ctx, String input) {
+  public @NotNull List<String> suggestRecordings(final @NotNull CommandContext<CommandSender> ctx, final @NotNull String input) {
     return this.recordingService.getVoiceRecordings().stream()
       .map(rec -> rec.getUuid().toString().substring(0, 8))
       .filter(id -> id.startsWith(input.toLowerCase()))
@@ -41,9 +44,7 @@ public final class RecordingCmd {
   @CommandMethod("record start")
   @CommandPermission("dreamvoice.record.start")
   @CommandDescription("Start voice recording")
-  private void startRecording(
-    CommandSender sender
-  ) {
+  private void startRecording(final @NotNull CommandSender sender) {
     if (!(sender instanceof Player player)) {
       sender.sendMessage(Component.text("Player only!", NamedTextColor.RED));
       return;
@@ -62,21 +63,20 @@ public final class RecordingCmd {
   @CommandPermission("dreamvoice.record.stop")
   @CommandDescription("Stop recording (current or by ID)")
   private void stopRecording(
-    CommandSender sender,
-    @Argument("id") @Nullable String id
+    final @NotNull CommandSender sender,
+    @Argument("id") final @Nullable String id
   ) {
     if (id != null) {
       stopById(sender, id);
       return;
     }
-    if (sender instanceof Player player) {
+    if (sender instanceof Player player)
       stopCurrent(sender, player);
-    } else {
+    else
       sender.sendMessage(Component.text("Player only or provide ID!", NamedTextColor.RED));
-    }
   }
 
-  private void stopById(CommandSender sender, String id) {
+  private void stopById(final @NotNull CommandSender sender, final @NotNull String id) {
     try {
       final var uuid = parseRecordingId(id);
       this.recordingService.stopRecording(uuid);
@@ -89,7 +89,7 @@ public final class RecordingCmd {
     }
   }
 
-  private void stopCurrent(CommandSender sender, Player player) {
+  private void stopCurrent(final @NotNull CommandSender sender, final @NotNull Player player) {
     this.recordingService.getVoiceRecordings().stream()
       .filter(rec -> rec.getSpeakerUUID().equals(player.getUniqueId()))
       .filter(VoiceRecording::isRecording)
@@ -112,13 +112,8 @@ public final class RecordingCmd {
   @CommandMethod("record list")
   @CommandPermission("dreamvoice.record.list")
   @CommandDescription("List recordings")
-  private void listRecordings(CommandSender sender) {
+  private void listRecordings(final @NotNull CommandSender sender) {
     final var recordings = this.recordingService.getVoiceRecordings();
-
-//    .stream()
-//      .sorted(Comparator.comparing(VoiceRecording::getEndTime, Comparator.nullsLast(Comparator.reverseOrder())))
-//      .limit(10)
-//      .toList();
 
     if (recordings.isEmpty()) {
       sender.sendMessage(Component.text("No recordings found", NamedTextColor.GRAY));
@@ -146,9 +141,9 @@ public final class RecordingCmd {
   @CommandPermission("dreamvoice.record.play")
   @CommandDescription("Play recording")
   private void playRecording(
-    CommandSender sender,
-    @Argument(value = "id", suggestions = "recordings") String id,
-    @Argument("player") @Nullable Player target
+    final @NotNull CommandSender sender,
+    @Argument(value = "id", suggestions = "recordings") final @NotNull String id,
+    @Argument("player") final @Nullable Player target
   ) {
     if (!(sender instanceof Player)) {
       sender.sendMessage(Component.text("Player only!", NamedTextColor.RED));
@@ -186,7 +181,6 @@ public final class RecordingCmd {
           .append(Component.text(String.format("%.1fs", rec.getDurationSeconds()), NamedTextColor.GRAY))
           .append(Component.text(")", NamedTextColor.GRAY))
       );
-
     } catch (Exception e) {
       sender.sendMessage(
         Component.text("Error: ", NamedTextColor.RED)
@@ -199,8 +193,8 @@ public final class RecordingCmd {
   @CommandPermission("dreamvoice.record.delete")
   @CommandDescription("Delete recording")
   private void deleteRecording(
-    CommandSender sender,
-    @Argument(value = "id", suggestions = "recordings") String id
+    final @NotNull CommandSender sender,
+    @Argument(value = "id", suggestions = "recordings") final @NotNull String id
   ) {
     try {
       final var uuid = parseRecordingId(id);
@@ -218,8 +212,7 @@ public final class RecordingCmd {
   // Utils
   // ------------------------------------------------------------
 
-  private @NotNull UUID parseRecordingId(String id) {
-    // Simple heuristic: if length is 8, try to find matching UUID in existing recordings
+  private @NotNull UUID parseRecordingId(final @NotNull String id) {
     if (id.length() == 8) {
       return this.recordingService.getVoiceRecordings().stream()
         .map(VoiceRecording::getUuid)
@@ -230,13 +223,14 @@ public final class RecordingCmd {
     return UUID.fromString(id);
   }
 
-  private @NotNull Component getStatusComponent(VoiceRecording rec) {
-    if (rec.isRecording()) {
+  private @NotNull Component getStatusComponent(final @NotNull VoiceRecording rec) {
+    if (rec.isRecording())
       return Component.text("[LIVE] ", NamedTextColor.RED);
-    } else if (rec.isFinished()) {
+    else if (rec.isFinished())
       return Component.text("[DONE] ", NamedTextColor.GREEN)
         .append(Component.text(String.format("%.1fs ", rec.getDurationSeconds()), NamedTextColor.AQUA));
-    }
     return Component.text("[WAIT] ", NamedTextColor.GRAY);
   }
+
 }
+

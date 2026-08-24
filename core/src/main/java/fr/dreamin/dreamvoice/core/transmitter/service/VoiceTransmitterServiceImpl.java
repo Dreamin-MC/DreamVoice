@@ -2,19 +2,23 @@ package fr.dreamin.dreamvoice.core.transmitter.service;
 
 import de.maxhenkel.voicechat.api.VoicechatServerApi;
 import de.maxhenkel.voicechat.api.VolumeCategory;
-import fr.dreamin.dreaminvoice.api.transmitter.model.ReceiverConfig;
-import fr.dreamin.dreaminvoice.api.transmitter.service.VoiceTransmitterService;
-import fr.dreamin.dreaminvoice.api.voice.event.MicrophonePacketEvent;
+import fr.dreamin.dreamvoice.api.transmitter.model.ReceiverConfig;
+import fr.dreamin.dreamvoice.api.transmitter.service.VoiceTransmitterService;
+import fr.dreamin.dreamvoice.api.voice.event.MicrophonePacketEvent;
 import fr.dreamin.dreamvoice.core.DreamVoice;
 import lombok.RequiredArgsConstructor;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.jetbrains.annotations.NotNull;
 import org.jspecify.annotations.NonNull;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 @RequiredArgsConstructor
@@ -30,7 +34,7 @@ public final class VoiceTransmitterServiceImpl implements VoiceTransmitterServic
   // --------------------- CONSTRUCTOR METHODS ---------------------
   // ###############################################################
 
-  public VoiceTransmitterServiceImpl(@NotNull DreamVoice plugin) {
+  public VoiceTransmitterServiceImpl(final @NotNull DreamVoice plugin) {
     this.plugin = plugin;
 
     Bukkit.getPluginManager().registerEvents(this, plugin);
@@ -46,7 +50,7 @@ public final class VoiceTransmitterServiceImpl implements VoiceTransmitterServic
   }
 
   @Override
-  public void init(@NotNull VoicechatServerApi api) {
+  public void init(final @NotNull VoicechatServerApi api) {
     this.api = api;
 
     this.volumeCategory = this.api.volumeCategoryBuilder()
@@ -63,32 +67,32 @@ public final class VoiceTransmitterServiceImpl implements VoiceTransmitterServic
   // ------------------------------------------------
 
   @Override
-  public boolean isTransmitter(@NotNull Player player) {
+  public boolean isTransmitter(final @NotNull Player player) {
     return isTransmitter(player.getUniqueId());
   }
 
   @Override
-  public boolean isTransmitter(@NotNull UUID uuid) {
+  public boolean isTransmitter(final @NotNull UUID uuid) {
     return this.transmitters.containsKey(uuid);
   }
 
   @Override
-  public void createTransmitter(@NotNull Player player) {
+  public void createTransmitter(final @NotNull Player player) {
     createTransmitter(player.getUniqueId());
   }
 
   @Override
-  public void createTransmitter(@NotNull UUID uuid) {
+  public void createTransmitter(final @NotNull UUID uuid) {
     this.transmitters.putIfAbsent(uuid, new ConcurrentHashMap<>());
   }
 
   @Override
-  public void removeTransmitter(@NotNull Player player) {
+  public void removeTransmitter(final @NotNull Player player) {
     removeTransmitter(player.getUniqueId());
   }
 
   @Override
-  public void removeTransmitter(@NotNull UUID uuid) {
+  public void removeTransmitter(final @NotNull UUID uuid) {
     this.transmitters.remove(uuid);
   }
 
@@ -97,41 +101,42 @@ public final class VoiceTransmitterServiceImpl implements VoiceTransmitterServic
   // ------------------------------------------------
 
   @Override
-  public @NotNull Collection<ReceiverConfig> getReceivers(@NotNull Player player) {
+  public @NotNull Collection<ReceiverConfig> getReceivers(final @NotNull Player player) {
     return getReceivers(player.getUniqueId());
   }
 
   @Override
-  public @NotNull Collection<ReceiverConfig> getReceivers(@NotNull UUID uuid) {
+  public @NotNull Collection<ReceiverConfig> getReceivers(final @NotNull UUID uuid) {
     return this.transmitters.getOrDefault(uuid, Collections.emptyMap()).values();
   }
 
   @Override
-  public void addReceiver(@NotNull Player transmitter, @NotNull Player receiver, double maxDistance) {
+  public void addReceiver(final @NotNull Player transmitter, final @NotNull Player receiver, final double maxDistance) {
     addReceiver(transmitter.getUniqueId(), receiver.getUniqueId(), maxDistance);
   }
 
   @Override
-  public void addReceiver(@NotNull UUID transmitter, @NotNull UUID receiver, double maxDistance) {
+  public void addReceiver(final @NotNull UUID transmitter, final @NotNull UUID receiver, final double maxDistance) {
     this.transmitters.computeIfAbsent(transmitter, k -> new ConcurrentHashMap<>())
       .put(receiver, new ReceiverConfig(receiver, maxDistance));
   }
 
   @Override
-  public void addReceiver(@NotNull UUID transmitter, @NotNull ReceiverConfig receiverConfig) {
+  public void addReceiver(final @NotNull UUID transmitter, final @NotNull ReceiverConfig receiverConfig) {
     this.transmitters.computeIfAbsent(transmitter, k -> new ConcurrentHashMap<>())
       .put(receiverConfig.getUuid(), receiverConfig);
   }
 
   @Override
-  public void removeReceiver(@NotNull Player transmitter, @NotNull Player receiver) {
+  public void removeReceiver(final @NotNull Player transmitter, final @NotNull Player receiver) {
     removeReceiver(transmitter.getUniqueId(), receiver.getUniqueId());
   }
 
   @Override
-  public void removeReceiver(@NotNull UUID transmitter, @NotNull UUID receiver) {
+  public void removeReceiver(final @NotNull UUID transmitter, final @NotNull UUID receiver) {
     final var map = this.transmitters.get(transmitter);
-    if (map == null) return;
+    if (map == null)
+      return;
 
     map.remove(receiver);
     if (map.isEmpty())
@@ -139,38 +144,42 @@ public final class VoiceTransmitterServiceImpl implements VoiceTransmitterServic
   }
 
   @Override
-  public void clearReceivers(@NotNull Player transmitter) {
+  public void clearReceivers(final @NotNull Player transmitter) {
     clearReceivers(transmitter.getUniqueId());
   }
 
   @Override
-  public void clearReceivers(@NotNull UUID transmitter) {
+  public void clearReceivers(final @NotNull UUID transmitter) {
     final var map = this.transmitters.get(transmitter);
     if (map != null)
       map.clear();
   }
 
+  // ------------------------------------------------
+  // Global Operations
+  // ------------------------------------------------
+
   @Override
-  public void addReceiverToAll(@NotNull Player receiver, double maxDistance) {
+  public void addReceiverToAll(final @NotNull Player receiver, final double maxDistance) {
     addReceiverToAll(receiver.getUniqueId(), maxDistance);
   }
 
   @Override
-  public void addReceiverToAll(@NotNull UUID receiver, double maxDistance) {
+  public void addReceiverToAll(final @NotNull UUID receiver, final double maxDistance) {
     this.transmitters.forEach((transmitter, map) -> {
-      if (transmitter == receiver) return;
+      if (transmitter == receiver)
+        return;
       map.put(receiver, new ReceiverConfig(receiver, maxDistance));
-    }
-    );
+    });
   }
 
   @Override
-  public void removeReceiverFromAll(@NotNull Player receiver) {
+  public void removeReceiverFromAll(final @NotNull Player receiver) {
     removeReceiverFromAll(receiver.getUniqueId());
   }
 
   @Override
-  public void removeReceiverFromAll(@NotNull UUID receiver) {
+  public void removeReceiverFromAll(final @NotNull UUID receiver) {
     this.transmitters.forEach((transmitter, map) -> map.remove(receiver));
   }
 
@@ -179,43 +188,55 @@ public final class VoiceTransmitterServiceImpl implements VoiceTransmitterServic
   // ###############################################################
 
   @EventHandler
-  private void onMicrophone(@NotNull MicrophonePacketEvent event) {
-
+  private void onMicrophone(final @NotNull MicrophonePacketEvent event) {
     final var senderConnection = event.getSender();
-    if (senderConnection == null) return;
+    if (senderConnection == null)
+      return;
 
     final var senderUuid = senderConnection.getPlayer().getUuid();
-    final var receivers = transmitters.get(senderUuid);
+    final var receivers = this.transmitters.get(senderUuid);
 
-    if (receivers == null || receivers.isEmpty()) return;
+    if (receivers == null || receivers.isEmpty())
+      return;
 
     final var senderPlayer = Bukkit.getPlayer(senderUuid);
-    if (senderPlayer == null) return;
+    if (senderPlayer == null)
+      return;
 
     final var senderLocation = senderPlayer.getLocation();
 
-    final var channel = api.createStaticAudioChannel(UUID.randomUUID());
-    if (channel == null) return;
+    final var channel = this.api.createStaticAudioChannel(UUID.randomUUID());
+    if (channel == null)
+      return;
 
-    channel.setCategory(volumeCategory.getId());
+    channel.setCategory(this.volumeCategory.getId());
 
     for (final var config : receivers.values()) {
-
       final var receiverPlayer = Bukkit.getPlayer(config.getUuid());
-      if (receiverPlayer == null) continue;
+      if (receiverPlayer == null)
+        continue;
 
-      if (!receiverPlayer.getWorld().equals(senderLocation.getWorld())) continue;
+      if (!receiverPlayer.getWorld().equals(senderLocation.getWorld()))
+        continue;
 
       if (senderLocation.distanceSquared(receiverPlayer.getLocation()) > config.getMaxDistance() * config.getMaxDistance())
         continue;
 
-      var receiverConnection = api.getConnectionOf(config.getUuid());
-      if (receiverConnection == null) continue;
+      final var receiverConnection = this.api.getConnectionOf(config.getUuid());
+      if (receiverConnection == null)
+        continue;
 
       channel.addTarget(receiverConnection);
     }
 
     channel.send(event.getPacket());
+  }
+
+  @EventHandler
+  private void onPlayerQuit(final @NotNull PlayerQuitEvent event) {
+    final var uuid = event.getPlayer().getUniqueId();
+    this.transmitters.remove(uuid);
+    removeReceiverFromAll(uuid);
   }
 
 }

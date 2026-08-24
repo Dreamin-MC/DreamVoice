@@ -1,12 +1,15 @@
 package fr.dreamin.dreamvoice.core.cmd;
 
-import cloud.commandframework.annotations.*;
+import cloud.commandframework.annotations.Argument;
+import cloud.commandframework.annotations.CommandMethod;
+import cloud.commandframework.annotations.CommandPermission;
 import cloud.commandframework.annotations.suggestions.Suggestions;
 import cloud.commandframework.context.CommandContext;
-import fr.dreamin.dreaminvoice.api.player.model.PlayerState;
-import fr.dreamin.dreaminvoice.api.player.service.PlayerService;
-import fr.dreamin.dreaminvoice.api.voice.model.VoiceSoundBuilder;
-import fr.dreamin.dreaminvoice.api.voice.service.VoiceService;
+import fr.dreamin.dreamvoice.api.codex.service.CodexService;
+import fr.dreamin.dreamvoice.api.player.model.PlayerState;
+import fr.dreamin.dreamvoice.api.player.service.PlayerService;
+import fr.dreamin.dreamvoice.api.voice.model.VoiceSoundBuilder;
+import fr.dreamin.dreamvoice.api.voice.service.VoiceService;
 import fr.dreamin.dreamvoice.core.DreamVoice;
 import fr.dreamin.dreamvoice.core.utils.RawUtils;
 import net.kyori.adventure.text.Component;
@@ -15,9 +18,13 @@ import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
-import java.util.concurrent.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 
 public final class DebugCmd {
 
@@ -34,7 +41,7 @@ public final class DebugCmd {
   // ------------------------------------------------------------
 
   @Suggestions("player_state")
-  public List<String> suggState(CommandContext<CommandSender> ctx, String in) {
+  public List<String> suggState(final @NotNull CommandContext<CommandSender> ctx, final @NotNull String in) {
     return List.of("alive", "dead", "spec");
   }
 
@@ -42,14 +49,14 @@ public final class DebugCmd {
   // Utils
   // ------------------------------------------------------------
 
-  private Runnable stopped(CommandSender sender, String label) {
+  private Runnable stopped(final @NotNull CommandSender sender, final @NotNull String label) {
     return () -> sender.sendMessage(
       Component.text("[SVC] fini: ", NamedTextColor.GRAY)
         .append(Component.text(label, NamedTextColor.YELLOW))
     );
   }
 
-  private PlayerState parseState(String raw) {
+  private PlayerState parseState(final @NotNull String raw) {
     return switch (raw.toLowerCase()) {
       case "alive" -> PlayerState.ALIVE;
       case "dead" -> PlayerState.DEAD;
@@ -65,16 +72,17 @@ public final class DebugCmd {
   @CommandMethod("voice playsound beep-global <freq> [ms]")
   @CommandPermission("dreamvoice.cmd.debug")
   private void beepGlobal(
-    CommandSender sender,
-    @Argument("freq") int freq,
-    @Argument("ms") Integer ms
+    final @NotNull CommandSender sender,
+    @Argument("freq") final int freq,
+    @Argument("ms") final @Nullable Integer ms
   ) {
-    if (!(sender instanceof Player)) return;
+    if (!(sender instanceof Player))
+      return;
 
-    int duration = ms == null ? 2000 : ms;
-    var raw = RawUtils.generateBeep(freq, duration);
+    final var duration = ms == null ? 2000 : ms;
+    final var raw = RawUtils.generateBeep(freq, duration);
 
-    voiceService.playSound(
+    this.voiceService.playSound(
       VoiceSoundBuilder.builder()
         .rawAudioData(raw)
         .onStopped(stopped(sender, "beep-global"))
@@ -85,20 +93,21 @@ public final class DebugCmd {
   @CommandMethod("voice playsound beep-loc <freq> [ms] [distance]")
   @CommandPermission("dreamvoice.cmd.debug")
   private void beepLoc(
-    CommandSender sender,
-    @Argument("freq") int freq,
-    @Argument("ms") Integer ms,
-    @Argument("distance") Float distance
+    final @NotNull CommandSender sender,
+    @Argument("freq") final int freq,
+    @Argument("ms") final @Nullable Integer ms,
+    @Argument("distance") final @Nullable Float distance
   ) {
-    if (!(sender instanceof Player player)) return;
+    if (!(sender instanceof Player player))
+      return;
 
-    int duration = ms == null ? 2000 : ms;
-    float dist = distance == null ? 16f : distance;
+    final var duration = ms == null ? 2000 : ms;
+    final var dist = distance == null ? 16f : distance;
 
-    var raw = RawUtils.generateBeep(freq, duration);
-    var loc = player.getLocation().clone().add(0, 1.6, 0);
+    final var raw = RawUtils.generateBeep(freq, duration);
+    final var loc = player.getLocation().clone().add(0, 1.6, 0);
 
-    voiceService.playSound(
+    this.voiceService.playSound(
       VoiceSoundBuilder.builder()
         .rawAudioData(raw)
         .location(loc)
@@ -115,10 +124,11 @@ public final class DebugCmd {
   @CommandMethod("voice playsound url-global <url>")
   @CommandPermission("dreamvoice.cmd.debug")
   private void urlGlobal(
-    CommandSender sender,
-    @Argument("url") String url
+    final @NotNull CommandSender sender,
+    @Argument("url") final @NotNull String url
   ) {
-    if (!(sender instanceof Player)) return;
+    if (!(sender instanceof Player))
+      return;
 
     sender.sendMessage(
       Component.text("[SVC] Download + convert…", NamedTextColor.GRAY)
@@ -135,7 +145,7 @@ public final class DebugCmd {
       .thenAccept(raw ->
         Bukkit.getScheduler().runTask(
           DreamVoice.getInstance(),
-          () -> voiceService.playSound(
+          () -> this.voiceService.playSound(
             VoiceSoundBuilder.builder()
               .rawAudioData(raw)
               .onStopped(stopped(sender, "url-global"))
@@ -159,14 +169,15 @@ public final class DebugCmd {
   @CommandMethod("voice playsound url-loc <url> [distance]")
   @CommandPermission("dreamvoice.cmd.debug")
   private void urlLoc(
-    CommandSender sender,
-    @Argument("url") String url,
-    @Argument("distance") Float distance
+    final @NotNull CommandSender sender,
+    @Argument("url") final @NotNull String url,
+    @Argument("distance") final @Nullable Float distance
   ) {
-    if (!(sender instanceof Player player)) return;
+    if (!(sender instanceof Player player))
+      return;
 
-    float dist = distance == null ? 16f : distance;
-    var loc = player.getLocation().clone().add(0, 1.6, 0);
+    final var dist = distance == null ? 16f : distance;
+    final var loc = player.getLocation().clone().add(0, 1.6, 0);
 
     sender.sendMessage(
       Component.text("[SVC] Download + convert…", NamedTextColor.GRAY)
@@ -183,7 +194,7 @@ public final class DebugCmd {
       .thenAccept(raw ->
         Bukkit.getScheduler().runTask(
           DreamVoice.getInstance(),
-          () -> voiceService.playSound(
+          () -> this.voiceService.playSound(
             VoiceSoundBuilder.builder()
               .rawAudioData(raw)
               .location(loc)
@@ -209,10 +220,11 @@ public final class DebugCmd {
   @CommandMethod("voice state self <state>")
   @CommandPermission("dreamvoice.cmd.debug")
   private void setSelfState(
-    CommandSender sender,
-    @Argument(value = "state", suggestions = "player_state") String raw
+    final @NotNull CommandSender sender,
+    @Argument(value = "state", suggestions = "player_state") final @NotNull String raw
   ) {
-    if (!(sender instanceof Player player)) return;
+    if (!(sender instanceof Player player))
+      return;
 
     final var state = parseState(raw);
     if (state == null) {
@@ -232,9 +244,9 @@ public final class DebugCmd {
   @CommandMethod("voice state player <player> <state>")
   @CommandPermission("dreamvoice.cmd.debug")
   private void setPlayerState(
-    CommandSender sender,
-    @Argument("player") Player target,
-    @Argument(value = "state", suggestions = "player_state") String raw
+    final @NotNull CommandSender sender,
+    @Argument("player") final @NotNull Player target,
+    @Argument(value = "state", suggestions = "player_state") final @NotNull String raw
   ) {
     final var state = parseState(raw);
     if (state == null) {
@@ -256,8 +268,8 @@ public final class DebugCmd {
   @CommandMethod("voice state reset <player>")
   @CommandPermission("dreamvoice.cmd.debug")
   private void resetState(
-    CommandSender sender,
-    @Argument("player") Player target
+    final @NotNull CommandSender sender,
+    @Argument("player") final @NotNull Player target
   ) {
     this.playerService.setState(PlayerState.ALIVE, target.getUniqueId());
     sender.sendMessage(
@@ -269,13 +281,11 @@ public final class DebugCmd {
   @CommandMethod("voice state get <player>")
   @CommandPermission("dreamvoice.cmd.debug")
   private void getState(
-    CommandSender sender,
-    @Argument("player") Player target
+    final @NotNull CommandSender sender,
+    @Argument("player") final @NotNull Player target
   ) {
-    final var state =
-      this.playerService.isState(target.getUniqueId(), PlayerState.DEAD)
-        ? PlayerState.DEAD
-        : PlayerState.ALIVE;
+    final var vPlayer = this.playerService.getPlayer(target);
+    final var state = vPlayer != null ? vPlayer.getState() : PlayerState.ALIVE;
 
     sender.sendMessage(
       Component.text("[SVC] Etat vocal de ", NamedTextColor.GRAY)
@@ -284,4 +294,28 @@ public final class DebugCmd {
         .append(Component.text(state.name(), NamedTextColor.AQUA))
     );
   }
+
+  // ###############################################################
+  // ----------------------- RELOAD COMMAND ------------------------
+  // ###############################################################
+
+  @CommandMethod("voice reload")
+  @CommandPermission("dreamvoice.cmd.debug")
+  private void reloadConfig(final @NotNull CommandSender sender) {
+    try {
+      DreamVoice.getService(CodexService.class).load();
+      sender.sendMessage(
+        Component.text("[SVC] Configuration rechargée avec succès !", NamedTextColor.GREEN)
+      );
+    } catch (Exception e) {
+      sender.sendMessage(
+        Component.text("[SVC] Erreur lors du rechargement de la config: ", NamedTextColor.RED)
+          .append(Component.text(e.getMessage() != null ? e.getMessage() : "Inconnue", NamedTextColor.GRAY))
+      );
+    }
+  }
+
+
 }
+
+

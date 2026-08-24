@@ -4,6 +4,7 @@
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/api/DreamVoice.api.main.iml" filepath="$PROJECT_DIR$/.idea/modules/api/DreamVoice.api.main.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/core/DreamVoice.core.main.iml" filepath="$PROJECT_DIR$/.idea/modules/core/DreamVoice.core.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/DreamVoice.main.iml" filepath="$PROJECT_DIR$/.idea/modules/DreamVoice.main.iml" />
     </modules>
   </component>
 </project>

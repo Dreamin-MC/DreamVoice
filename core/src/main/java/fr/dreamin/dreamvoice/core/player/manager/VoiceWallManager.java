@@ -1,8 +1,8 @@
 package fr.dreamin.dreamvoice.core.player.manager;
 
 import fr.dreamin.dreamapi.api.annotations.Inject;
-import fr.dreamin.dreaminvoice.api.player.model.PlayerManager;
-import fr.dreamin.dreaminvoice.api.player.model.VPlayer;
+import fr.dreamin.dreamvoice.api.player.model.PlayerManager;
+import fr.dreamin.dreamvoice.api.player.model.VPlayer;
 import lombok.Getter;
 import lombok.Setter;
 import org.jetbrains.annotations.NotNull;
@@ -23,8 +23,10 @@ public final class VoiceWallManager extends PlayerManager {
 
   private double lastX, lastY, lastZ;
   private long lastPositionUpdate = 0;
+  private boolean moved = false;
 
   private int raycastCount = 0;
+
   private int cacheHits = 0;
   private long lastRaycastTime = 0;
 
@@ -32,7 +34,7 @@ public final class VoiceWallManager extends PlayerManager {
   // --------------------- CONSTRUCTOR METHODS ---------------------
   // ###############################################################
 
-  public VoiceWallManager(@NotNull VPlayer gamePlayer) {
+  public VoiceWallManager(final @NotNull VPlayer gamePlayer) {
     super(gamePlayer);
 
     updatePosition();
@@ -59,7 +61,8 @@ public final class VoiceWallManager extends PlayerManager {
 
   public void updatePosition() {
     final var player = this.vPlayer.getBukkitPlayer();
-    if (player == null || !player.isOnline()) return;
+    if (player == null || !player.isOnline())
+      return;
 
     this.lastX = player.getX();
     this.lastY = player.getY();
@@ -67,18 +70,19 @@ public final class VoiceWallManager extends PlayerManager {
     this.lastPositionUpdate = System.currentTimeMillis();
   }
 
-  public boolean hasMovedSignificantly(double threshold) {
+  public boolean hasMovedSignificantly(final double threshold) {
     final var player = this.vPlayer.getBukkitPlayer();
-    if (player == null || !player.isOnline()) return false;
+    if (player == null || !player.isOnline())
+      return false;
 
-    double currentX = player.getX();
-    double currentY = player.getY();
-    double currentZ = player.getZ();
+    final var currentX = player.getX();
+    final var currentY = player.getY();
+    final var currentZ = player.getZ();
 
-    double distance = Math.sqrt(
-      Math.pow(currentX - lastX, 2) +
-        Math.pow(currentY - lastY, 2) +
-        Math.pow(currentZ - lastZ, 2)
+    final var distance = Math.sqrt(
+      Math.pow(currentX - this.lastX, 2) +
+        Math.pow(currentY - this.lastY, 2) +
+        Math.pow(currentZ - this.lastZ, 2)
     );
 
     return distance > threshold;
@@ -93,7 +97,6 @@ public final class VoiceWallManager extends PlayerManager {
   }
 
   public boolean canHear(final @NotNull VPlayer speaker) {
-
     final var info = this.blockedPlayers.get(speaker.getUuid());
     return info == null || !info.canHear();
   }
@@ -130,8 +133,8 @@ public final class VoiceWallManager extends PlayerManager {
   }
 
   public double getCacheHitRatio() {
-    int totalRequests = raycastCount + cacheHits;
-    return totalRequests > 0 ? (double) cacheHits / totalRequests : 0.0;
+    final var totalRequests = this.raycastCount + this.cacheHits;
+    return totalRequests > 0 ? (double) this.cacheHits / totalRequests : 0.0;
   }
 
   public void resetStats() {
@@ -142,7 +145,7 @@ public final class VoiceWallManager extends PlayerManager {
 
   public String getStatsString() {
     return String.format("RayCasts: %d, Cache hits: %d, Hit ratio: %.2f%%",
-      raycastCount, cacheHits, getCacheHitRatio() * 100);
+      this.raycastCount, this.cacheHits, getCacheHitRatio() * 100);
   }
 
   // ###############################################################
@@ -150,6 +153,7 @@ public final class VoiceWallManager extends PlayerManager {
   // ###############################################################
 
   public record WallBlockInfo(double totalAttenuationDb, WallBlockReason reason) {
+
     public boolean isWallBlocked() {
       return this.reason == WallBlockReason.WALL;
     }
@@ -166,3 +170,4 @@ public final class VoiceWallManager extends PlayerManager {
   }
 
 }
+

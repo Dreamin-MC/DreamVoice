@@ -3,11 +3,11 @@ package fr.dreamin.dreamvoice.core.player.service;
 import fr.dreamin.dreamapi.api.annotations.Inject;
 import fr.dreamin.dreamapi.api.logger.DreamLogger;
 import fr.dreamin.dreamapi.api.services.DreamService;
-import fr.dreamin.dreaminvoice.api.player.model.PlayerManager;
-import fr.dreamin.dreaminvoice.api.player.model.PlayerState;
-import fr.dreamin.dreaminvoice.api.player.model.VPlayer;
-import fr.dreamin.dreaminvoice.api.player.service.PlayerService;
-import fr.dreamin.dreaminvoice.api.voice.service.VoiceService;
+import fr.dreamin.dreamvoice.api.player.model.PlayerManager;
+import fr.dreamin.dreamvoice.api.player.model.PlayerState;
+import fr.dreamin.dreamvoice.api.player.model.VPlayer;
+import fr.dreamin.dreamvoice.api.player.service.PlayerService;
+import fr.dreamin.dreamvoice.api.voice.service.VoiceService;
 import fr.dreamin.dreamvoice.core.DreamVoice;
 import fr.dreamin.dreamvoice.core.player.manager.VoiceWallManager;
 import org.bukkit.Bukkit;
@@ -15,6 +15,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -22,7 +23,10 @@ import org.jspecify.annotations.NonNull;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
-import java.util.*;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
 
 public final class PlayerServiceImpl implements PlayerService, Listener {
 
@@ -49,7 +53,7 @@ public final class PlayerServiceImpl implements PlayerService, Listener {
   }
 
   @Override
-  public @Nullable VPlayer getPlayer(@NotNull Player player) {
+  public @Nullable VPlayer getPlayer(final @NotNull Player player) {
     return this.players.values().stream()
       .filter(v -> v.getUuid().equals(player.getUniqueId()))
       .findFirst()
@@ -57,7 +61,7 @@ public final class PlayerServiceImpl implements PlayerService, Listener {
   }
 
   @Override
-  public @Nullable VPlayer getPlayer(@NotNull UUID uuid) {
+  public @Nullable VPlayer getPlayer(final @NotNull UUID uuid) {
     return this.players.values().stream()
       .filter(v -> v.getUuid().equals(uuid))
       .findFirst()
@@ -65,42 +69,46 @@ public final class PlayerServiceImpl implements PlayerService, Listener {
   }
 
   @Override
-  public void addPlayer(@NotNull VPlayer vPlayer) {
+  public void addPlayer(final @NotNull VPlayer vPlayer) {
     addManager(vPlayer, VoiceWallManager.class);
     this.players.putIfAbsent(vPlayer.getUuid(), vPlayer);
   }
 
   @Override
-  public void removePlayer(@NotNull VPlayer vPlayer) {
+  public void removePlayer(final @NotNull VPlayer vPlayer) {
+    vPlayer.removeAllManager();
     this.players.remove(vPlayer.getUuid());
   }
 
   @Override
-  public void setState(@NotNull PlayerState state, @NotNull Player player) {
+  public void setState(final @NotNull PlayerState state, final @NotNull Player player) {
     final var vPlayer = getPlayer(player);
-    if (vPlayer == null) return;
+    if (vPlayer == null)
+      return;
 
     vPlayer.setState(state);
   }
 
   @Override
-  public void setState(@NotNull PlayerState state, @NotNull UUID uuid) {
+  public void setState(final @NotNull PlayerState state, final @NotNull UUID uuid) {
     final var vPlayer = getPlayer(uuid);
-    if (vPlayer == null) return;
+    if (vPlayer == null)
+      return;
 
     vPlayer.setState(state);
   }
 
   @Override
-  public boolean isState(@NotNull UUID uuid, @NotNull PlayerState state) {
+  public boolean isState(final @NotNull UUID uuid, final @NotNull PlayerState state) {
     final var player = getPlayer(uuid);
-    if (player == null) return false;
+    if (player == null)
+      return false;
 
     return player.getState() == state;
   }
 
   @Override
-  public @NotNull PlayerManager createManagerInstance(@NotNull VPlayer vPlayer, @NotNull Class<? extends PlayerManager> clazz) {
+  public @NotNull PlayerManager createManagerInstance(final @NotNull VPlayer vPlayer, final @NotNull Class<? extends PlayerManager> clazz) {
     try {
       final var ctor = resolveConstructor(clazz);
       final var args = resolveConstructorArgs(ctor, vPlayer);
@@ -117,28 +125,26 @@ public final class PlayerServiceImpl implements PlayerService, Listener {
   }
 
   @Override
-  public void addManager(@NotNull VPlayer vPlayer, @NotNull Class<? extends PlayerManager> clazz) {
+  public void addManager(final @NotNull VPlayer vPlayer, final @NotNull Class<? extends PlayerManager> clazz) {
     final var manager = createManagerInstance(vPlayer, clazz);
     vPlayer.addManager(manager);
   }
 
   @Override
-  public void addManager(@NotNull VPlayer vPlayer, @NonNull @NotNull Class<? extends PlayerManager>... classes) {
-    for (final var clazz : classes) {
+  public void addManager(final @NotNull VPlayer vPlayer, final @NonNull @NotNull Class<? extends PlayerManager>... classes) {
+    for (final var clazz : classes)
       addManager(vPlayer, clazz);
-    }
   }
 
   @Override
-  public @Nullable PlayerManager getManager(@NotNull VPlayer vPlayer, @NotNull Class<? extends PlayerManager> clazz) {
+  public @Nullable PlayerManager getManager(final @NotNull VPlayer vPlayer, final @NotNull Class<? extends PlayerManager> clazz) {
     return vPlayer.getManager(clazz);
   }
 
   @Override
-  public void removeManager(@NotNull VPlayer vPlayer, @NotNull Class<? extends PlayerManager> clazz) {
+  public void removeManager(final @NotNull VPlayer vPlayer, final @NotNull Class<? extends PlayerManager> clazz) {
     vPlayer.removeManager(clazz);
   }
-
 
   // ###############################################################
   // ----------------------- PRIVATE METHODS -----------------------
@@ -153,7 +159,6 @@ public final class PlayerServiceImpl implements PlayerService, Listener {
         return c;
       }
     }
-
 
     if (clazz.isAnnotationPresent(Inject.class)) {
       var best = constructors[0];
@@ -198,7 +203,7 @@ public final class PlayerServiceImpl implements PlayerService, Listener {
     final var params = constructor.getParameterTypes();
     final var args = new Object[params.length];
 
-    for (var i = 0; i < params.length; i++) {
+    for (int i = 0; i < params.length; i++) {
       final var param = params[i];
 
       // Inject Plugin
@@ -245,9 +250,9 @@ public final class PlayerServiceImpl implements PlayerService, Listener {
   private void onPlayerJoin(final @NotNull PlayerJoinEvent event) {
     final var player = event.getPlayer();
 
-
     Bukkit.getScheduler().runTaskLater(this.plugin, () -> {
-      if (!player.isOnline()) return;
+      if (!player.isOnline())
+        return;
 
       final var service = DreamVoice.getService(VoiceService.class);
       final var client = service.getAPI().getConnectionOf(player.getUniqueId());
@@ -256,7 +261,17 @@ public final class PlayerServiceImpl implements PlayerService, Listener {
 
       addPlayer(vPlayer);
     }, 10);
+  }
 
+  @EventHandler
+  private void onPlayerQuit(final @NotNull PlayerQuitEvent event) {
+    final var vPlayer = getPlayer(event.getPlayer());
+    if (vPlayer == null)
+      return;
+
+    removePlayer(vPlayer);
   }
 
 }
+
+

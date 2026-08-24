@@ -1,30 +1,28 @@
 package fr.dreamin.dreamvoice.core.utils.raycast;
 
-import fr.dreamin.dreaminvoice.api.codex.model.Codex;
-import fr.dreamin.dreaminvoice.api.codex.service.CodexService;
+import fr.dreamin.dreamvoice.api.codex.model.Codex;
+import fr.dreamin.dreamvoice.api.codex.service.CodexService;
 import fr.dreamin.dreamvoice.core.DreamVoice;
-import org.bukkit.*;
-import org.bukkit.block.Block;
+import org.bukkit.FluidCollisionMode;
+import org.bukkit.Location;
+import org.bukkit.Material;
+import org.bukkit.World;
 import org.bukkit.entity.Player;
+import org.bukkit.util.BlockIterator;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 import org.jspecify.annotations.NonNull;
 
-import java.util.HashSet;
-
 public final class VoiceRayCast {
 
-  public static boolean DEBUG_MODE = false;
-
   public static final double[] TARGET_HEIGHTS = { 1.62, 1.00, 0.20 };
-  public static final double ATTENUATION_STEP = 0.15;
   public static final double ATTENUATION_TRANSPARENT_THRESHOLD = 5.0;
 
   // ###############################################################
   // ----------------------- PUBLIC METHODS ------------------------
   // ###############################################################
 
-  public static RaycastResult check (final @NotNull Player speaker, final @NotNull Player listener) {
+  public static RaycastResult check(final @NotNull Player speaker, final @NotNull Player listener) {
     if (!speaker.getWorld().equals(listener.getWorld()))
       return RaycastResult.CLEAR;
 
@@ -36,7 +34,6 @@ public final class VoiceRayCast {
 
     final var totalAttenuation = computeTotalAttenuation(from, listener.getEyeLocation());
     return new RaycastResult(false, totalAttenuation);
-
   }
 
   public static boolean hasLineOfSight(final @NotNull Player speaker, final @NotNull Player listener) {
@@ -52,7 +49,8 @@ public final class VoiceRayCast {
       final var targetLoc = listener.getLocation().clone().add(0, h, 0);
       final var dir = targetLoc.toVector().subtract(start.toVector());
       final var len = dir.length();
-      if (len < 0.05) return true;
+      if (len < 0.05)
+        return true;
 
       final var direction = dir.clone().normalize();
       final var rayDistance = Math.min(distance, len);
@@ -73,45 +71,46 @@ public final class VoiceRayCast {
   // ----------------------- PRIVATE METHODS -----------------------
   // ###############################################################
 
-  private static boolean hasBlockingMaterialBefore(final @NotNull World world, final @NotNull Location start, final @NotNull Vector dir, final double dist, final @NotNull SoundMaterialPolicy policy) {
-    final var blockHit = world.rayTraceBlocks(start ,dir, dist, FluidCollisionMode.NEVER, true);
-    if (blockHit == null || blockHit.getHitBlock() == null) return false;
-
-    return policy.getAttenuationDb(blockHit.getHitBlock().getType()) >= ATTENUATION_TRANSPARENT_THRESHOLD;
-  }
-
   private static double computeTotalAttenuation(final @NotNull Location from, final @NotNull Location to) {
+
     final var world = from.getWorld();
-    if (world == null) return 0.0;
+    if (world == null)
+      return 0.0;
 
     final var delta = to.toVector().subtract(from.toVector());
     final var totalDistance = delta.length();
-    if (totalDistance < 0.05) return 0.0;
+    if (totalDistance < 0.05)
+      return 0.0;
 
     final var dir = delta.clone().normalize();
     final var policy = getSoundPolicy();
 
-    var totalDbLoss  = 0.0;
+    var totalDbLoss = 0.0;
 
-    final var visited = new HashSet<>();
+    try {
+      final var maxDistance = (int) Math.ceil(totalDistance);
+      final var iterator = new BlockIterator(world, from.toVector(), dir, 0.0, maxDistance);
 
-    for (var d = 0.0; d <= totalDistance; d += ATTENUATION_STEP) {
-      final var pos = from.toVector().add(dir.clone().multiply(d));
-      final var block = world.getBlockAt(pos.getBlockX(), pos.getBlockY(), pos.getBlockZ());
-      final var type = block.getType();
+      while (iterator.hasNext()) {
+        final var block = iterator.next();
+        final var type = block.getType();
 
-      if (!type.isAir() && visited.add(block)) {
-        totalDbLoss += policy.getAttenuationDb(type);
+        if (!type.isAir()) {
+          totalDbLoss += policy.getAttenuationDb(type);
+          if (totalDbLoss >= 100.0)
+            return 100.0;
+        }
       }
-
+    } catch (Exception ignored) {
     }
 
     return Math.min(100.0, totalDbLoss);
   }
 
+
   private static SoundMaterialPolicy getSoundPolicy() {
     final Codex codex = DreamVoice.getService(CodexService.class).getConfig();
-    if (codex.getVoiceWall().soundMaterials() == null)
+    if (codex.getVoiceWall() == null || codex.getVoiceWall().soundMaterials() == null)
       return SoundMaterialPolicy.defaults();
 
     return new SoundMaterialPolicy(codex.getVoiceWall().soundMaterials());
@@ -122,12 +121,13 @@ public final class VoiceRayCast {
   // ###############################################################
 
   private record SoundMaterialPolicy(Codex.SoundMaterials config) {
+
     static SoundMaterialPolicy defaults() {
       return new SoundMaterialPolicy(new Codex.SoundMaterials(null, 0.0));
     }
 
     public double getAttenuationDb(final @NotNull Material material) {
-      return config.getAttenuationDb(material.name());
+      return this.config.getAttenuationDb(material.name());
     }
 
   }
@@ -162,3 +162,4 @@ public final class VoiceRayCast {
   }
 
 }
+

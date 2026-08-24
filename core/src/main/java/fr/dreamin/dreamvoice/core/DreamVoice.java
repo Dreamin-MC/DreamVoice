@@ -2,18 +2,19 @@ package fr.dreamin.dreamvoice.core;
 
 import de.maxhenkel.voicechat.api.BukkitVoicechatService;
 import fr.dreamin.dreamapi.plugin.DreamPlugin;
-import fr.dreamin.dreaminvoice.api.codex.service.CodexService;
-import fr.dreamin.dreaminvoice.api.player.service.PlayerService;
-import fr.dreamin.dreaminvoice.api.recording.service.VoiceRecordingService;
-import fr.dreamin.dreaminvoice.api.speaker.service.VoiceSpeakerService;
-import fr.dreamin.dreaminvoice.api.transmitter.service.VoiceTransmitterService;
-import fr.dreamin.dreaminvoice.api.voice.service.VoiceService;
-import fr.dreamin.dreaminvoice.api.wall.service.VoiceWallService;
+import fr.dreamin.dreamvoice.api.codex.service.CodexService;
+import fr.dreamin.dreamvoice.api.player.service.PlayerService;
+import fr.dreamin.dreamvoice.api.recording.service.VoiceRecordingService;
+import fr.dreamin.dreamvoice.api.speaker.service.VoiceSpeakerService;
+import fr.dreamin.dreamvoice.api.transmitter.service.VoiceTransmitterService;
+import fr.dreamin.dreamvoice.api.voice.service.VoiceService;
+import fr.dreamin.dreamvoice.api.wall.service.VoiceWallService;
 import fr.dreamin.dreamvoice.core.cmd.DebugCmd;
 import fr.dreamin.dreamvoice.core.codex.service.CodexServiceImpl;
 import fr.dreamin.dreamvoice.core.player.service.PlayerServiceImpl;
 import fr.dreamin.dreamvoice.core.recording.cmd.RecordingCmd;
 import fr.dreamin.dreamvoice.core.recording.service.VoiceRecordingServiceImpl;
+import fr.dreamin.dreamvoice.core.speaker.cmd.SpeakerCmd;
 import fr.dreamin.dreamvoice.core.speaker.service.VoiceSpeakerServiceImpl;
 import fr.dreamin.dreamvoice.core.transmitter.cmd.TransmitterCmd;
 import fr.dreamin.dreamvoice.core.transmitter.service.VoiceTransmitterServiceImpl;
@@ -36,13 +37,16 @@ public final class DreamVoice extends DreamPlugin implements Listener {
     registerCommand(new DebugCmd());
     registerCommand(new RecordingCmd());
     registerCommand(new TransmitterCmd());
-
+    registerCommand(new SpeakerCmd());
   }
 
   @Override
   public void onDreamDisable() {
-    getService(VoiceService.class).clearAllSounds();
+    final var voiceService = getService(VoiceService.class);
+    if (voiceService != null)
+      voiceService.clearAllSounds();
   }
+
 
   // ###############################################################
   // ----------------------- PRIVATE METHODS -----------------------
@@ -71,7 +75,7 @@ public final class DreamVoice extends DreamPlugin implements Listener {
     Bukkit.getServicesManager().register(VoiceRecordingService.class, voiceRecordingService, this, ServicePriority.Normal);
     Bukkit.getServicesManager().register(VoiceService.class, voiceService, this, ServicePriority.Normal);
     service.registerPlugin(voiceService);
-
   }
 
 }
+

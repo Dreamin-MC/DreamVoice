@@ -1,3 +1,4 @@
 Manifest-Version: 1.0
 Main-Class: fr.dreamin.dreamvoice.core.DreamVoice
+Multi-Release: true
 

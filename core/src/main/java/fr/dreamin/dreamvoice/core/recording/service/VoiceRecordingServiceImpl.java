@@ -3,9 +3,9 @@ package fr.dreamin.dreamvoice.core.recording.service;
 import de.maxhenkel.voicechat.api.VoicechatConnection;
 import de.maxhenkel.voicechat.api.VoicechatServerApi;
 import de.maxhenkel.voicechat.api.VolumeCategory;
-import fr.dreamin.dreaminvoice.api.recording.model.VoiceRecording;
-import fr.dreamin.dreaminvoice.api.recording.service.VoiceRecordingService;
-import fr.dreamin.dreaminvoice.api.voice.event.MicrophonePacketEvent;
+import fr.dreamin.dreamvoice.api.recording.model.VoiceRecording;
+import fr.dreamin.dreamvoice.api.recording.service.VoiceRecordingService;
+import fr.dreamin.dreamvoice.api.voice.event.MicrophonePacketEvent;
 import fr.dreamin.dreamvoice.core.DreamVoice;
 import org.bukkit.Bukkit;
 import org.bukkit.event.EventHandler;
@@ -13,7 +13,11 @@ import org.bukkit.event.Listener;
 import org.jetbrains.annotations.NotNull;
 import org.jspecify.annotations.NonNull;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
 
 public final class VoiceRecordingServiceImpl implements VoiceRecordingService, Listener {
 
@@ -41,7 +45,7 @@ public final class VoiceRecordingServiceImpl implements VoiceRecordingService, L
   // ##############################################################
 
   @Override
-  public void init(@NotNull VoicechatServerApi api) {
+  public void init(final @NotNull VoicechatServerApi api) {
     this.api = api;
 
     this.volumeCategory = this.api.volumeCategoryBuilder()
@@ -51,7 +55,6 @@ public final class VoiceRecordingServiceImpl implements VoiceRecordingService, L
       .build();
 
     this.api.registerVolumeCategory(this.volumeCategory);
-
   }
 
   @Override
@@ -65,17 +68,17 @@ public final class VoiceRecordingServiceImpl implements VoiceRecordingService, L
   }
 
   @Override
-  public void register(@NotNull VoiceRecording voiceRecording) {
+  public void register(final @NotNull VoiceRecording voiceRecording) {
     this.voiceRecordings.put(voiceRecording.getUuid(), voiceRecording);
   }
 
   @Override
-  public void unregister(@NotNull VoiceRecording voiceRecording) {
+  public void unregister(final @NotNull VoiceRecording voiceRecording) {
     unregister(voiceRecording.getUuid());
   }
 
   @Override
-  public void unregister(@NotNull UUID uuid) {
+  public void unregister(final @NotNull UUID uuid) {
     this.voiceRecordings.remove(uuid);
   }
 
@@ -85,13 +88,14 @@ public final class VoiceRecordingServiceImpl implements VoiceRecordingService, L
   }
 
   @Override
-  public void playRecordingTo(@NotNull VoicechatConnection connection, @NotNull VoiceRecording recording) {
-    if (!recording.isFinished()) return;
+  public void playRecordingTo(final @NotNull VoicechatConnection connection, final @NotNull VoiceRecording recording) {
+    if (!recording.isFinished())
+      return;
 
     final var speakerUUID = recording.getSpeakerUUID();
     final var bukkitPlayer = Bukkit.getPlayer(speakerUUID);
     if (bukkitPlayer == null) {
-      plugin.getLogger().warning("Speaker offline, cannot determine world for playback.");
+      this.plugin.getLogger().warning("Speaker offline, cannot determine world for playback.");
       return;
     }
 
@@ -100,44 +104,41 @@ public final class VoiceRecordingServiceImpl implements VoiceRecordingService, L
     final var channel = this.api.createStaticAudioChannel(channelId, level, connection);
 
     if (channel == null) {
-      plugin.getLogger().severe("Failed to create static audio channel.");
+      this.plugin.getLogger().severe("Failed to create static audio channel.");
       return;
     }
     channel.setCategory(this.volumeCategory.getId());
 
-    final var opusFrames = recording.getAudio().stream()
-      .map(this::unboxBytes)
-      .toList();
-
-    if (opusFrames.isEmpty()) return;
-
+    final var opusFrames = recording.getAudio();
+    if (opusFrames.isEmpty())
+      return;
 
     final var decoder = this.api.createDecoder();
     final var pcmFrames = new ArrayList<short[]>();
-    int totalSamples = 0;
+    var totalSamples = 0;
 
     try {
       for (final var frame : opusFrames) {
-        if (frame.length == 0) continue;
-        short[] pcm = decoder.decode(frame);
+        if (frame.length == 0)
+          continue;
+        final var pcm = decoder.decode(frame);
         if (pcm.length > 0) {
           pcmFrames.add(pcm);
           totalSamples += pcm.length;
         }
       }
     } catch (Exception e) {
-      plugin.getLogger().severe("Error decoding Opus frame: " + e.getMessage());
-      e.printStackTrace();
+      this.plugin.getLogger().severe("Error decoding Opus frame: " + e.getMessage());
       return;
     }
 
     if (totalSamples == 0) {
-      plugin.getLogger().warning("Decoded audio is empty.");
+      this.plugin.getLogger().warning("Decoded audio is empty.");
       return;
     }
 
     final var fullPcm = new short[totalSamples];
-    int offset = 0;
+    var offset = 0;
     for (final var frame : pcmFrames) {
       System.arraycopy(frame, 0, fullPcm, offset, frame.length);
       offset += frame.length;
@@ -148,38 +149,24 @@ public final class VoiceRecordingServiceImpl implements VoiceRecordingService, L
       final var player = this.api.createAudioPlayer(channel, encoder, fullPcm);
 
       player.startPlaying();
-
     } catch (Exception e) {
-      plugin.getLogger().severe("Error creating audio player: " + e.getMessage());
-      e.printStackTrace();
+      this.plugin.getLogger().severe("Error creating audio player: " + e.getMessage());
     }
   }
 
   @Override
-  public VoiceRecording startRecording(@NonNull UUID speakerUUID) {
-    VoiceRecording rec = new VoiceRecording(speakerUUID);
+  public VoiceRecording startRecording(final @NonNull UUID speakerUUID) {
+    final var rec = new VoiceRecording(speakerUUID);
     rec.start();
     register(rec);
     return rec;
   }
 
   @Override
-  public void stopRecording(@NonNull UUID recId) {
-    VoiceRecording rec = voiceRecordings.get(recId);
+  public void stopRecording(final @NonNull UUID recId) {
+    final var rec = this.voiceRecordings.get(recId);
     if (rec != null && rec.isRecording())
       rec.stop();
-  }
-
-  // ###############################################################
-  // ----------------------- PRIVATE METHODS -----------------------
-  // ###############################################################
-
-  private byte[] unboxBytes(final Byte[] boxed) {
-    final byte[] primitive = new byte[boxed.length];
-    for (int i = 0; i < boxed.length; i++) {
-      primitive[i] = boxed[i];
-    }
-    return primitive;
   }
 
   // ###############################################################
@@ -189,7 +176,8 @@ public final class VoiceRecordingServiceImpl implements VoiceRecordingService, L
   @EventHandler
   private void onMicrophone(final @NotNull MicrophonePacketEvent event) {
     final var sender = event.getSender();
-    if (sender == null) return;
+    if (sender == null)
+      return;
 
     final var speaderUUID = sender.getPlayer().getUuid();
 
@@ -199,3 +187,5 @@ public final class VoiceRecordingServiceImpl implements VoiceRecordingService, L
   }
 
 }
+
+
