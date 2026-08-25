@@ -235,6 +235,8 @@ public final class VoiceSpeakerServiceImpl implements VoiceSpeakerService, Liste
   }
 
 
+  private final Map<UUID, de.maxhenkel.voicechat.api.audiochannel.StaticAudioChannel> listenerChannels = new ConcurrentHashMap<>();
+
   // ###############################################################
   // ---------------------- LISTENER METHODS -----------------------
   // ###############################################################
@@ -253,29 +255,98 @@ public final class VoiceSpeakerServiceImpl implements VoiceSpeakerService, Liste
     if (matchingSpeakers.isEmpty())
       return;
 
+    final var wallService = DreamVoice.getService(fr.dreamin.dreamvoice.api.wall.service.VoiceWallService.class);
     final var filterService = DreamVoice.getService(VoiceFilterService.class);
+    final var voiceService = DreamVoice.getService(VoiceService.class);
+    final var hasFilters = filterService != null && filterService.hasActiveFilters(senderUuid);
+    final var isWallEnabled = wallService != null && wallService.isEnable();
 
-    if (filterService != null && filterService.hasActiveFilters(senderUuid)) {
-      try {
-        final var voiceService = DreamVoice.getService(VoiceService.class);
-        final var decoder = voiceService.getDecoder(senderUuid);
-        final var encoder = voiceService.getEncoder(senderUuid);
-        final var pcm = decoder.decode(event.getPacket().getOpusEncodedData());
-        if (pcm != null && pcm.length > 0) {
-          final var filteredPcm = filterService.applyFilters(senderUuid, pcm);
-          final var newOpus = encoder.encode(filteredPcm);
-          matchingSpeakers.forEach(speaker -> speaker.getSpeakerChannel().send(newOpus));
-          return;
-        }
-      } catch (Exception e) {
-        this.plugin.getLogger().warning("Error filtering speaker audio: " + e.getMessage());
-      }
+    // If VoiceWall is disabled and no filters, use default hardware speaker channel
+    if (!isWallEnabled && !hasFilters) {
+      matchingSpeakers.forEach(speaker -> speaker.getSpeakerChannel().send(event.getPacket()));
+      return;
     }
 
-    matchingSpeakers.forEach(speaker -> speaker.getSpeakerChannel().send(event.getPacket()));
+    try {
+      final var decoder = voiceService.getDecoder(senderUuid);
+      final var encoder = voiceService.getEncoder(senderUuid);
+      final var pcm = decoder.decode(event.getPacket().getOpusEncodedData());
+      if (pcm == null || pcm.length == 0)
+        return;
+
+      for (final var speaker : matchingSpeakers) {
+        final var spkLoc = speaker.getLocation();
+        final var spkWorld = spkLoc.getWorld();
+        if (spkWorld == null)
+          continue;
+
+        final var maxDist = speaker.getDistance() != null ? speaker.getDistance() : 16.0f;
+
+        for (final var listener : Bukkit.getOnlinePlayers()) {
+          if (!listener.getWorld().equals(spkWorld))
+            continue;
+
+          final var dist = spkLoc.distance(listener.getLocation());
+          if (dist > maxDist)
+            continue;
+
+          final var listenerConn = this.api.getConnectionOf(listener.getUniqueId());
+          if (listenerConn == null)
+            continue;
+
+          var totalDbLoss = 0.0;
+          if (isWallEnabled) {
+            final var ray = fr.dreamin.dreamvoice.core.utils.raycast.VoiceRayCast.check(spkLoc, listener);
+            if (ray.isBlocked())
+              totalDbLoss = ray.totalAttenuation();
+          }
+
+          if (totalDbLoss >= 99.0)
+            continue;
+
+          final var distRatio = Math.min(1.0, dist / maxDist);
+          final var distGain = (float) Math.max(0.05, 1.0 - (distRatio * 0.85));
+          final var wallGain = (float) Math.pow(10.0, -totalDbLoss / 20.0);
+          final var totalGain = wallGain * distGain;
+
+          var processedPcm = pcm.clone();
+          if (hasFilters && filterService != null)
+            processedPcm = filterService.applyFilters(senderUuid, processedPcm);
+
+          for (int i = 0; i < processedPcm.length; i++) {
+            processedPcm[i] = (short) Math.max(Short.MIN_VALUE, Math.min(Short.MAX_VALUE, Math.round(processedPcm[i] * totalGain)));
+          }
+
+          if (wallService != null && wallService.isAirDampingEnabled() && dist > 5.0) {
+            final var alpha = Math.max(0.10f, 1.0f - (float) (dist - 5.0) * 0.038f);
+            var smooth = (float) processedPcm[0];
+            for (int i = 0; i < processedPcm.length; i++) {
+              smooth = smooth + alpha * (processedPcm[i] - smooth);
+              processedPcm[i] = (short) Math.max(Short.MIN_VALUE, Math.min(Short.MAX_VALUE, Math.round(smooth)));
+            }
+          }
+
+          final var listenerOpus = encoder.encode(processedPcm);
+          final var ch = this.listenerChannels.computeIfAbsent(listener.getUniqueId(), k -> {
+            final var sc = this.api.createStaticAudioChannel(UUID.randomUUID());
+            if (sc != null) {
+              sc.addTarget(listenerConn);
+              if (this.volumeCategory != null)
+                sc.setCategory(this.volumeCategory.getId());
+            }
+            return sc;
+          });
+          if (ch != null)
+            ch.send(listenerOpus);
+        }
+      }
+    } catch (Exception e) {
+      this.plugin.getLogger().warning("Error processing speaker audio: " + e.getMessage());
+    }
   }
 
 }
+
 
 
 

@@ -43,6 +43,9 @@ public final class Speaker {
   private final @NotNull ServerLevel serverLevel;
   private @NotNull Position position;
   private final @NotNull LocationalAudioChannel speakerChannel;
+  @Setter
+  private @Nullable org.bukkit.entity.Entity targetEntity = null;
+
 
   // ###############################################################
   // --------------------- CONSTRUCTOR METHODS ---------------------
@@ -124,7 +127,19 @@ public final class Speaker {
     return this.activeAudioPlayer != null && this.activeAudioPlayer.isPlaying();
   }
 
+  public @NotNull Location getLocation() {
+    if (this.targetEntity != null && this.targetEntity.isValid()) {
+      final var loc = this.targetEntity.getLocation();
+      if (!loc.equals(this.location)) {
+        updatePosition(loc);
+      }
+      return loc;
+    }
+    return this.location;
+  }
+
   public void updatePosition(final @NotNull Location location) {
+
     this.location = location;
     this.position = speakerService.getAPI()
       .createPosition(location.getBlockX(), location.getBlockY(), location.getBlockZ());

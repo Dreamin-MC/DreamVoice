@@ -52,10 +52,11 @@ public final class VoiceRecordingServiceImpl implements VoiceRecordingService, L
     this.api = api;
 
     this.volumeCategory = this.api.volumeCategoryBuilder()
-      .setId("recording_volume")
+      .setId("rec_volume")
       .setName("Recording")
       .setDescription("Recording Volume")
       .build();
+
 
     this.api.registerVolumeCategory(this.volumeCategory);
 

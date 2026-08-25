@@ -36,18 +36,52 @@ public final class VoiceRayCast {
     return new RaycastResult(false, totalAttenuation);
   }
 
+  public static RaycastResult check(final @NotNull Location from, final @NotNull Player listener) {
+    if (from.getWorld() == null || !from.getWorld().equals(listener.getWorld()))
+      return RaycastResult.CLEAR;
+
+    final var to = listener.getEyeLocation();
+    final var maxDistance = from.distance(to);
+
+    if (hitsTargetAtAnyHeight(from, listener.getLocation(), from.getWorld(), maxDistance))
+      return RaycastResult.CLEAR;
+
+    final var totalAttenuation = computeTotalAttenuation(from, to);
+    return new RaycastResult(false, totalAttenuation);
+  }
+
+  public static RaycastResult check(final @NotNull Location from, final @NotNull Location to) {
+    if (from.getWorld() == null || to.getWorld() == null || !from.getWorld().equals(to.getWorld()))
+      return RaycastResult.CLEAR;
+
+    final var maxDistance = from.distance(to);
+    if (hitsTargetAtAnyHeight(from, to, from.getWorld(), maxDistance))
+      return RaycastResult.CLEAR;
+
+    final var totalAttenuation = computeTotalAttenuation(from, to);
+    return new RaycastResult(false, totalAttenuation);
+  }
+
   public static boolean hasLineOfSight(final @NotNull Player speaker, final @NotNull Player listener) {
     return check(speaker, listener).lineOfSight();
   }
 
+  public static boolean hasLineOfSight(final @NotNull Location from, final @NotNull Player listener) {
+    return check(from, listener).lineOfSight();
+  }
+
+
   public static boolean hitsPlayerAtAnyHeight(final @NotNull Player speaker, final @NotNull Player listener, final double distance) {
-    final var world = speaker.getWorld();
+    return hitsTargetAtAnyHeight(speaker.getLocation(), listener.getLocation(), speaker.getWorld(), distance);
+  }
+
+  public static boolean hitsTargetAtAnyHeight(final @NotNull Location startLoc, final @NotNull Location targetLoc, final @NotNull World world, final double distance) {
     final var policy = getSoundPolicy();
 
     for (final var h : TARGET_HEIGHTS) {
-      final var start = speaker.getLocation().clone().add(0, h, 0);
-      final var targetLoc = listener.getLocation().clone().add(0, h, 0);
-      final var dir = targetLoc.toVector().subtract(start.toVector());
+      final var start = startLoc.clone().add(0, h, 0);
+      final var target = targetLoc.clone().add(0, h, 0);
+      final var dir = target.toVector().subtract(start.toVector());
       final var len = dir.length();
       if (len < 0.05)
         return true;
@@ -66,6 +100,7 @@ public final class VoiceRayCast {
 
     return false;
   }
+
 
   // ###############################################################
   // ----------------------- PRIVATE METHODS -----------------------

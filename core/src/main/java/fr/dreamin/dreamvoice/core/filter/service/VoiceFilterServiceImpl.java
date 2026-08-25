@@ -195,8 +195,10 @@ public final class VoiceFilterServiceImpl implements VoiceFilterService, Listene
     registerFilter(new GasmaskVoiceFilter());
     registerFilter(new TelephoneVoiceFilter());
     registerFilter(new AlienVoiceFilter());
+    registerFilter(new DisguiseVoiceFilter());
   }
 
 }
+
 
 

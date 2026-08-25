@@ -319,6 +319,7 @@ public final class VoiceServiceImpl implements VoiceService, VoicechatPlugin, Li
     DreamVoice.getService(VoiceRecordingService.class).init(this.api);
     DreamVoice.getService(VoiceTransmitterService.class).init(this.api);
     DreamVoice.getService(fr.dreamin.dreamvoice.api.radio.service.VoiceRadioService.class).init(this.api);
+    DreamVoice.getService(fr.dreamin.dreamvoice.api.projection.service.VoiceProjectionService.class).init(this.api);
 
     this.plugin.getLogger().info("DreamVoice is ready !");
 
@@ -334,6 +335,21 @@ public final class VoiceServiceImpl implements VoiceService, VoicechatPlugin, Li
     final var senderUUID = senderConn.getPlayer().getUuid();
     final var receiverUUID = receiverCon.getPlayer().getUuid();
 
+    final var projectionService = DreamVoice.getService(fr.dreamin.dreamvoice.api.projection.service.VoiceProjectionService.class);
+    if (projectionService != null) {
+      final var projection = projectionService.getProjection(senderUUID);
+      if (projection != null && !projection.isEmitVoiceAtPlayer()) {
+        event.cancel();
+        return;
+      }
+      final var receiverProjection = projectionService.getProjection(receiverUUID);
+      if (receiverProjection != null && !receiverProjection.isHearPlayerEnvironment()) {
+        event.cancel();
+        return;
+      }
+    }
+
+
     final var vSender = this.playerService.getPlayer(senderUUID);
     final var vReceiver = this.playerService.getPlayer(receiverUUID);
     if (vSender == null || vReceiver == null)
@@ -346,6 +362,7 @@ public final class VoiceServiceImpl implements VoiceService, VoicechatPlugin, Li
 
     this.voiceWallService.processEntitySoundPacket(event, vSender, vReceiver, receiverCon);
   }
+
 
 
   private void onMicrophonePacket(final @NotNull de.maxhenkel.voicechat.api.events.MicrophonePacketEvent event) {
