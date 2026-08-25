@@ -101,9 +101,30 @@ public final class RawUtils {
     return buffer.array();
   }
 
+  public static short[] bytesToShorts(final @NotNull byte[] pcmBytes) {
+    if (pcmBytes.length < 2)
+      return new short[0];
+
+    final var shorts = new short[pcmBytes.length / 2];
+    ByteBuffer.wrap(pcmBytes).order(ByteOrder.LITTLE_ENDIAN).asShortBuffer().get(shorts);
+    return shorts;
+  }
+
+  public static short[] fileToShorts48Hz(final @NotNull File file) throws Exception {
+    final var bytes = Files.readAllBytes(file.toPath());
+    final var pcm = mp3toPcm48Hz(bytes);
+    return bytesToShorts(pcm);
+  }
+
+  public static short[] urlToShorts48Hz(final @NotNull String url) throws Exception {
+    final var pcm = urlToPcm48Hz(url);
+    return bytesToShorts(pcm);
+  }
+
   public static byte[] oggToPcm48Hz(final @NotNull byte[] oggPath) throws Exception {
     return mp3toPcm48Hz(oggPath);
   }
 
 }
+
 

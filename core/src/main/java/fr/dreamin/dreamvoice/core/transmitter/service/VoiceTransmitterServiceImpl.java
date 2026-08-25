@@ -2,6 +2,7 @@ package fr.dreamin.dreamvoice.core.transmitter.service;
 
 import de.maxhenkel.voicechat.api.VoicechatServerApi;
 import de.maxhenkel.voicechat.api.VolumeCategory;
+import fr.dreamin.dreamvoice.api.filter.service.VoiceFilterService;
 import fr.dreamin.dreamvoice.api.transmitter.model.ReceiverConfig;
 import fr.dreamin.dreamvoice.api.transmitter.service.VoiceTransmitterService;
 import fr.dreamin.dreamvoice.api.voice.event.MicrophonePacketEvent;
@@ -208,6 +209,8 @@ public final class VoiceTransmitterServiceImpl implements VoiceTransmitterServic
     this.transmitters.forEach((transmitter, map) -> map.remove(receiver));
   }
 
+  private final Map<UUID, de.maxhenkel.voicechat.api.audiochannel.StaticAudioChannel> receiverChannels = new ConcurrentHashMap<>();
+
   // ###############################################################
   // ---------------------- LISTENER METHODS -----------------------
   // ###############################################################
@@ -230,11 +233,26 @@ public final class VoiceTransmitterServiceImpl implements VoiceTransmitterServic
 
     final var senderLocation = senderPlayer.getLocation();
 
-    final var channel = this.api.createStaticAudioChannel(UUID.randomUUID());
-    if (channel == null)
-      return;
+    var opusData = event.getPacket().getOpusEncodedData();
+    final var filterService = DreamVoice.getService(VoiceFilterService.class);
 
-    channel.setCategory(this.volumeCategory.getId());
+    if (filterService != null && filterService.hasActiveFilters(senderUuid)) {
+      try {
+        final var voiceService = DreamVoice.getService(fr.dreamin.dreamvoice.api.voice.service.VoiceService.class);
+        final var decoder = voiceService.getDecoder(senderUuid);
+        final var encoder = voiceService.getEncoder(senderUuid);
+        if (decoder != null && encoder != null) {
+          final var pcm = decoder.decode(opusData);
+          if (pcm != null && pcm.length > 0) {
+            final var filteredPcm = filterService.applyFilters(senderUuid, pcm);
+            opusData = encoder.encode(filteredPcm);
+          }
+        }
+      } catch (Exception ignored) {
+      }
+    }
+
+    final var finalOpus = opusData;
 
     for (final var config : receivers.values()) {
       final var receiverPlayer = Bukkit.getPlayer(config.getUuid());
@@ -254,18 +272,28 @@ public final class VoiceTransmitterServiceImpl implements VoiceTransmitterServic
       if (receiverConnection == null)
         continue;
 
-      channel.addTarget(receiverConnection);
+      final var staticChannel = this.receiverChannels.computeIfAbsent(config.getUuid(), k -> {
+        final var sc = this.api.createStaticAudioChannel(UUID.randomUUID());
+        if (sc != null) {
+          sc.addTarget(receiverConnection);
+          if (this.volumeCategory != null)
+            sc.setCategory(this.volumeCategory.getId());
+        }
+        return sc;
+      });
+
+      if (staticChannel != null)
+        staticChannel.send(finalOpus);
     }
-
-    channel.send(event.getPacket());
   }
-
 
   @EventHandler
   private void onPlayerQuit(final @NotNull PlayerQuitEvent event) {
     final var uuid = event.getPlayer().getUniqueId();
     this.transmitters.remove(uuid);
+    this.receiverChannels.remove(uuid);
     removeReceiverFromAll(uuid);
   }
+
 
 }

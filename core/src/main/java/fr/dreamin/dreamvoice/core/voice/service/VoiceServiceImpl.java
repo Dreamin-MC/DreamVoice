@@ -318,8 +318,10 @@ public final class VoiceServiceImpl implements VoiceService, VoicechatPlugin, Li
     DreamVoice.getService(VoiceSpeakerService.class).init(this.api);
     DreamVoice.getService(VoiceRecordingService.class).init(this.api);
     DreamVoice.getService(VoiceTransmitterService.class).init(this.api);
+    DreamVoice.getService(fr.dreamin.dreamvoice.api.radio.service.VoiceRadioService.class).init(this.api);
 
     this.plugin.getLogger().info("DreamVoice is ready !");
+
   }
 
   private void onEntitySoundPacket(final @NotNull de.maxhenkel.voicechat.api.events.EntitySoundPacketEvent event) {
@@ -342,15 +344,9 @@ public final class VoiceServiceImpl implements VoiceService, VoicechatPlugin, Li
       return;
     }
 
-    Bukkit.getScheduler().runTask(this.plugin, () -> new EntitySoundPacketEvent(
-      event,
-      senderConn,
-      vSender,
-      receiverCon,
-      vReceiver,
-      event.getPacket()
-    ).callEvent());
+    this.voiceWallService.processEntitySoundPacket(event, vSender, vReceiver, receiverCon);
   }
+
 
   private void onMicrophonePacket(final @NotNull de.maxhenkel.voicechat.api.events.MicrophonePacketEvent event) {
     Bukkit.getScheduler().runTask(this.plugin, () -> new MicrophonePacketEvent(

@@ -11,6 +11,7 @@ import fr.dreamin.dreamvoice.api.recording.service.VoiceRecordingService;
 import fr.dreamin.dreamvoice.core.DreamVoice;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
@@ -51,9 +52,9 @@ public final class RecordingCmd {
     }
 
     final var rec = this.recordingService.startRecording(player.getUniqueId());
-    rec.start();
 
     sender.sendMessage(
+
       Component.text("Recording started: ", NamedTextColor.GREEN)
         .append(Component.text(rec.getUuid().toString().substring(0, 8), NamedTextColor.YELLOW))
     );
@@ -189,6 +190,154 @@ public final class RecordingCmd {
     }
   }
 
+  @CommandMethod("record cassette <player> <id>")
+  @CommandPermission("dreamvoice.record.cassette")
+  @CommandDescription("Give a physical cassette item of a recording to a player")
+  private void giveCassette(
+    final @NotNull CommandSender sender,
+    @Argument("player") final @NotNull Player target,
+    @Argument(value = "id", suggestions = "recordings") final @NotNull String id
+  ) {
+    try {
+      final var uuid = parseRecordingId(id);
+      final var rec = this.recordingService.getVoiceRecordings().stream()
+        .filter(r -> r.getUuid().equals(uuid))
+        .findFirst()
+        .orElseThrow(() -> new IllegalArgumentException("Recording not found"));
+
+      final var item = this.recordingService.createCassette(rec);
+      target.getInventory().addItem(item);
+
+      sender.sendMessage(
+        Component.text("Cassette vocale donnée à ", NamedTextColor.GREEN)
+          .append(Component.text(target.getName(), NamedTextColor.YELLOW))
+          .append(Component.text(" !", NamedTextColor.GREEN))
+      );
+    } catch (Exception e) {
+      sender.sendMessage(Component.text("Enregistrement introuvable: " + id, NamedTextColor.RED));
+    }
+  }
+
+  @CommandMethod("record cassette file <player> <fileName>")
+  @CommandPermission("dreamvoice.record.cassette")
+  @CommandDescription("Create and give a cassette linked to a local audio file")
+  private void giveCassetteFile(
+    final @NotNull CommandSender sender,
+    @Argument("player") final @NotNull Player target,
+    @Argument("fileName") final @NotNull String fileName
+  ) {
+    sender.sendMessage(Component.text("Conversion du fichier audio en cours...", NamedTextColor.GRAY));
+    this.recordingService.createRecordingFromFile(fileName)
+      .thenAccept(rec -> Bukkit.getScheduler().runTask(DreamVoice.getInstance(), () -> {
+        final var item = this.recordingService.createCassette(rec);
+        target.getInventory().addItem(item);
+        sender.sendMessage(
+          Component.text("Cassette du fichier '", NamedTextColor.GREEN)
+            .append(Component.text(fileName, NamedTextColor.YELLOW))
+            .append(Component.text("' donnée à ", NamedTextColor.GREEN))
+            .append(Component.text(target.getName(), NamedTextColor.AQUA))
+            .append(Component.text(" !", NamedTextColor.GREEN))
+        );
+      }))
+      .exceptionally(ex -> {
+        sender.sendMessage(Component.text("Erreur lors du chargement du fichier: " + ex.getMessage(), NamedTextColor.RED));
+        return null;
+      });
+  }
+
+  @CommandMethod("record cassette url <player> <url>")
+  @CommandPermission("dreamvoice.record.cassette")
+  @CommandDescription("Create and give a cassette linked to a web audio URL")
+  private void giveCassetteUrl(
+    final @NotNull CommandSender sender,
+    @Argument("player") final @NotNull Player target,
+    @Argument("url") final @NotNull String url
+  ) {
+    sender.sendMessage(Component.text("Téléchargement et conversion de l'URL audio...", NamedTextColor.GRAY));
+    this.recordingService.createRecordingFromUrl(url, null)
+      .thenAccept(rec -> Bukkit.getScheduler().runTask(DreamVoice.getInstance(), () -> {
+        final var item = this.recordingService.createCassette(rec);
+        target.getInventory().addItem(item);
+        sender.sendMessage(
+          Component.text("Cassette de l'URL donnée à ", NamedTextColor.GREEN)
+            .append(Component.text(target.getName(), NamedTextColor.AQUA))
+            .append(Component.text(" !", NamedTextColor.GREEN))
+        );
+      }))
+      .exceptionally(ex -> {
+        sender.sendMessage(Component.text("Erreur lors du téléchargement de l'URL: " + ex.getMessage(), NamedTextColor.RED));
+        return null;
+      });
+  }
+
+
+  @CommandMethod("record slice <id> <startMs> <durationMs> [give]")
+  @CommandPermission("dreamvoice.record.slice")
+  @CommandDescription("Slice a segment from an existing recording")
+  private void sliceRecord(
+    final @NotNull CommandSender sender,
+    @Argument(value = "id", suggestions = "recordings") final @NotNull String id,
+    @Argument("startMs") final long startMs,
+    @Argument("durationMs") final long durationMs,
+    @Argument("give") final @Nullable Boolean give
+  ) {
+    try {
+      final var uuid = parseRecordingId(id);
+      final var sliced = this.recordingService.sliceRecording(uuid, startMs, durationMs);
+      if (sliced == null) {
+        sender.sendMessage(Component.text("Enregistrement introuvable !", NamedTextColor.RED));
+        return;
+      }
+
+      sender.sendMessage(
+        Component.text("Segment extrait avec succès: ", NamedTextColor.GREEN)
+          .append(Component.text(sliced.getUuid().toString().substring(0, 8), NamedTextColor.YELLOW))
+          .append(Component.text(" (" + String.format("%.1fs", sliced.getDurationSeconds()) + ")", NamedTextColor.AQUA))
+      );
+
+      if (give != null && give && sender instanceof Player player) {
+        final var item = this.recordingService.createCassette(sliced);
+        player.getInventory().addItem(item);
+        sender.sendMessage(Component.text("Cassette du segment ajoutée à votre inventaire !", NamedTextColor.GREEN));
+      }
+    } catch (Exception e) {
+      sender.sendMessage(Component.text("Erreur lors de l'extraction: " + e.getMessage(), NamedTextColor.RED));
+    }
+  }
+
+  @CommandMethod("record slice-last <id> <durationMs> [give]")
+  @CommandPermission("dreamvoice.record.slice")
+  @CommandDescription("Extract the last X milliseconds from an existing recording")
+  private void sliceLastRecord(
+    final @NotNull CommandSender sender,
+    @Argument(value = "id", suggestions = "recordings") final @NotNull String id,
+    @Argument("durationMs") final long durationMs,
+    @Argument("give") final @Nullable Boolean give
+  ) {
+    try {
+      final var uuid = parseRecordingId(id);
+      final var sliced = this.recordingService.sliceLastRecording(uuid, durationMs);
+      if (sliced == null) {
+        sender.sendMessage(Component.text("Enregistrement introuvable !", NamedTextColor.RED));
+        return;
+      }
+
+      sender.sendMessage(
+        Component.text("Derniers " + (durationMs / 1000.0) + "s extraits avec succès: ", NamedTextColor.GREEN)
+          .append(Component.text(sliced.getUuid().toString().substring(0, 8), NamedTextColor.YELLOW))
+          .append(Component.text(" (" + String.format("%.1fs", sliced.getDurationSeconds()) + ")", NamedTextColor.AQUA))
+      );
+
+      if (give != null && give && sender instanceof Player player) {
+        final var item = this.recordingService.createCassette(sliced);
+        player.getInventory().addItem(item);
+        sender.sendMessage(Component.text("Cassette du segment ajoutée à votre inventaire !", NamedTextColor.GREEN));
+      }
+    } catch (Exception e) {
+      sender.sendMessage(Component.text("Erreur lors de l'extraction: " + e.getMessage(), NamedTextColor.RED));
+    }
+  }
+
   @CommandMethod("record delete <id>")
   @CommandPermission("dreamvoice.record.delete")
   @CommandDescription("Delete recording")
@@ -207,6 +356,8 @@ public final class RecordingCmd {
       sender.sendMessage(Component.text("Recording not found!", NamedTextColor.RED));
     }
   }
+
+
 
   // ------------------------------------------------------------
   // Utils

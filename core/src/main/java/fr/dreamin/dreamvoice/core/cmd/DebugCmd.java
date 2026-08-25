@@ -6,6 +6,8 @@ import cloud.commandframework.annotations.CommandPermission;
 import cloud.commandframework.annotations.suggestions.Suggestions;
 import cloud.commandframework.context.CommandContext;
 import fr.dreamin.dreamvoice.api.codex.service.CodexService;
+import fr.dreamin.dreamvoice.api.filter.model.VoiceFilter;
+import fr.dreamin.dreamvoice.api.filter.service.VoiceFilterService;
 import fr.dreamin.dreamvoice.api.player.model.PlayerState;
 import fr.dreamin.dreamvoice.api.player.service.PlayerService;
 import fr.dreamin.dreamvoice.api.voice.model.VoiceSoundBuilder;
@@ -25,6 +27,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
+import java.util.stream.Collectors;
 
 public final class DebugCmd {
 
@@ -44,6 +47,20 @@ public final class DebugCmd {
   public List<String> suggState(final @NotNull CommandContext<CommandSender> ctx, final @NotNull String in) {
     return List.of("alive", "dead", "spec");
   }
+
+  @Suggestions("voice_filters")
+  public List<String> suggFilters(final @NotNull CommandContext<CommandSender> ctx, final @NotNull String in) {
+    final var filterService = DreamVoice.getService(VoiceFilterService.class);
+    if (filterService == null)
+      return List.of();
+
+    return filterService.getAvailableFilters().stream()
+      .map(VoiceFilter::getId)
+      .filter(id -> id.startsWith(in.toLowerCase()))
+      .sorted()
+      .collect(Collectors.toList());
+  }
+
 
   // ------------------------------------------------------------
   // Utils
@@ -315,7 +332,138 @@ public final class DebugCmd {
     }
   }
 
+  // ###############################################################
+  // ----------------------- FILTER COMMANDS -----------------------
+  // ###############################################################
+
+  @CommandMethod("voice filter list")
+  @CommandPermission("dreamvoice.cmd.debug")
+  private void listFilters(final @NotNull CommandSender sender) {
+    final var filterService = DreamVoice.getService(VoiceFilterService.class);
+    if (filterService == null)
+      return;
+
+    final var filters = filterService.getAvailableFilters();
+    sender.sendMessage(
+      Component.text("[SVC] Filtres vocaux disponibles (", NamedTextColor.GRAY)
+        .append(Component.text(filters.size(), NamedTextColor.YELLOW))
+        .append(Component.text("):", NamedTextColor.GRAY))
+    );
+
+    for (final var filter : filters) {
+      sender.sendMessage(
+        Component.text(" - ", NamedTextColor.GRAY)
+          .append(Component.text(filter.getId(), NamedTextColor.AQUA))
+          .append(Component.text(" (" + filter.getName() + ", prio=" + filter.getPriority() + ")", NamedTextColor.GRAY))
+      );
+    }
+  }
+
+  @CommandMethod("voice filter set <player> <filter>")
+  @CommandPermission("dreamvoice.cmd.debug")
+  private void setFilter(
+    final @NotNull CommandSender sender,
+    @Argument("player") final @NotNull Player target,
+    @Argument(value = "filter", suggestions = "voice_filters") final @NotNull String filterId
+  ) {
+    final var filterService = DreamVoice.getService(VoiceFilterService.class);
+    if (filterService == null)
+      return;
+
+    if (filterService.getFilter(filterId) == null) {
+      sender.sendMessage(Component.text("[SVC] Filtre inconnu: " + filterId, NamedTextColor.RED));
+      return;
+    }
+
+    filterService.addFilter(target.getUniqueId(), filterId);
+    sender.sendMessage(
+      Component.text("[SVC] Filtre ", NamedTextColor.GREEN)
+        .append(Component.text(filterId, NamedTextColor.YELLOW))
+        .append(Component.text(" appliqué à ", NamedTextColor.GREEN))
+        .append(Component.text(target.getName(), NamedTextColor.AQUA))
+    );
+  }
+
+  @CommandMethod("voice filter remove <player> <filter>")
+  @CommandPermission("dreamvoice.cmd.debug")
+  private void removeFilter(
+    final @NotNull CommandSender sender,
+    @Argument("player") final @NotNull Player target,
+    @Argument(value = "filter", suggestions = "voice_filters") final @NotNull String filterId
+  ) {
+    final var filterService = DreamVoice.getService(VoiceFilterService.class);
+    if (filterService == null)
+      return;
+
+    filterService.removeFilter(target.getUniqueId(), filterId);
+    sender.sendMessage(
+      Component.text("[SVC] Filtre ", NamedTextColor.YELLOW)
+        .append(Component.text(filterId, NamedTextColor.YELLOW))
+        .append(Component.text(" retiré de ", NamedTextColor.GREEN))
+        .append(Component.text(target.getName(), NamedTextColor.AQUA))
+    );
+  }
+
+  @CommandMethod("voice filter clear <player>")
+  @CommandPermission("dreamvoice.cmd.debug")
+  private void clearFilters(
+    final @NotNull CommandSender sender,
+    @Argument("player") final @NotNull Player target
+  ) {
+    final var filterService = DreamVoice.getService(VoiceFilterService.class);
+    if (filterService == null)
+      return;
+
+    filterService.clearFilters(target.getUniqueId());
+    sender.sendMessage(
+      Component.text("[SVC] Tous les filtres vocaux ont été réinitialisés pour ", NamedTextColor.GREEN)
+        .append(Component.text(target.getName(), NamedTextColor.AQUA))
+    );
+  }
+
+  @CommandMethod("voice filter auto <player> <enabled>")
+  @CommandPermission("dreamvoice.cmd.debug")
+  private void setAutoEnvironment(
+    final @NotNull CommandSender sender,
+    @Argument("player") final @NotNull Player target,
+    @Argument("enabled") final boolean enabled
+  ) {
+    final var filterService = DreamVoice.getService(VoiceFilterService.class);
+    if (filterService == null)
+      return;
+
+    filterService.setAutoEnvironmentEnabled(target.getUniqueId(), enabled);
+    sender.sendMessage(
+      Component.text("[SVC] Filtres d'environnement automatiques ", NamedTextColor.GREEN)
+        .append(Component.text(enabled ? "activés" : "désactivés", enabled ? NamedTextColor.YELLOW : NamedTextColor.RED))
+        .append(Component.text(" pour ", NamedTextColor.GREEN))
+        .append(Component.text(target.getName(), NamedTextColor.AQUA))
+    );
+  }
+
+  // ###############################################################
+  // ----------------------- AIR DAMPING ---------------------------
+  // ###############################################################
+
+  @CommandMethod("voice airdamping <enabled>")
+  @CommandPermission("dreamvoice.cmd.debug")
+  private void setAirDamping(
+    final @NotNull CommandSender sender,
+    @Argument("enabled") final boolean enabled
+  ) {
+    final var wallService = DreamVoice.getService(fr.dreamin.dreamvoice.api.wall.service.VoiceWallService.class);
+    if (wallService == null)
+      return;
+
+    wallService.setAirDampingEnabled(enabled);
+    sender.sendMessage(
+      Component.text("[SVC] Amortissement acoustique de l'air sur la distance (Air Damping) : ", NamedTextColor.GREEN)
+        .append(Component.text(enabled ? "ACTIVÉ" : "DÉSACTIVÉ", enabled ? NamedTextColor.YELLOW : NamedTextColor.RED))
+    );
+  }
 
 }
+
+
 
 

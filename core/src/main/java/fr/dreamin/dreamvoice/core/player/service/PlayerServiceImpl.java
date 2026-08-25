@@ -9,6 +9,7 @@ import fr.dreamin.dreamvoice.api.player.model.VPlayer;
 import fr.dreamin.dreamvoice.api.player.service.PlayerService;
 import fr.dreamin.dreamvoice.api.voice.service.VoiceService;
 import fr.dreamin.dreamvoice.core.DreamVoice;
+import fr.dreamin.dreamvoice.core.player.manager.VoiceFilterManager;
 import fr.dreamin.dreamvoice.core.player.manager.VoiceWallManager;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -70,9 +71,10 @@ public final class PlayerServiceImpl implements PlayerService, Listener {
 
   @Override
   public void addPlayer(final @NotNull VPlayer vPlayer) {
-    addManager(vPlayer, VoiceWallManager.class);
+    addManager(vPlayer, VoiceWallManager.class, VoiceFilterManager.class);
     this.players.putIfAbsent(vPlayer.getUuid(), vPlayer);
   }
+
 
   @Override
   public void removePlayer(final @NotNull VPlayer vPlayer) {

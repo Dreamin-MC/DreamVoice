@@ -68,14 +68,46 @@ public final class VoiceRecording {
     return 0F;
   }
 
-  // ###############################################################
-  // ---------------------------- CLASS ----------------------------
-  // ###############################################################
+  public VoiceRecording slice(final @NotNull Instant timestamp, final @NotNull Duration duration) {
+    if (this.startTime == null)
+      return slice(0L, duration.toMillis());
 
-  public record TimedAudioFrame(long timestampMs, byte[] data) {
+    final var diffMs = timestamp.toEpochMilli() - this.startTime.toEpochMilli();
+    final var startOffsetMs = Math.max(0L, diffMs);
+    final var durationMs = duration.toMillis();
+    return slice(startOffsetMs, durationMs);
+  }
+
+  public VoiceRecording slice(final long startOffsetMs, final long durationMs) {
+    final var sliced = new VoiceRecording(this.speakerUUID);
+    sliced.startTime = Instant.now().minusMillis(durationMs);
+    sliced.duration = Duration.ofMillis(durationMs);
+
+    final var endOffsetMs = startOffsetMs + durationMs;
+    for (final var frame : this.audioFrames) {
+      if (frame.timestampMs() >= startOffsetMs && frame.timestampMs() <= endOffsetMs) {
+        final var newTimestamp = frame.timestampMs() - startOffsetMs;
+        sliced.audioFrames.add(new TimedAudioFrame(newTimestamp, frame.data().clone()));
+      }
+    }
+
+    return sliced;
+  }
+
+  public VoiceRecording sliceLast(final @NotNull Duration duration) {
+    return sliceLast(duration.toMillis());
+  }
+
+  public VoiceRecording sliceLast(final long durationMs) {
+    final var totalMs = (long) (getDurationSeconds() * 1000L);
+    final var startMs = Math.max(0L, totalMs - durationMs);
+    return slice(startMs, durationMs);
   }
 
 }
+
+
+
 
 
 

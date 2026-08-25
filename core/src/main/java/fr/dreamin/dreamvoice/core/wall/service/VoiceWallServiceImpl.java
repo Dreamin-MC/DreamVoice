@@ -4,6 +4,7 @@ import de.maxhenkel.voicechat.api.VoicechatConnection;
 import de.maxhenkel.voicechat.api.VoicechatServerApi;
 import fr.dreamin.dreamapi.core.time.Tick;
 import fr.dreamin.dreamvoice.api.codex.service.CodexService;
+import fr.dreamin.dreamvoice.api.filter.service.VoiceFilterService;
 import fr.dreamin.dreamvoice.api.player.model.VPlayer;
 import fr.dreamin.dreamvoice.api.player.service.PlayerService;
 import fr.dreamin.dreamvoice.api.voice.event.EntitySoundPacketEvent;
@@ -246,42 +247,93 @@ public final class VoiceWallServiceImpl extends Tick implements VoiceWallService
       (System.currentTimeMillis() - entry.getValue()) > 10000);
   }
 
+  private boolean airDamping = true;
+
+  @Override
+  public boolean isAirDampingEnabled() {
+    return this.airDamping;
+  }
+
+  @Override
+  public void setAirDampingEnabled(final boolean value) {
+    this.airDamping = value;
+  }
+
   // ###############################################################
   // -------------------- VOICE MANAGE METHODS ---------------------
   // ###############################################################
 
-  private void applyVolume(final @NotNull de.maxhenkel.voicechat.api.events.EntitySoundPacketEvent event, final @NotNull VoicechatConnection receiver, final double totalDbLoss) {
-    if (Math.abs(totalDbLoss) <= 0.001)
+  @Override
+  public void processEntitySoundPacket(
+    final @NotNull de.maxhenkel.voicechat.api.events.EntitySoundPacketEvent event,
+    final @NotNull VPlayer vSender,
+    final @NotNull VPlayer vReceiver,
+    final @NotNull VoicechatConnection receiverConn
+  ) {
+    final var senderUuid = vSender.getUuid();
+    final var filterService = DreamVoice.getService(VoiceFilterService.class);
+    final var hasFilters = filterService != null && filterService.hasActiveFilters(senderUuid);
+
+    var totalDbLoss = 0.0;
+    if (this.enable) {
+      final var wallManager = vReceiver.getManager(VoiceWallManager.class);
+      if (wallManager != null)
+        totalDbLoss = wallManager.getTotalAttenuationDb(vSender);
+    }
+
+    final var hasAttenuation = Math.abs(totalDbLoss) > 0.001;
+
+    // Calculate distance for air damping
+    var distance = 0.0;
+    final var pSender = vSender.getBukkitPlayer();
+    final var pReceiver = vReceiver.getBukkitPlayer();
+    if (pSender != null && pReceiver != null && pSender.getWorld().equals(pReceiver.getWorld()))
+      distance = pSender.getLocation().distance(pReceiver.getLocation());
+
+    final var hasAirDamping = this.airDamping && distance > 5.0;
+
+    if (!hasAttenuation && !hasFilters && !hasAirDamping)
       return;
 
     try {
       if (this.debug)
-        this.plugin.getLogger().info("Attenuation: " + totalDbLoss);
+        this.plugin.getLogger().info("Audio processing for " + senderUuid + " (attenuation=" + totalDbLoss + "dB, filters=" + hasFilters + ", dist=" + distance + "m)");
 
       final var packet = event.getPacket();
-
       final var opusDta = packet.getOpusEncodedData();
       if (opusDta == null || opusDta.length == 0)
         return;
 
-      final var receiverUUID = receiver.getPlayer().getUuid();
-
+      final var receiverUUID = receiverConn.getPlayer().getUuid();
       final var decoder = DreamVoice.getService(VoiceService.class).getDecoder(receiverUUID);
       final var encoder = DreamVoice.getService(VoiceService.class).getEncoder(receiverUUID);
 
       if (decoder == null || encoder == null)
         return;
 
-      final var pcm = decoder.decode(opusDta);
-
-      if (pcm == null || pcm.length != 960)
+      var pcm = decoder.decode(opusDta);
+      if (pcm == null || pcm.length == 0)
         return;
 
-      final var dbReduction = (float) totalDbLoss;
-      final var gain = (float) Math.pow(10.0, dbReduction / 20.0);
+      if (hasFilters && filterService != null)
+        pcm = filterService.applyFilters(senderUuid, pcm);
 
-      for (int i = 0; i < pcm.length; i++)
-        pcm[i] = (short) (pcm[i] * gain);
+      if (hasAttenuation) {
+        final var dbReduction = (float) totalDbLoss;
+        final var gain = (float) Math.pow(10.0, dbReduction / 20.0);
+        for (int i = 0; i < pcm.length; i++)
+          pcm[i] = (short) (pcm[i] * gain);
+      }
+
+      // Air absorption high-cut filter for distant audio
+      if (hasAirDamping) {
+        final var alpha = Math.max(0.10f, 1.0f - (float) (distance - 5.0) * 0.038f);
+        var smooth = (float) pcm[0];
+        for (int i = 0; i < pcm.length; i++) {
+          smooth = smooth + alpha * (pcm[i] - smooth);
+          pcm[i] = (short) Math.max(Short.MIN_VALUE, Math.min(Short.MAX_VALUE, Math.round(smooth)));
+        }
+      }
 
       final var newOpus = encoder.encode(pcm);
 
@@ -294,11 +346,11 @@ public final class VoiceWallServiceImpl extends Tick implements VoiceWallService
         .category(packet.getCategory())
         .build();
 
-      this.api.sendEntitySoundPacketTo(receiver, newPacket);
       event.cancel();
+      this.api.sendEntitySoundPacketTo(receiverConn, newPacket);
 
     } catch (Exception e) {
-      this.plugin.getLogger().warning("Volume attenuation error : " + e.getMessage());
+      this.plugin.getLogger().warning("Audio processing error : " + e.getMessage());
     }
   }
 
@@ -308,17 +360,8 @@ public final class VoiceWallServiceImpl extends Tick implements VoiceWallService
   // ###############################################################
 
   @EventHandler
-  private void onEntitySound(final @NotNull EntitySoundPacketEvent event) {
-    if (!this.enable)
-      return;
-
-    event.getVReceiver().consumeManager(VoiceWallManager.class, manager ->
-      applyVolume(event.getSvcEvent(), event.getReceiver(), manager.getTotalAttenuationDb(event.getVSender()))
-    );
-  }
-
-  @EventHandler
   private void onPlayerQuit(final @NotNull PlayerQuitEvent event) {
+
     final var vPlayer = this.playerService.getPlayer(event.getPlayer());
     if (vPlayer != null)
       invalidateCacheForPlayer(vPlayer);
