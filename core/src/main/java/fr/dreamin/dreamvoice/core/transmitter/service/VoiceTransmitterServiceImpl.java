@@ -39,7 +39,20 @@ public final class VoiceTransmitterServiceImpl implements VoiceTransmitterServic
     this.plugin = plugin;
 
     Bukkit.getPluginManager().registerEvents(this, plugin);
+    Bukkit.getScheduler().runTaskTimer(plugin, this::cleanupIdleChannels, 600L, 600L);
   }
+
+  private void cleanupIdleChannels() {
+    final var now = System.currentTimeMillis();
+    this.lastChannelActivity.entrySet().removeIf(entry -> {
+      if (now - entry.getValue() > 30000L) {
+        this.receiverChannels.remove(entry.getKey());
+        return true;
+      }
+      return false;
+    });
+  }
+
 
   // ##############################################################
   // ---------------------- SERVICE METHODS -----------------------
@@ -209,7 +222,8 @@ public final class VoiceTransmitterServiceImpl implements VoiceTransmitterServic
     this.transmitters.forEach((transmitter, map) -> map.remove(receiver));
   }
 
-  private final Map<UUID, de.maxhenkel.voicechat.api.audiochannel.StaticAudioChannel> receiverChannels = new ConcurrentHashMap<>();
+  private final Map<String, de.maxhenkel.voicechat.api.audiochannel.StaticAudioChannel> receiverChannels = new ConcurrentHashMap<>();
+  private final Map<String, Long> lastChannelActivity = new ConcurrentHashMap<>();
 
   // ###############################################################
   // ---------------------- LISTENER METHODS -----------------------
@@ -244,7 +258,8 @@ public final class VoiceTransmitterServiceImpl implements VoiceTransmitterServic
         if (decoder != null && encoder != null) {
           final var pcm = decoder.decode(opusData);
           if (pcm != null && pcm.length > 0) {
-            final var filteredPcm = filterService.applyFilters(senderUuid, pcm);
+            var filteredPcm = filterService.applyFilters(senderUuid, pcm);
+            filteredPcm = fr.dreamin.dreamvoice.core.utils.audio.AudioLimiter.process(filteredPcm);
             opusData = encoder.encode(filteredPcm);
           }
         }
@@ -253,6 +268,7 @@ public final class VoiceTransmitterServiceImpl implements VoiceTransmitterServic
     }
 
     final var finalOpus = opusData;
+    final var now = System.currentTimeMillis();
 
     for (final var config : receivers.values()) {
       final var receiverPlayer = Bukkit.getPlayer(config.getUuid());
@@ -272,7 +288,8 @@ public final class VoiceTransmitterServiceImpl implements VoiceTransmitterServic
       if (receiverConnection == null)
         continue;
 
-      final var staticChannel = this.receiverChannels.computeIfAbsent(config.getUuid(), k -> {
+      final var streamKey = senderUuid + ":" + config.getUuid();
+      final var staticChannel = this.receiverChannels.computeIfAbsent(streamKey, k -> {
         final var sc = this.api.createStaticAudioChannel(UUID.randomUUID());
         if (sc != null) {
           sc.addTarget(receiverConnection);
@@ -282,8 +299,10 @@ public final class VoiceTransmitterServiceImpl implements VoiceTransmitterServic
         return sc;
       });
 
-      if (staticChannel != null)
+      if (staticChannel != null) {
         staticChannel.send(finalOpus);
+        this.lastChannelActivity.put(streamKey, now);
+      }
     }
   }
 
@@ -291,9 +310,12 @@ public final class VoiceTransmitterServiceImpl implements VoiceTransmitterServic
   private void onPlayerQuit(final @NotNull PlayerQuitEvent event) {
     final var uuid = event.getPlayer().getUniqueId();
     this.transmitters.remove(uuid);
-    this.receiverChannels.remove(uuid);
+    final var uidStr = uuid.toString();
+    this.receiverChannels.keySet().removeIf(k -> k.contains(uidStr));
+    this.lastChannelActivity.keySet().removeIf(k -> k.contains(uidStr));
     removeReceiverFromAll(uuid);
   }
 
-
 }
+
+

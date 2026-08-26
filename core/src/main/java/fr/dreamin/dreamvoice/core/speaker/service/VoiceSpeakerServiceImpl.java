@@ -39,7 +39,20 @@ public final class VoiceSpeakerServiceImpl implements VoiceSpeakerService, Liste
     this.plugin = plugin;
 
     Bukkit.getPluginManager().registerEvents(this, plugin);
+    Bukkit.getScheduler().runTaskTimer(plugin, this::cleanupIdleChannels, 600L, 600L);
   }
+
+  private void cleanupIdleChannels() {
+    final var now = System.currentTimeMillis();
+    this.lastChannelActivity.entrySet().removeIf(entry -> {
+      if (now - entry.getValue() > 30000L) {
+        this.listenerChannels.remove(entry.getKey());
+        return true;
+      }
+      return false;
+    });
+  }
+
 
   // ##############################################################
   // ---------------------- SERVICE METHODS -----------------------
@@ -235,7 +248,8 @@ public final class VoiceSpeakerServiceImpl implements VoiceSpeakerService, Liste
   }
 
 
-  private final Map<UUID, de.maxhenkel.voicechat.api.audiochannel.StaticAudioChannel> listenerChannels = new ConcurrentHashMap<>();
+  private final Map<String, de.maxhenkel.voicechat.api.audiochannel.StaticAudioChannel> listenerChannels = new ConcurrentHashMap<>();
+  private final Map<String, Long> lastChannelActivity = new ConcurrentHashMap<>();
 
   // ###############################################################
   // ---------------------- LISTENER METHODS -----------------------
@@ -261,9 +275,15 @@ public final class VoiceSpeakerServiceImpl implements VoiceSpeakerService, Liste
     final var hasFilters = filterService != null && filterService.hasActiveFilters(senderUuid);
     final var isWallEnabled = wallService != null && wallService.isEnable();
 
-    // If VoiceWall is disabled and no filters, use default hardware speaker channel
+    // If VoiceWall is disabled and no filters, use dedicated hardware voice channel (doesn't conflict with audio playback)
     if (!isWallEnabled && !hasFilters) {
-      matchingSpeakers.forEach(speaker -> speaker.getSpeakerChannel().send(event.getPacket()));
+      matchingSpeakers.forEach(speaker -> {
+        final var vc = speaker.getVoiceChannel();
+        if (vc != null)
+          vc.send(event.getPacket());
+        else
+          speaker.getSpeakerChannel().send(event.getPacket());
+      });
       return;
     }
 
@@ -273,6 +293,8 @@ public final class VoiceSpeakerServiceImpl implements VoiceSpeakerService, Liste
       final var pcm = decoder.decode(event.getPacket().getOpusEncodedData());
       if (pcm == null || pcm.length == 0)
         return;
+
+      final var now = System.currentTimeMillis();
 
       for (final var speaker : matchingSpeakers) {
         final var spkLoc = speaker.getLocation();
@@ -326,8 +348,12 @@ public final class VoiceSpeakerServiceImpl implements VoiceSpeakerService, Liste
             }
           }
 
+          // Soft limiter
+          processedPcm = fr.dreamin.dreamvoice.core.utils.audio.AudioLimiter.process(processedPcm);
+
           final var listenerOpus = encoder.encode(processedPcm);
-          final var ch = this.listenerChannels.computeIfAbsent(listener.getUniqueId(), k -> {
+          final var streamKey = speaker.getUuid().toString() + ":" + senderUuid + ":" + listener.getUniqueId();
+          final var ch = this.listenerChannels.computeIfAbsent(streamKey, k -> {
             final var sc = this.api.createStaticAudioChannel(UUID.randomUUID());
             if (sc != null) {
               sc.addTarget(listenerConn);
@@ -336,8 +362,10 @@ public final class VoiceSpeakerServiceImpl implements VoiceSpeakerService, Liste
             }
             return sc;
           });
-          if (ch != null)
+          if (ch != null) {
             ch.send(listenerOpus);
+            this.lastChannelActivity.put(streamKey, now);
+          }
         }
       }
     } catch (Exception e) {
@@ -345,7 +373,16 @@ public final class VoiceSpeakerServiceImpl implements VoiceSpeakerService, Liste
     }
   }
 
+  @EventHandler
+  private void onPlayerQuit(final @NotNull org.bukkit.event.player.PlayerQuitEvent event) {
+    final var uidStr = event.getPlayer().getUniqueId().toString();
+    this.listenerChannels.keySet().removeIf(k -> k.contains(uidStr));
+    this.lastChannelActivity.keySet().removeIf(k -> k.contains(uidStr));
+  }
+
 }
+
+
 
 
 

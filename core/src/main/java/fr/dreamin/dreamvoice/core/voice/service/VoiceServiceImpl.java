@@ -320,8 +320,10 @@ public final class VoiceServiceImpl implements VoiceService, VoicechatPlugin, Li
     DreamVoice.getService(VoiceTransmitterService.class).init(this.api);
     DreamVoice.getService(fr.dreamin.dreamvoice.api.radio.service.VoiceRadioService.class).init(this.api);
     DreamVoice.getService(fr.dreamin.dreamvoice.api.projection.service.VoiceProjectionService.class).init(this.api);
+    DreamVoice.getService(fr.dreamin.dreamvoice.api.wiretap.service.VoiceWiretapService.class).init(this.api);
 
     this.plugin.getLogger().info("DreamVoice is ready !");
+
 
   }
 

@@ -31,7 +31,8 @@ public final class VoiceRadioServiceImpl implements VoiceRadioService, Listener 
   private final Map<UUID, String> playerChannels = new ConcurrentHashMap<>();
 
   // Channel audio broadcast cache
-  private final Map<UUID, StaticAudioChannel> radioChannels = new ConcurrentHashMap<>();
+  private final Map<String, StaticAudioChannel> radioChannels = new ConcurrentHashMap<>();
+  private final Map<String, Long> lastChannelActivity = new ConcurrentHashMap<>();
   private final Map<UUID, Long> lastSpeakingTimes = new ConcurrentHashMap<>();
 
   public VoiceRadioServiceImpl(final @NotNull DreamVoice plugin) {
@@ -40,7 +41,20 @@ public final class VoiceRadioServiceImpl implements VoiceRadioService, Listener 
 
     // Watcher task for Roger Beep end-of-transmission
     Bukkit.getScheduler().runTaskTimer(plugin, this::checkRogerBeeps, 2L, 2L);
+    Bukkit.getScheduler().runTaskTimer(plugin, this::cleanupIdleChannels, 600L, 600L);
   }
+
+  private void cleanupIdleChannels() {
+    final var now = System.currentTimeMillis();
+    this.lastChannelActivity.entrySet().removeIf(entry -> {
+      if (now - entry.getValue() > 30000L) {
+        this.radioChannels.remove(entry.getKey());
+        return true;
+      }
+      return false;
+    });
+  }
+
 
   @Override
   public void init(final @NotNull VoicechatServerApi api) {
@@ -138,12 +152,14 @@ public final class VoiceRadioServiceImpl implements VoiceRadioService, Listener 
         if (conn == null)
           continue;
 
-        final var staticChannel = this.radioChannels.computeIfAbsent(memberUuid, k -> {
+        final var streamKey = senderUuid + ":" + memberUuid;
+        final var staticChannel = this.radioChannels.computeIfAbsent(streamKey, k -> {
           final var sc = this.api.createStaticAudioChannel(UUID.randomUUID());
           if (sc != null)
             sc.addTarget(conn);
           return sc;
         });
+
 
         if (staticChannel != null)
           staticChannel.send(opus);
@@ -186,12 +202,15 @@ public final class VoiceRadioServiceImpl implements VoiceRadioService, Listener 
             processed = filter.process(processed, null);
         }
 
+        processed = fr.dreamin.dreamvoice.core.utils.audio.AudioLimiter.process(processed);
         opusData = encoder.encode(processed);
       }
     } catch (Exception ignored) {
     }
 
     final var finalOpus = opusData;
+    final var now = System.currentTimeMillis();
+
     for (final var memberUuid : members) {
       if (memberUuid.equals(senderUuid))
         continue;
@@ -200,15 +219,18 @@ public final class VoiceRadioServiceImpl implements VoiceRadioService, Listener 
       if (conn == null)
         continue;
 
-      final var staticChannel = this.radioChannels.computeIfAbsent(memberUuid, k -> {
+      final var streamKey = senderUuid + ":" + memberUuid;
+      final var staticChannel = this.radioChannels.computeIfAbsent(streamKey, k -> {
         final var sc = this.api.createStaticAudioChannel(UUID.randomUUID());
         if (sc != null)
           sc.addTarget(conn);
         return sc;
       });
 
-      if (staticChannel != null)
+      if (staticChannel != null) {
         staticChannel.send(finalOpus);
+        this.lastChannelActivity.put(streamKey, now);
+      }
     }
   }
 
@@ -216,8 +238,12 @@ public final class VoiceRadioServiceImpl implements VoiceRadioService, Listener 
   private void onPlayerQuit(final @NotNull PlayerQuitEvent event) {
     final var uuid = event.getPlayer().getUniqueId();
     leaveChannel(uuid);
-    this.radioChannels.remove(uuid);
+    final var uidStr = uuid.toString();
+    this.radioChannels.keySet().removeIf(k -> k.contains(uidStr));
+    this.lastChannelActivity.keySet().removeIf(k -> k.contains(uidStr));
     this.lastSpeakingTimes.remove(uuid);
   }
 
 }
+
+

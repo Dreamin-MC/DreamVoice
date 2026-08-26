@@ -35,12 +35,26 @@ public final class VoiceProjectionServiceImpl implements VoiceProjectionService,
   private VolumeCategory volumeCategory;
 
   private final @NotNull Map<UUID, VoiceProjection> projections = new ConcurrentHashMap<>();
-  private final @NotNull Map<UUID, StaticAudioChannel> playerAudioChannels = new ConcurrentHashMap<>();
+  private final @NotNull Map<String, StaticAudioChannel> playerAudioChannels = new ConcurrentHashMap<>();
+  private final @NotNull Map<String, Long> lastChannelActivity = new ConcurrentHashMap<>();
 
   public VoiceProjectionServiceImpl(final @NotNull DreamVoice plugin) {
     this.plugin = plugin;
     Bukkit.getPluginManager().registerEvents(this, plugin);
+    Bukkit.getScheduler().runTaskTimer(plugin, this::cleanupIdleChannels, 600L, 600L);
   }
+
+  private void cleanupIdleChannels() {
+    final var now = System.currentTimeMillis();
+    this.lastChannelActivity.entrySet().removeIf(entry -> {
+      if (now - entry.getValue() > 30000L) {
+        this.playerAudioChannels.remove(entry.getKey());
+        return true;
+      }
+      return false;
+    });
+  }
+
 
   @Override
   public void init(final @NotNull VoicechatServerApi api) {
@@ -51,7 +65,6 @@ public final class VoiceProjectionServiceImpl implements VoiceProjectionService,
       .setName("Projection / Body Anchor")
       .setDescription("Volume for body anchor voice projections and camera listening")
       .build();
-
 
     this.api.registerVolumeCategory(this.volumeCategory);
   }
@@ -75,7 +88,6 @@ public final class VoiceProjectionServiceImpl implements VoiceProjectionService,
     return proj;
   }
 
-
   @Override
   public void register(final @NotNull VoiceProjection projection) {
     this.projections.put(projection.getPlayerUuid(), projection);
@@ -84,7 +96,8 @@ public final class VoiceProjectionServiceImpl implements VoiceProjectionService,
   @Override
   public void removeProjection(final @NotNull UUID playerUuid) {
     this.projections.remove(playerUuid);
-    this.playerAudioChannels.remove(playerUuid);
+    final var uidStr = playerUuid.toString();
+    this.playerAudioChannels.keySet().removeIf(k -> k.contains(uidStr));
   }
 
   @Override
@@ -124,8 +137,8 @@ public final class VoiceProjectionServiceImpl implements VoiceProjectionService,
     }
   }
 
-  private @Nullable StaticAudioChannel getOrCreateChannel(final @NotNull UUID receiverUuid, final @NotNull VoicechatConnection conn) {
-    return this.playerAudioChannels.computeIfAbsent(receiverUuid, id -> {
+  private @Nullable StaticAudioChannel getOrCreateChannel(final @NotNull String streamKey, final @NotNull VoicechatConnection conn) {
+    return this.playerAudioChannels.computeIfAbsent(streamKey, id -> {
       final var ch = this.api.createStaticAudioChannel(UUID.randomUUID());
       if (ch != null) {
         ch.addTarget(conn);
@@ -135,6 +148,7 @@ public final class VoiceProjectionServiceImpl implements VoiceProjectionService,
       return ch;
     });
   }
+
 
   // ###############################################################
   // ---------------------- LISTENER METHODS -----------------------
@@ -232,10 +246,16 @@ public final class VoiceProjectionServiceImpl implements VoiceProjectionService,
                 }
               }
 
+              // Soft limiter
+              processed = fr.dreamin.dreamvoice.core.utils.audio.AudioLimiter.process(processed);
+
               final var newOpus = encoder.encode(processed);
-              final var ch = getOrCreateChannel(listener.getUniqueId(), listenerConn);
-              if (ch != null)
+              final var streamKey = "proj_out:" + senderUuid + ":" + listener.getUniqueId();
+              final var ch = getOrCreateChannel(streamKey, listenerConn);
+              if (ch != null) {
                 ch.send(newOpus);
+                this.lastChannelActivity.put(streamKey, System.currentTimeMillis());
+              }
             }
           } catch (Exception ignored) {
           }
@@ -304,19 +324,27 @@ public final class VoiceProjectionServiceImpl implements VoiceProjectionService,
             }
           }
 
+          // Soft limiter
+          processed = fr.dreamin.dreamvoice.core.utils.audio.AudioLimiter.process(processed);
+
           final var newOpus = encoder.encode(processed);
-          final var ch = getOrCreateChannel(proj.getPlayerUuid(), ownerConn);
-          if (ch != null)
+          final var streamKey = "proj_in:" + senderUuid + ":" + proj.getPlayerUuid();
+          final var ch = getOrCreateChannel(streamKey, ownerConn);
+          if (ch != null) {
             ch.send(newOpus);
+            this.lastChannelActivity.put(streamKey, System.currentTimeMillis());
+          }
         }
       } catch (Exception ignored) {
       }
     }
+
   }
 
   @EventHandler
   private void onPlayerQuit(final @NotNull PlayerQuitEvent event) {
     removeProjection(event.getPlayer().getUniqueId());
   }
+
 
 }

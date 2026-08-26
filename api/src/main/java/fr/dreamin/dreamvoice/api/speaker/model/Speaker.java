@@ -43,6 +43,7 @@ public final class Speaker {
   private final @NotNull ServerLevel serverLevel;
   private @NotNull Position position;
   private final @NotNull LocationalAudioChannel speakerChannel;
+  private final @Nullable LocationalAudioChannel voiceChannel;
   @Setter
   private @Nullable org.bukkit.entity.Entity targetEntity = null;
 
@@ -87,8 +88,24 @@ public final class Speaker {
 
     this.speakerChannel = channel;
 
+    final var vChan = this.speakerService.getAPI()
+      .createLocationalAudioChannel(
+        UUID.randomUUID(),
+        this.serverLevel,
+        this.position
+      );
+    if (vChan != null) {
+      vChan.setCategory(this.speakerService.getVolumeCategory().getId());
+      if (builder.distance != null)
+        vChan.setDistance(builder.distance);
+      if (builder.filter != null)
+        vChan.setFilter(builder.filter);
+    }
+    this.voiceChannel = vChan;
+
     this.speakerService.register(this);
   }
+
 
   // ###############################################################
   // ----------------------- PUBLIC METHODS ------------------------
@@ -139,22 +156,28 @@ public final class Speaker {
   }
 
   public void updatePosition(final @NotNull Location location) {
-
     this.location = location;
     this.position = speakerService.getAPI()
       .createPosition(location.getBlockX(), location.getBlockY(), location.getBlockZ());
     this.speakerChannel.updateLocation(this.position);
+    if (this.voiceChannel != null)
+      this.voiceChannel.updateLocation(this.position);
   }
 
   public void updateDistance(final @NotNull Float distance) {
     this.distance = distance;
     this.speakerChannel.setDistance(distance);
+    if (this.voiceChannel != null)
+      this.voiceChannel.setDistance(distance);
   }
 
   public void updateFilter(final @Nullable Predicate<ServerPlayer> filter) {
     this.filter = filter;
     this.speakerChannel.setFilter(filter);
+    if (this.voiceChannel != null)
+      this.voiceChannel.setFilter(filter);
   }
+
 
   // ###############################################################
   // -------------------------- BUILDER ----------------------------
