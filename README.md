@@ -91,16 +91,30 @@ Explore the comprehensive module guides in the [`docs/`](docs/) directory:
 * **Paper / Purpur 1.21.4+**
 * **Simple Voice Chat 2.6.x+**
 
-### Gradle Dependency (API)
+### Gradle Dependency (GitHub Packages)
+
+Add the GitHub Packages repository and credentials to your `build.gradle` / `settings.gradle`:
+
 ```groovy
 repositories {
-    maven { url 'https://repo.dreamin.fr/releases' }
+    maven {
+        name = "GitHubPackages"
+        url = uri("https://maven.pkg.github.com/Dreamin-MC/DreamVoice")
+        credentials {
+            username = System.getenv("GITHUB_ACTOR") ?: project.findProperty("gpr.user") ?: ""
+            password = System.getenv("GITHUB_TOKEN") ?: project.findProperty("gpr.token") ?: ""
+        }
+    }
 }
 
 dependencies {
     compileOnly 'fr.dreamin:dreamvoice-api:1.0.0'
 }
 ```
+
+> [!TIP]
+> In your `~/.gradle/gradle.properties` (or project root), define `gpr.user=YourGitHubUsername` and `gpr.token=YourPersonalAccessToken` with `read:packages` permission.
+
 
 ---
 
