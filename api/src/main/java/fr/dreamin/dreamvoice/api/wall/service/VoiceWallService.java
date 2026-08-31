@@ -13,11 +13,24 @@ public interface VoiceWallService {
   boolean isEnable();
   void setEnable(final boolean value);
 
+  @NotNull fr.dreamin.dreamvoice.api.wall.model.VoiceWallMode getMode();
+  void setMode(final @NotNull fr.dreamin.dreamvoice.api.wall.model.VoiceWallMode mode);
+
+  default boolean isStrictBlock() {
+    return getMode() == fr.dreamin.dreamvoice.api.wall.model.VoiceWallMode.STRICT_BLOCK;
+  }
+
   boolean isAirDampingEnabled();
   void setAirDampingEnabled(final boolean value);
 
+
   boolean isDebug();
   void setDebug(final boolean value);
+
+  boolean toggleDebugPlayer(final @NotNull org.bukkit.entity.Player player);
+  boolean hasDebugPlayer(final @NotNull java.util.UUID playerUuid);
+  void setDebugPlayer(final @NotNull java.util.UUID playerUuid, final boolean enabled);
+
 
   void processEntitySoundPacket(
     final @NotNull EntitySoundPacketEvent event,

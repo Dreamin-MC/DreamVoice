@@ -21,6 +21,8 @@ public final class VoiceWiretap {
   private final @NotNull String name;
   @Setter
   private @NotNull Location location;
+  @Setter
+  private @Nullable org.bukkit.entity.Entity targetEntity = null;
 
   @Setter
   private double distance = 12.0;
@@ -41,11 +43,28 @@ public final class VoiceWiretap {
     this(UUID.randomUUID(), name, location);
   }
 
+  public VoiceWiretap(final @NotNull String name, final @NotNull org.bukkit.entity.Entity targetEntity) {
+    this(UUID.randomUUID(), name, targetEntity.getLocation());
+    this.targetEntity = targetEntity;
+  }
+
   public VoiceWiretap(final @NotNull UUID uuid, final @NotNull String name, final @NotNull Location location) {
     this.uuid = uuid;
     this.name = name.toLowerCase();
     this.location = location;
   }
+
+  public @NotNull Location getLocation() {
+    if (this.targetEntity != null && this.targetEntity.isValid()) {
+      return this.targetEntity.getLocation();
+    }
+    return this.location;
+  }
+
+  public boolean isAttachedToEntity() {
+    return this.targetEntity != null && this.targetEntity.isValid();
+  }
+
 
   public void addListener(final @NotNull UUID playerUuid) {
     this.listeners.add(playerUuid);

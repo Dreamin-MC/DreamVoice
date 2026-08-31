@@ -22,8 +22,12 @@ public final class CodexServiceImpl implements CodexService {
     this.plugin = plugin;
     load();
 
-    if (this.codex.getVoiceWall() != null && this.codex.getVoiceWall().enabled())
-      voiceWallService.setEnable(true);
+    if (this.codex.getVoiceWall() != null) {
+      voiceWallService.setMode(this.codex.getVoiceWall().getEffectiveMode());
+      if (this.codex.getVoiceWall().airDamping() != null)
+        voiceWallService.setAirDampingEnabled(this.codex.getVoiceWall().airDamping());
+    }
+
   }
 
   // ##############################################################

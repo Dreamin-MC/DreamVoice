@@ -43,7 +43,9 @@ public final class DreamVoice extends DreamPlugin implements Listener {
     registerCommand(new fr.dreamin.dreamvoice.core.radio.cmd.RadioCmd());
     registerCommand(new fr.dreamin.dreamvoice.core.projection.cmd.ProjectionCmd());
     registerCommand(new fr.dreamin.dreamvoice.core.wiretap.cmd.WiretapCmd());
+    registerCommand(new fr.dreamin.dreamvoice.core.wall.cmd.VoiceWallCmd());
   }
+
 
 
   @Override

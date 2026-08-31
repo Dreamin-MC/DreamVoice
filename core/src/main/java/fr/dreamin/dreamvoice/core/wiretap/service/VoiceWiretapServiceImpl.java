@@ -73,6 +73,31 @@ public final class VoiceWiretapServiceImpl implements VoiceWiretapService, Liste
   }
 
   @Override
+  public @NotNull VoiceWiretap createWiretap(final @NotNull String name, final @NotNull org.bukkit.entity.Entity entity) {
+    final var wiretap = new VoiceWiretap(name, entity);
+    register(wiretap);
+    return wiretap;
+  }
+
+  @Override
+  public void attachToEntity(final @NotNull String name, final @NotNull org.bukkit.entity.Entity entity) {
+    final var wt = getWiretap(name);
+    if (wt != null) {
+      wt.setTargetEntity(entity);
+    }
+  }
+
+  @Override
+  public void detachFromEntity(final @NotNull String name) {
+    final var wt = getWiretap(name);
+    if (wt != null) {
+      wt.setLocation(wt.getLocation());
+      wt.setTargetEntity(null);
+    }
+  }
+
+
+  @Override
   public void register(final @NotNull VoiceWiretap wiretap) {
     this.wiretaps.put(wiretap.getName().toLowerCase(), wiretap);
   }

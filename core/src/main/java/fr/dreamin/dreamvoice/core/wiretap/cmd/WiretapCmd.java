@@ -99,6 +99,71 @@ public final class WiretapCmd {
     sender.sendMessage(Component.text("[WIRETAP] Point d'écoute '" + name + "' supprimé avec succès.", NamedTextColor.GREEN));
   }
 
+  @CommandDescription("Attach a wiretap to the nearest entity or target entity")
+  @CommandMethod("wiretap attach <name>")
+  @CommandPermission("dreamvoice.wiretap.manage")
+  private void attachWiretap(
+    final @NotNull CommandSender sender,
+    @Argument(value = "name", suggestions = "wiretaps") final @NotNull String name
+  ) {
+    if (!(sender instanceof Player player)) {
+      sender.sendMessage(Component.text("Player only!", NamedTextColor.RED));
+      return;
+    }
+
+    final var wt = this.wiretapService.getWiretap(name);
+    if (wt == null) {
+      sender.sendMessage(Component.text("[WIRETAP] Point d'écoute introuvable: " + name, NamedTextColor.RED));
+      return;
+    }
+
+    final var loc = player.getLocation();
+    final var nearby = loc.getWorld().getNearbyEntities(loc, 5.0, 5.0, 5.0).stream()
+      .filter(e -> !e.getUniqueId().equals(player.getUniqueId()))
+      .findFirst()
+      .orElse(null);
+
+    if (nearby == null) {
+      sender.sendMessage(Component.text("[WIRETAP] Aucune entité trouvée à proximité (5 blocs) pour accrocher le micro.", NamedTextColor.RED));
+      return;
+    }
+
+    wt.setTargetEntity(nearby);
+    sender.sendMessage(
+      Component.text("[WIRETAP] Micro '", NamedTextColor.GREEN)
+        .append(Component.text(wt.getName(), NamedTextColor.YELLOW))
+        .append(Component.text("' accroché à l'entité ", NamedTextColor.GREEN))
+        .append(Component.text(nearby.getType().name() + " (" + nearby.getUniqueId().toString().substring(0, 8) + ")", NamedTextColor.AQUA))
+        .append(Component.text(" ! L'écoute suivra ses déplacements.", NamedTextColor.GREEN))
+    );
+  }
+
+  @CommandDescription("Detach a wiretap from its attached entity")
+  @CommandMethod("wiretap detach <name>")
+  @CommandPermission("dreamvoice.wiretap.manage")
+  private void detachWiretap(
+    final @NotNull CommandSender sender,
+    @Argument(value = "name", suggestions = "wiretaps") final @NotNull String name
+  ) {
+    final var wt = this.wiretapService.getWiretap(name);
+    if (wt == null) {
+      sender.sendMessage(Component.text("[WIRETAP] Point d'écoute introuvable: " + name, NamedTextColor.RED));
+      return;
+    }
+
+    if (!wt.isAttachedToEntity()) {
+      sender.sendMessage(Component.text("[WIRETAP] Ce micro n'est pas attaché à une entité.", NamedTextColor.GRAY));
+      return;
+    }
+
+    this.wiretapService.detachFromEntity(name);
+    sender.sendMessage(
+      Component.text("[WIRETAP] Micro '", NamedTextColor.GREEN)
+        .append(Component.text(wt.getName(), NamedTextColor.YELLOW))
+        .append(Component.text("' détaché de l'entité (position figée).", NamedTextColor.GREEN))
+    );
+  }
+
   @CommandDescription("Listen / Subscribe to a wiretap")
   @CommandMethod("wiretap listen <name> [target]")
   @CommandPermission("dreamvoice.wiretap.use")
@@ -263,8 +328,11 @@ public final class WiretapCmd {
     }
 
     final var loc = wt.getLocation();
+    final var attached = wt.getTargetEntity() != null ? wt.getTargetEntity().getType().name() + " (" + wt.getTargetEntity().getUniqueId().toString().substring(0, 8) + ")" : "None";
+
     sender.sendMessage(Component.text("==== [WIRETAP: " + wt.getName().toUpperCase() + "] ====", NamedTextColor.GOLD));
     sender.sendMessage(Component.text("Position: ", NamedTextColor.GRAY).append(Component.text(String.format("%.1f, %.1f, %.1f (%s)", loc.getX(), loc.getY(), loc.getZ(), loc.getWorld() != null ? loc.getWorld().getName() : "?"), NamedTextColor.AQUA)));
+    sender.sendMessage(Component.text("Entité attachée: ", NamedTextColor.GRAY).append(Component.text(attached, NamedTextColor.LIGHT_PURPLE)));
     sender.sendMessage(Component.text("Portée: ", NamedTextColor.GRAY).append(Component.text(wt.getDistance() + "m", NamedTextColor.YELLOW)));
     sender.sendMessage(Component.text("Filtre: ", NamedTextColor.GRAY).append(Component.text(wt.getFilterId() != null ? wt.getFilterId() : "none", NamedTextColor.AQUA)));
     sender.sendMessage(Component.text("Enregistrement en cours: ", NamedTextColor.GRAY).append(Component.text(wt.isRecording() ? "OUI 🔴" : "NON", wt.isRecording() ? NamedTextColor.RED : NamedTextColor.GREEN)));
@@ -290,10 +358,11 @@ public final class WiretapCmd {
 
     for (final var wt : wiretaps) {
       final var loc = wt.getLocation();
+      final var attached = wt.getTargetEntity() != null ? " [Attaché=" + wt.getTargetEntity().getType().name() + "]" : "";
       sender.sendMessage(
         Component.text(" - Micro '", NamedTextColor.GRAY)
           .append(Component.text(wt.getName(), NamedTextColor.AQUA))
-          .append(Component.text(String.format("' @ (%.1f, %.1f, %.1f) [Portée=%.1fm, Auditeurs=%d, Rec=%s]", loc.getX(), loc.getY(), loc.getZ(), wt.getDistance(), wt.getListeners().size(), wt.isRecording() ? "REC" : "IDLE"), NamedTextColor.YELLOW))
+          .append(Component.text(String.format("' @ (%.1f, %.1f, %.1f) [Portée=%.1fm, Auditeurs=%d, Rec=%s]%s", loc.getX(), loc.getY(), loc.getZ(), wt.getDistance(), wt.getListeners().size(), wt.isRecording() ? "REC" : "IDLE", attached), NamedTextColor.YELLOW))
       );
     }
   }
@@ -308,3 +377,4 @@ public final class WiretapCmd {
   }
 
 }
+

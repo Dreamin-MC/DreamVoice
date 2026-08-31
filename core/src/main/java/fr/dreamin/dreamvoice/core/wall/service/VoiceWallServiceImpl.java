@@ -30,6 +30,9 @@ public final class VoiceWallServiceImpl extends Tick implements VoiceWallService
   private final @NotNull PlayerService playerService;
 
   private boolean enable = false, enableStats, debug = false;
+  private @NotNull fr.dreamin.dreamvoice.api.wall.model.VoiceWallMode mode = fr.dreamin.dreamvoice.api.wall.model.VoiceWallMode.REALISTIC;
+
+  private final @NotNull java.util.Set<java.util.UUID> debugPlayers = java.util.concurrent.ConcurrentHashMap.newKeySet();
 
   private double
     wallBypassWidth = 2.0,
@@ -62,13 +65,17 @@ public final class VoiceWallServiceImpl extends Tick implements VoiceWallService
   public void tick() {
     super.tick();
 
-    if (!this.enable)
-      return;
-    if (getActualTick() % this.cacheCleanupInterval == 0)
-      cleanupCache();
+    if (this.enable) {
+      if (getActualTick() % this.cacheCleanupInterval == 0)
+        cleanupCache();
 
-    if (getActualTick() % this.checkInterval == 0)
-      processVoiceConnections();
+      if (getActualTick() % this.checkInterval == 0)
+        processVoiceConnections();
+    }
+
+    if (!this.debugPlayers.isEmpty() && getActualTick() % 4 == 0) {
+      renderVisualDebug();
+    }
   }
 
 
@@ -89,6 +96,23 @@ public final class VoiceWallServiceImpl extends Tick implements VoiceWallService
   @Override
   public void setEnable(final boolean value) {
     this.enable = value;
+    if (!value) {
+      this.mode = fr.dreamin.dreamvoice.api.wall.model.VoiceWallMode.OFF;
+    } else if (this.mode == fr.dreamin.dreamvoice.api.wall.model.VoiceWallMode.OFF) {
+      this.mode = fr.dreamin.dreamvoice.api.wall.model.VoiceWallMode.REALISTIC;
+    }
+  }
+
+  @Override
+  public @NotNull fr.dreamin.dreamvoice.api.wall.model.VoiceWallMode getMode() {
+    return this.mode;
+  }
+
+  @Override
+  public void setMode(final @NotNull fr.dreamin.dreamvoice.api.wall.model.VoiceWallMode mode) {
+    this.mode = mode;
+    this.enable = (mode != fr.dreamin.dreamvoice.api.wall.model.VoiceWallMode.OFF);
+    this.lineOfSightCache.clear();
   }
 
   @Override
@@ -100,6 +124,33 @@ public final class VoiceWallServiceImpl extends Tick implements VoiceWallService
   public void setDebug(final boolean value) {
     this.debug = value;
   }
+
+  @Override
+  public boolean toggleDebugPlayer(final @NotNull org.bukkit.entity.Player player) {
+    final var uid = player.getUniqueId();
+    if (this.debugPlayers.contains(uid)) {
+      this.debugPlayers.remove(uid);
+      return false;
+    } else {
+      this.debugPlayers.add(uid);
+      return true;
+    }
+  }
+
+  @Override
+  public boolean hasDebugPlayer(final @NotNull java.util.UUID playerUuid) {
+    return this.debugPlayers.contains(playerUuid);
+  }
+
+  @Override
+  public void setDebugPlayer(final @NotNull java.util.UUID playerUuid, final boolean enabled) {
+    if (enabled)
+      this.debugPlayers.add(playerUuid);
+    else
+      this.debugPlayers.remove(playerUuid);
+  }
+
+
 
   // #################################################################
   // ---------------------- PRIVATE METHOD ---------------------------
@@ -182,8 +233,10 @@ public final class VoiceWallServiceImpl extends Tick implements VoiceWallService
     if (los.lineOfSight())
       return;
 
-    blockBoth(vPlayer, otherVPlayer, los.totalAttenuation(), VoiceWallManager.WallBlockReason.WALL);
+    final var attenuation = (this.mode == fr.dreamin.dreamvoice.api.wall.model.VoiceWallMode.STRICT_BLOCK) ? 100.0 : los.totalAttenuation();
+    blockBoth(vPlayer, otherVPlayer, attenuation, VoiceWallManager.WallBlockReason.WALL);
   }
+
 
   private CachedLineOfSight getLineOfSightCached(final @NotNull VPlayer vPlayer, final @NotNull VPlayer otherVPlayer, final @NotNull String cacheKey) {
     final var cached = this.lineOfSightCache.get(cacheKey);
@@ -361,12 +414,111 @@ public final class VoiceWallServiceImpl extends Tick implements VoiceWallService
 
   @EventHandler
   private void onPlayerQuit(final @NotNull PlayerQuitEvent event) {
-
+    this.debugPlayers.remove(event.getPlayer().getUniqueId());
     final var vPlayer = this.playerService.getPlayer(event.getPlayer());
     if (vPlayer != null)
       invalidateCacheForPlayer(vPlayer);
   }
 
+  private void renderVisualDebug() {
+    for (final var viewerUuid : this.debugPlayers) {
+      final var viewer = Bukkit.getPlayer(viewerUuid);
+      if (viewer == null || !viewer.isOnline()) {
+        this.debugPlayers.remove(viewerUuid);
+        continue;
+      }
+
+      // Find closest other player
+      var closestPlayer = (org.bukkit.entity.Player) null;
+      var closestDist = Double.MAX_VALUE;
+
+      for (final var target : Bukkit.getOnlinePlayers()) {
+        if (target.getUniqueId().equals(viewerUuid) || !target.getWorld().equals(viewer.getWorld()))
+          continue;
+
+        final var d = viewer.getLocation().distance(target.getLocation());
+        if (d < closestDist && d <= 32.0) {
+          closestDist = d;
+          closestPlayer = target;
+        }
+      }
+
+      if (closestPlayer == null)
+        continue;
+
+      final var result = VoiceRayCast.check(viewer, closestPlayer);
+
+      final org.bukkit.Color color;
+      final net.kyori.adventure.text.Component statusText;
+
+      switch (result.type()) {
+        case DIRECT -> {
+          color = org.bukkit.Color.fromRGB(40, 255, 40);
+          statusText = net.kyori.adventure.text.Component.text("DIRECT (Air Libre)", net.kyori.adventure.text.format.NamedTextColor.GREEN);
+        }
+        case DIFFRACTED -> {
+          color = org.bukkit.Color.fromRGB(255, 180, 0);
+          statusText = net.kyori.adventure.text.Component.text("CONTOURNÉ (Porte/Angle)", net.kyori.adventure.text.format.NamedTextColor.GOLD);
+        }
+        case WALL_ATTENUATED -> {
+          color = org.bukkit.Color.fromRGB(255, 60, 60);
+          statusText = net.kyori.adventure.text.Component.text("ATTÉNUÉ (Mur)", net.kyori.adventure.text.format.NamedTextColor.RED);
+        }
+        case WALL_BLOCKED -> {
+          color = org.bukkit.Color.fromRGB(180, 0, 0);
+          statusText = net.kyori.adventure.text.Component.text("BLOQUÉ (Coupé 100%)", net.kyori.adventure.text.format.NamedTextColor.DARK_RED);
+        }
+        default -> {
+          color = org.bukkit.Color.fromRGB(200, 200, 200);
+          statusText = net.kyori.adventure.text.Component.text("INCONNU", net.kyori.adventure.text.format.NamedTextColor.GRAY);
+        }
+      }
+
+      // Draw particle trail along path waypoints
+      spawnParticleTrail(viewer, result.waypoints(), color);
+
+      // Send Action Bar feedback
+      viewer.sendActionBar(
+        net.kyori.adventure.text.Component.text("[VoiceWall Debug] ", net.kyori.adventure.text.format.NamedTextColor.GRAY)
+          .append(net.kyori.adventure.text.Component.text("Cible: ", net.kyori.adventure.text.format.NamedTextColor.DARK_GRAY))
+          .append(net.kyori.adventure.text.Component.text(closestPlayer.getName(), net.kyori.adventure.text.format.NamedTextColor.AQUA))
+          .append(net.kyori.adventure.text.Component.text(" | ", net.kyori.adventure.text.format.NamedTextColor.DARK_GRAY))
+          .append(statusText)
+          .append(net.kyori.adventure.text.Component.text(String.format(" (-%.1f dB, %.1fm)", result.totalAttenuation(), closestDist), net.kyori.adventure.text.format.NamedTextColor.YELLOW))
+      );
+    }
+  }
+
+  private void spawnParticleTrail(
+    final @NotNull org.bukkit.entity.Player viewer,
+    final @NotNull java.util.List<org.bukkit.Location> waypoints,
+    final @NotNull org.bukkit.Color color
+  ) {
+    if (waypoints.size() < 2)
+      return;
+
+    final var dust = new org.bukkit.Particle.DustOptions(color, 1.2f);
+
+    for (int i = 0; i < waypoints.size() - 1; i++) {
+      final var start = waypoints.get(i);
+      final var end = waypoints.get(i + 1);
+
+      final var diff = end.toVector().subtract(start.toVector());
+      final var length = diff.length();
+      if (length < 0.1)
+        continue;
+
+      final var step = 0.5;
+      final var steps = (int) Math.ceil(length / step);
+      final var inc = diff.clone().multiply(1.0 / steps);
+
+      var current = start.clone();
+      for (int s = 0; s <= steps; s++) {
+        viewer.spawnParticle(org.bukkit.Particle.DUST, current.getX(), current.getY(), current.getZ(), 1, 0.0, 0.0, 0.0, 0.0, dust);
+        current.add(inc);
+      }
+    }
+  }
 
   // ###############################################################
   // ---------------------------- CLASS ----------------------------
@@ -385,4 +537,5 @@ public final class VoiceWallServiceImpl extends Tick implements VoiceWallService
   }
 
 }
+
 

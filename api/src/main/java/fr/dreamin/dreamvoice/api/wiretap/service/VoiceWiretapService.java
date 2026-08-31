@@ -19,6 +19,13 @@ public interface VoiceWiretapService {
 
   @NotNull VoiceWiretap createWiretap(final @NotNull String name, final @NotNull Location location);
 
+  @NotNull VoiceWiretap createWiretap(final @NotNull String name, final @NotNull org.bukkit.entity.Entity entity);
+
+  void attachToEntity(final @NotNull String name, final @NotNull org.bukkit.entity.Entity entity);
+
+  void detachFromEntity(final @NotNull String name);
+
+
   void register(final @NotNull VoiceWiretap wiretap);
 
   void removeWiretap(final @NotNull String name);
