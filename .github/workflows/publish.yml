@@ -153,6 +153,114 @@ jobs:
             echo "No changes in README.md to commit."
           fi
 
+      - name: Send Discord Release Notification
+        if: success()
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK || secrets.DISCORD_WEBHOOK_URL || secrets.DISCORD_RELEASE_WEBHOOK }}
+          VERSION: ${{ env.VERSION }}
+          TAG: ${{ env.TAG }}
+          CHANGELOG_FILE: ${{ env.CHANGELOG_FILE }}
+          MC_VERSION: ${{ env.MC_VERSION }}
+          VOICECHAT_VERSION: ${{ env.VOICECHAT_VERSION }}
+          REPO: ${{ github.repository }}
+          SERVER_URL: ${{ github.server_url }}
+        run: |
+          if [ -z "$DISCORD_WEBHOOK" ]; then
+            echo "No Discord webhook secret found (DISCORD_WEBHOOK / DISCORD_WEBHOOK_URL). Skipping notification."
+            exit 0
+          fi
+
+          python3 - << 'EOF'
+          import os
+          import json
+          import urllib.request
+
+          webhook_url = os.environ.get("DISCORD_WEBHOOK")
+          version = os.environ.get("VERSION", "1.0.0")
+          tag = os.environ.get("TAG", "1.0.0")
+          changelog_file = os.environ.get("CHANGELOG_FILE", "")
+          mc_ver = os.environ.get("MC_VERSION", "1.21.4")
+          vc_ver = os.environ.get("VOICECHAT_VERSION", "2.6.x")
+          repo = os.environ.get("REPO", "Dreamin-MC/DreamVoice")
+          server_url = os.environ.get("SERVER_URL", "https://github.com")
+
+          release_url = f"{server_url}/{repo}/releases/tag/{tag}"
+          modrinth_url = "https://modrinth.com/plugin/dreamvoice"
+          javadoc_url = "https://dreamin-mc.github.io/DreamVoice/"
+
+          changelog_text = ""
+          if changelog_file and os.path.isfile(changelog_file):
+              with open(changelog_file, "r", encoding="utf-8") as f:
+                  changelog_text = f.read().strip()
+
+          if len(changelog_text) > 3800:
+              changelog_text = changelog_text[:3800] + f"\n\n*... [Read full changelog on GitHub]({release_url})*"
+
+          payload = {
+              "content": f"🚀 **DreamVoice `{version}` has just been released!**",
+              "embeds": [
+                  {
+                      "title": f"🎙️ DreamVoice v{version}",
+                      "url": release_url,
+                      "color": 0x00AF5C,
+                      "description": changelog_text or "No changelog provided.",
+                      "fields": [
+                          {"name": "🎮 Minecraft", "value": f"`{mc_ver}`", "inline": True},
+                          {"name": "🔊 VoiceChat", "value": f"`{vc_ver}`", "inline": True},
+                          {"name": "☕ Java", "value": "`25`", "inline": True}
+                      ],
+                      "footer": {
+                          "text": "Dreamin' Studios • DreamVoice"
+                      }
+                  }
+              ],
+              "components": [
+                  {
+                      "type": 1,
+                      "components": [
+                          {
+                              "type": 2,
+                              "style": 5,
+                              "label": "GitHub Release",
+                              "url": release_url,
+                              "emoji": {"name": "🐙"}
+                          },
+                          {
+                              "type": 2,
+                              "style": 5,
+                              "label": "Modrinth",
+                              "url": modrinth_url,
+                              "emoji": {"name": "📦"}
+                          },
+                          {
+                              "type": 2,
+                              "style": 5,
+                              "label": "JavaDoc API",
+                              "url": javadoc_url,
+                              "emoji": {"name": "📖"}
+                          }
+                      ]
+                  }
+              ]
+          }
+
+          req = urllib.request.Request(
+              webhook_url,
+              data=json.dumps(payload).encode("utf-8"),
+              headers={
+                  "Content-Type": "application/json",
+                  "User-Agent": "DreamVoice-Release-Bot"
+              },
+              method="POST"
+          )
+
+          try:
+              with urllib.request.urlopen(req) as resp:
+                  print(f"Discord Webhook notification sent successfully! HTTP {resp.status}")
+          except Exception as e:
+              print(f"Failed to send Discord Webhook notification: {e}")
+          EOF
+
       - name: Rollback / Delete remote tag on failure
         if: failure() || cancelled()
         env:
@@ -164,3 +272,4 @@ jobs:
             -H "Accept: application/vnd.github.v3+json" \
             "https://api.github.com/repos/${{ github.repository }}/git/refs/tags/${{ env.TAG }}" || true
           echo "Remote tag '${{ env.TAG }}' deleted from GitHub."
+
