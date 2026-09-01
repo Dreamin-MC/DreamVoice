@@ -110,7 +110,7 @@ repositories {
 }
 
 dependencies {
-    compileOnly 'fr.dreamin:dreamvoice-api:1.0.5'
+    compileOnly 'fr.dreamin:dreamvoice-api:1.0.6'
 }
 ```
 
