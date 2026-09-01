@@ -21,12 +21,6 @@ gradle-app.setting
 core/run/
 **/run/
 
-# Gradle wrapper
-!gradlew
-!gradlew.bat
-!gradle/wrapper/gradle-wrapper.jar
-!gradle/wrapper/gradle-wrapper.properties
-
 # ==========================
 # Compiled / packaged files
 # ==========================
@@ -38,6 +32,12 @@ core/run/
 *.zip
 *.tar.gz
 *.rar
+
+# Gradle wrapper
+!gradlew
+!gradlew.bat
+!gradle/wrapper/gradle-wrapper.jar
+!gradle/wrapper/gradle-wrapper.properties
 
 # ==========================
 # OS / System files
