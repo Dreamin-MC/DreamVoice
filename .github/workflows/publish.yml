@@ -1,34 +1,87 @@
-name: Publish Package to GitHub Packages
+name: Publish Release
 
 on:
-  release:
-    types: [published]
   push:
     tags:
-      - "v*"
-  workflow_dispatch:
+      - '**'
+
+permissions:
+  contents: write
+  packages: write
 
 jobs:
   publish:
+    name: Build, Publish & Release
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up JDK 25
         uses: actions/setup-java@v4
         with:
-          java-version: "25"
-          distribution: "temurin"
+          java-version: '25'
+          distribution: 'temurin'
+          cache: 'gradle'
 
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
+      - name: Extract clean version from tag
+        id: extract_version
+        run: |
+          TAG="${{ github.ref_name }}"
+          # Remove leading 'v' if present (e.g., v1.0.3 -> 1.0.3, 1.0.3 -> 1.0.3)
+          CLEAN_VERSION="${TAG#v}"
+          echo "VERSION=${CLEAN_VERSION}" >> $GITHUB_ENV
+          echo "TAG=${TAG}" >> $GITHUB_ENV
+          echo "Detected Tag: ${TAG} -> Target Version: ${CLEAN_VERSION}"
 
-      - name: Publish to GitHub Packages
-        run: gradle :api:publish --no-daemon
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Publish API to GitHub Packages
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_ACTOR: ${{ github.actor }}
+        run: |
+          ./gradlew :api:publish -Pversion="${{ env.VERSION }}" --no-daemon
+
+      - name: Build Plugin ShadowJar
+        run: |
+          ./gradlew :core:shadowJar -Pversion="${{ env.VERSION }}" --no-daemon
+
+      - name: Publish to Modrinth
+        uses: Kir-Antipov/mc-publish@v3.3
+        with:
+          modrinth-id: ${{ secrets.MODRINTH_PROJECT_ID || vars.MODRINTH_PROJECT_ID || 'dreamvoice' }}
+          modrinth-token: ${{ secrets.MODRINTH_TOKEN }}
+          files-primary: core/build/libs/DreamVoice.jar
+          name: DreamVoice ${{ env.VERSION }}
+          version: ${{ env.VERSION }}
+          version-type: release
+          loaders: |
+            paper
+            purpur
+          game-versions: |
+            1.21.4
+          dependencies: |
+            voicechat(required)
+
+      - name: Update README.md and push to main
+        run: |
+          git fetch origin main
+          git checkout main
+          
+          # Replace version in the README.md dependency block
+          sed -i -E "s/(compileOnly ['\"]fr\.dreamin:dreamvoice-api:)[^'\"]+(['\"])/\1${{ env.VERSION }}\2/" README.md
+          
+          if ! git diff --quiet README.md; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add README.md
+            git commit -m "chore(docs): update README dependency version to ${{ env.VERSION }} [skip ci]"
+            git push origin main
+          else
+            echo "No changes in README.md to commit."
+          fi
