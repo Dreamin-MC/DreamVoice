@@ -19,6 +19,7 @@ The **Wiretaps** module allows deploying covert listening points (static coordin
 * **Mobile Bugs**: Attach microphones to NPCs, animals, drones, vehicles, or undercover players.
 * **VoiceWall Compliant**: Wiretaps pick up speech according to spatial distance and intervening walls.
 * **Optional Audio Filter**: Apply custom radio or surveillance mic distortion.
+* **Data Persistence**: Wiretaps are automatically saved to `plugins/DreamVoice/data/wiretaps.json`.
 
 ---
 
@@ -45,8 +46,8 @@ The wiretap system is integrated with the recording framework:
 VoiceWiretapService wiretapService = DreamVoice.getService(VoiceWiretapService.class);
 VoiceRecordingService recordingService = DreamVoice.getService(VoiceRecordingService.class);
 
-// 1. Create a wiretap on a target entity (e.g. an NPC or drone):
-VoiceWiretap wt = wiretapService.createWiretap("room_01_bug", targetEntity);
+// 1. Create a wiretap on a target location or entity:
+VoiceWiretap wt = wiretapService.createWiretap("room_01_bug", location);
 wt.setDistance(16.0);
 
 // 2. Add an investigator as a live listener:
@@ -61,6 +62,10 @@ if (recording != null) {
   ItemStack cassetteItem = recordingService.createCassette(recording);
   investigatorPlayer.getInventory().addItem(cassetteItem);
 }
+
+// 4. Save & reload:
+wiretapService.save();
+wiretapService.load();
 ```
 
 ---
@@ -69,14 +74,16 @@ if (recording != null) {
 
 | Command | Permission | Description |
 |---|---|---|
-| `/wiretap create <name> [distance] [filter]` | `dreamvoice.wiretap.manage` | Places a static wiretap at player position |
+| `/wiretap add <name> [range] [filter]` | `dreamvoice.wiretap.manage` | Places a static wiretap at player position (alias: `create`) |
+| `/wiretap remove <name>` | `dreamvoice.wiretap.manage` | Deletes a wiretap (alias: `delete`) |
 | `/wiretap attach <name>` | `dreamvoice.wiretap.manage` | Attaches wiretap to the nearest entity (5 blocks) |
 | `/wiretap detach <name>` | `dreamvoice.wiretap.manage` | Detaches wiretap (freezes at current coordinates) |
-| `/wiretap delete <name>` | `dreamvoice.wiretap.manage` | Deletes a wiretap |
-| `/wiretap listen <name> [player]` | `dreamvoice.wiretap.use` | Listens to a wiretap in real-time |
-| `/wiretap unlisten <name> [player]` | `dreamvoice.wiretap.use` | Stops listening to a wiretap |
+| `/wiretap listen <name> [player]` | `dreamvoice.wiretap.use` | Subscribes a player to live wiretap audio |
+| `/wiretap unlisten <name> [player]` | `dreamvoice.wiretap.use` | Unsubscribes a player from live wiretap audio |
 | `/wiretap record start <name>` | `dreamvoice.wiretap.record` | Starts covert audio recording 🔴 |
-| `/wiretap record stop <name> [giveCassette]` | `dreamvoice.wiretap.record` | Stops recording and gives the cassette item |
-| `/wiretap cassette <name> <player>` | `dreamvoice.wiretap.record` | Gives the latest recording cassette to a player |
+| `/wiretap record stop <name> [giveCassette]` | `dreamvoice.wiretap.record` | Stops recording and optionally gives a cassette item |
+| `/wiretap cassette <name> [player]` | `dreamvoice.wiretap.record` | Gives the latest recording cassette to a player |
 | `/wiretap list` | `dreamvoice.wiretap.use` | Lists all active wiretaps |
 | `/wiretap info <name>` | `dreamvoice.wiretap.manage` | Displays wiretap status (attached entity, listeners, recording) |
+| `/wiretap save` | `dreamvoice.wiretap.save` | Saves all wiretaps to disk |
+| `/wiretap reload` | `dreamvoice.wiretap.reload` | Reloads all wiretaps from disk |

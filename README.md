@@ -1,25 +1,24 @@
 # 🎙️ DreamVoice
 
 <p align="center">
-  <strong>Spatialized Audio Framework & Advanced Acoustic Engine for Minecraft Paper</strong>
+  <strong>Spatialized Audio Framework, Acoustic Physics Engine & In-Game Comms for Minecraft Paper</strong>
   <br />
   <i>Developed by Dreamin’ Studios for the PaperMC & Simple Voice Chat ecosystem</i>
 </p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/Java-25-orange.svg" alt="Java 25" />
-  <img src="https://img.shields.io/badge/Paper-1.21.4-blue.svg" alt="Paper 26.1.2" />
+  <img src="https://img.shields.io/badge/Paper-1.21.4-blue.svg" alt="Paper 1.21.4" />
   <img src="https://img.shields.io/badge/Simple%20Voice%20Chat-2.6.x-green.svg" alt="Simple Voice Chat" />
-  <a href="https://modrinth.com/plugin/dreamvoice"><img src="https://img.shields.io/badge/Modrinth-Available-00AF5C?logo=modrinth&logoColor=white" alt="Modrinth" /></a>
+  <a href="https://modrinth.com/plugin/dreamvoice"><img src="https://img.shields.io/badge/Modrinth-1.0.7-00AF5C?logo=modrinth&logoColor=white" alt="Modrinth" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-GPL%20v3-blue.svg" alt="License: GPL v3" /></a>
 </p>
-
 
 ---
 
 ## 🌟 Overview
 
-**DreamVoice** is a complete spatialized voice and acoustic solution built on top of **Simple Voice Chat (SVC)**. Designed for immersive gamemodes, roleplay servers, and narrative minigames (such as **Danganronpa**, Murder Mystery, investigation games), it delivers realistic acoustic physics, 3D directional speakers, voice projections, covert wiretaps, real-time DSP voice filters, and interactive cassette recordings.
+**DreamVoice** is a complete spatialized voice and acoustic solution built on top of **Simple Voice Chat (SVC)**. Designed for immersive gamemodes, roleplay servers, and narrative minigames (such as **Danganronpa**, Murder Mystery, and investigation games), it delivers realistic acoustic physics, 3D directional speakers, voice projections, covert wiretaps, real-time DSP voice filters, interactive cassette recordings, and independent persistent data storage surviving server reboots.
 
 ---
 
@@ -27,13 +26,14 @@
 
 ```
  🎙️ DREAMVOICE CORE ARCHITECTURE
- ├── 🧱 VoiceWall (Acoustic Engine, Diffraction, Open Door Bypass, Particle Debug)
- ├── 📢 Speakers (3D Locational speakers, Mobile entity tracking, Dual voice/music channels)
- ├── 👻 Voice Projection (Voice projection, Camera/Drone listening, Fake Players)
+ ├── 🧱 VoiceWall (Acoustic Engine, Material Attenuation, Open Door Bypass, Particle Raycast Debug)
+ ├── 📢 3D Speakers (3D Positional audio, Mobile entity tracking, Dual voice/playback channels)
+ ├── 👻 Voice Projection (Remote voice projection, Security Camera/Drone listening, Fake Players)
  ├── 🕵️ Wiretaps (Covert spy mics, Mobile entity bugs, Direct cassette recording)
- ├── 📼 Voice Recording (Live audio capture, Physical Cassette items, MP3/URL player)
- ├── 📻 Radios & Transmitters (Multi-user frequencies, Walkie-talkies, Direct links)
- └── 🎛️ DSP Filters & Soft Limiter (Voice Disguiser, Vocoder, Demon, Anti-clipping)
+ ├── 📼 Voice Recordings (Live audio capture, Physical Cassette items, MP3 & URL player)
+ ├── 📻 Radios & Transmitters (Multi-user frequencies, Roger Beep, Point-to-point links)
+ ├── 🎛️ DSP Filters & Soft Limiter (Voice Disguiser, Vocoder, Demon, Anti-clipping Limiter)
+ └── 💾 Independent System Persistence (Automatic save & load for all modules on server restart)
 ```
 
 ### 1. 🧱 Acoustic Engine & VoiceWall
@@ -48,6 +48,7 @@
 ### 2. 📢 Spatialized 3D Speakers
 * Directional 3D audio positioned at static coordinates or dynamically attached to any **Bukkit Entity** (NPC, drone, mob, vehicle, ArmorStand).
 * **Independent Dual Channels**: Speak into a speaker's microphone while background music/sound effects play simultaneously with zero interruption or audio collision.
+* **Access Modes**: Configure `GLOBAL` public broadcast or `RESTRICTED` mode linked to authorized players.
 
 ### 3. 👻 Voice Projections (Camera Mode & Fake Players)
 * Projects a player's voice to a remote target location or moving entity while allowing them to hear their camera's surrounding environment (`hearPlayerEnvironment`).
@@ -55,18 +56,26 @@
 
 ### 4. 🕵️ Covert Wiretaps & Cassettes
 * Place static or entity-attached spy microphones (mobile bugs).
-* Live listening stream for investigators (`listen` / `unlisten`).
+* Live listening stream for investigators (`/wiretap listen`).
 * Direct recording to **interactive physical Cassette Items**.
 
 ### 5. 📼 Voice Recordings & Audio Cassettes
-* Live session audio recording.
+* Live session audio recording with timestamps and duration slicing (`/record slice`).
 * External MP3 file and web URL streaming.
 * Physical Cassette items playable on right-click in hand or via 3D speakers.
 
-### 6. 🎛️ DSP Processing & Audio Stream Isolation
+### 6. 📻 Radios & Transmitters
+* **Multi-User Radio Channels**: Tune into frequencies with custom audio filters and configurable Roger Beep end-of-transmission tones.
+* **Transmitters**: Direct point-to-point voice broadcast to selected players with custom maximum ranges.
+
+### 7. 🎛️ DSP Processing & Audio Stream Isolation
 * **Zero Audio Crackling**: Fully isolated audio streams indexed by composite key `(Sender:Receiver:Source)`.
 * **Soft-Knee Dynamic Limiter**: Real-time DSP anti-clipping limiter preventing distortion.
 * **DSP Voice Filters**: Voice anonymizer `disguise`, `robot`, `phone`, `demon`, `whisper`, and custom filter API.
+
+### 8. 💾 Full Data Persistence
+* Automatically loads all active speakers, wiretaps, projections, radios, and transmitters on startup (`onServerStarted`) and saves them on shutdown (`onDreamDisable`).
+* Independent JSON files under `plugins/DreamVoice/data/` for easy backup and module reload.
 
 ---
 
@@ -85,7 +94,30 @@ Explore the comprehensive module guides in the [`docs/`](docs/) directory:
 
 ---
 
-## 🚀 Installation & Integration
+## 🕹️ Quick Commands Overview
+
+| Command | Description |
+|---|---|
+| `/dreamvoice status` | Displays system status and active module counts |
+| `/dreamvoice reload [all\|config\|data]` | Reloads configuration, saved data, or both |
+| `/voicewall mode <strict\|realistic\|off>` | Changes wall occlusion mode |
+| `/voicewall debug [player]` | Toggles visual particle sound raycast diagnostics |
+| `/speaker add <name> [range]` | Creates a 3D locational speaker |
+| `/speaker info <name>` | Shows detailed speaker info and status |
+| `/speaker play <name> <record\|file\|url> <source>` | Plays audio or recording through the speaker |
+| `/wiretap add <name> [range] [filter]` | Places a covert wiretap listening point |
+| `/wiretap listen <name> [player]` | Connects a player to live wiretap eavesdropping |
+| `/wiretap record start <name>` / `stop <name>` | Records secret audio and creates a cassette |
+| `/projection create [player]` | Creates a voice projection / body anchor |
+| `/projection info [player]` | Shows projection settings (distance, filter, emission/hearing) |
+| `/radio join <channel>` / `/radio leave` | Tunes into or leaves a radio frequency channel |
+| `/transmitter enable` / `/transmitter add <player>` | Manages point-to-point voice transmitter |
+| `/record start` / `/record stop` | Records your voice and creates playable cassettes |
+| `/record cassette <id> [player]` | Gives a physical Cassette item |
+
+---
+
+## 📦 Installation & Integration
 
 ### Prerequisites
 * **Java 25+**
@@ -94,12 +126,14 @@ Explore the comprehensive module guides in the [`docs/`](docs/) directory:
 
 ### 📦 Download & Installation
 
-* **Server Plugin**: Download the latest release from **[Modrinth](https://modrinth.com/plugin/dreamvoice)** or [GitHub Releases](https://github.com/Dreamin-MC/DreamVoice/releases) and drop `DreamVoice.jar` into your server's `plugins/` folder.
-* **Requirements**: Ensure **Paper 1.21.4+** and **[Simple Voice Chat 2.6.x+](https://modrinth.com/plugin/simple-voice-chat)** are installed on the server.
+1. Make sure your server runs **Paper 1.21.4+** and **[Simple Voice Chat 2.6.x+](https://modrinth.com/plugin/simple-voice-chat)**.
+2. Download the latest release from **[Modrinth](https://modrinth.com/plugin/dreamvoice)** or [GitHub Releases](https://github.com/Dreamin-MC/DreamVoice/releases).
+3. Drop `DreamVoice.jar` into your server's `plugins/` directory.
+4. Restart your server!
 
-### 🛠️ Developer API Dependency (GitHub Packages)
+---
 
-Add the GitHub Packages repository to your `build.gradle`:
+## 💻 Developer API Dependency (GitHub Packages)
 
 ```groovy
 repositories {
@@ -116,52 +150,5 @@ dependencies {
 
 ---
 
-## 💻 Java API Example
-
-```java
-// Retrieve services
-VoiceWallService wallService = DreamVoice.getService(VoiceWallService.class);
-VoiceSpeakerService speakerService = DreamVoice.getService(VoiceSpeakerService.class);
-VoiceWiretapService wiretapService = DreamVoice.getService(VoiceWiretapService.class);
-VoiceRecordingService recService = DreamVoice.getService(VoiceRecordingService.class);
-
-// 1. Configure VoiceWall in soundproof mode
-wallService.setMode(VoiceWallMode.STRICT_BLOCK);
-
-// 2. Create a mobile speaker attached to a drone entity
-Speaker droneSpeaker = speakerService.createSpeaker("drone_01", droneEntity, 24.0);
-
-// 3. Attach a covert wiretap bug to an NPC
-VoiceWiretap spyMic = wiretapService.createWiretap("spy_npc", npcEntity);
-spyMic.addListener(inspectorPlayer.getUniqueId());
-
-// 4. Record secretly and generate an interactive cassette
-wiretapService.startRecording("spy_npc");
-VoiceRecording rec = wiretapService.stopRecording("spy_npc");
-ItemStack cassette = recService.createCassette(rec);
-inspectorPlayer.getInventory().addItem(cassette);
-```
-
----
-
-## 🕹️ Quick Commands Overview
-
-| Command | Description |
-|---|---|
-| `/voicewall debug [player]` | Toggles visual particle debug & Action Bar diagnostics |
-| `/voicewall mode <strict\|realistic\|off>` | Changes wall occlusion mode |
-| `/speaker create <name> [distance]` | Creates a 3D speaker |
-| `/speaker attach <name>` | Attaches the speaker to the nearest entity |
-| `/projection create <name>` | Creates a voice projection point |
-| `/projection attach <name>` | Attaches the projection to an entity |
-| `/wiretap create <name>` | Places a covert wiretap |
-| `/wiretap record start <name>` | Starts covert recording |
-| `/wiretap record stop <name> true` | Stops recording and gives a physical cassette |
-| `/recording start` / `/recording stop` | Manages voice recording sessions |
-| `/radio join <frequency>` | Joins a walkie-talkie frequency |
-
----
-
 ## 📄 License
 This project is licensed under the **GNU General Public License v3.0** (GPLv3) - see the [LICENSE](LICENSE) file for details.
-

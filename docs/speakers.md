@@ -18,8 +18,8 @@ The **Speakers** module allows placing 3D spatialized speakers in the world, pos
 * **3D Positional Audio**: Sound originates from the exact location of the speaker with realistic distance falloff.
 * **VoiceWall Occlusion**: Audio emitted from speakers respects wall thickness and obstacle diffraction.
 * **Static or Mobile**: Speakers can remain fixed at coordinates or dynamically follow moving entities.
-* **Access Control**: Configure which players are authorized to broadcast their voice through the speaker.
-* **Custom Gain & Range**: Adjustable volume gain and broadcast radius.
+* **Access Control**: Configure `GLOBAL` public broadcast or `RESTRICTED` mode linked to authorized players.
+* **Data Persistence**: Automatically saved to `plugins/DreamVoice/data/speakers.json` across server restarts.
 
 ---
 
@@ -60,7 +60,10 @@ speakerService.detachFromEntity("courtroom_main");
 // 4. Configure permissions & audio parameters:
 speaker.addAllowedSpeaker(player.getUniqueId());
 speaker.setDistance(40.0);
-speaker.setVolume(1.2f);
+
+// 5. Save & reload:
+speakerService.save();
+speakerService.load();
 ```
 
 ---
@@ -69,12 +72,16 @@ speaker.setVolume(1.2f);
 
 | Command | Permission | Description |
 |---|---|---|
-| `/speaker create <name> [distance]` | `dreamvoice.speaker.manage` | Creates a 3D speaker at player position |
-| `/speaker attach <name>` | `dreamvoice.speaker.manage` | Attaches speaker to the nearest entity (5 blocks) |
-| `/speaker detach <name>` | `dreamvoice.speaker.manage` | Detaches speaker (freezes at current position) |
-| `/speaker delete <name>` | `dreamvoice.speaker.manage` | Deletes a speaker |
+| `/speaker add <name> [range]` | `dreamvoice.speaker.manage` | Creates a 3D speaker at player position (alias: `create`) |
+| `/speaker remove <name>` | `dreamvoice.speaker.manage` | Deletes a speaker (alias: `delete`) |
 | `/speaker list` | `dreamvoice.speaker.use` | Lists all active speakers |
-| `/speaker info <name>` | `dreamvoice.speaker.manage` | Displays speaker details (location, attached entity, volume, range) |
-| `/speaker play <name> <recordId>` | `dreamvoice.speaker.manage` | Plays an audio recording on the speaker |
+| `/speaker info <name>` | `dreamvoice.speaker.manage` | Displays speaker details (location, attached entity, mode, allowed speakers) |
+| `/speaker mode <name> <global\|restricted>` | `dreamvoice.speaker.manage` | Sets speaking access mode |
+| `/speaker link <name> <player>` | `dreamvoice.speaker.manage` | Authorizes a player to speak through a restricted speaker |
+| `/speaker unlink <name> <player>` | `dreamvoice.speaker.manage` | Revokes speaking authorization from a player |
+| `/speaker play record <name> <recordId>` | `dreamvoice.speaker.manage` | Plays an audio recording on the speaker |
+| `/speaker play file <name> <fileName> [loop]` | `dreamvoice.speaker.manage` | Plays a local audio file from `sounds/` |
+| `/speaker play url <name> <url> [loop]` | `dreamvoice.speaker.manage` | Streams a web audio URL through the speaker |
 | `/speaker stop <name>` | `dreamvoice.speaker.manage` | Stops audio playback on the speaker |
-| `/speaker volume <name> <gain>` | `dreamvoice.speaker.manage` | Adjusts speaker volume gain |
+| `/speaker save` | `dreamvoice.speaker.save` | Saves all speakers to disk |
+| `/speaker reload` | `dreamvoice.speaker.reload` | Reloads all speakers from disk |

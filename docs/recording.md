@@ -1,13 +1,13 @@
 # 📼 Audio Recording & Cassettes
 
-The **Recording** module captures live player voices, streams external MP3 files and web URLs, and produces **Interactive Audio Cassette Items** playable on right-click or through spatial speakers.
+The **Recording** module captures live player voices, streams external audio files and web URLs, and produces **Interactive Audio Cassette Items** playable on right-click or through spatial speakers.
 
 ---
 
 ## 📑 Table of Contents
 - [Key Features](#-key-features)
 - [Interactive Audio Cassettes](#-interactive-audio-cassettes)
-- [MP3 & Web URL Loading](#-mp3--web-url-loading)
+- [Audio Slicing & Extraction](#-audio-slicing--extraction)
 - [Java API Usage](#-java-api-usage)
 - [In-Game Commands](#-in-game-commands)
 
@@ -16,22 +16,26 @@ The **Recording** module captures live player voices, streams external MP3 files
 ## ✨ Key Features
 
 * **Live Voice Recording**: Captures PCM / Opus audio streams with exact timestamps and durations.
-* **MP3 & Web URL Streaming**: Transcodes and plays external audio files into Simple Voice Chat streams.
-* **Physical Cassette Items**: Generates interactive `ItemStack` items with lore, metadata, timestamps, and durations.
-* **Right-Click Playback**: Plays the recorded audio directly in the listener's headset with Action Bar progress.
-* **Speaker Integration**: Broadcast recordings into 3D spatialized speakers via `/speaker play`.
+* **Audio File & URL Streaming**: Transcodes and converts external audio files or URLs into voice recordings.
+* **Physical Cassette Items**: Generates interactive `ItemStack` items with metadata, timestamps, and durations.
+* **Right-Click Playback**: Plays the recorded audio directly in the listener's headset.
+* **Speaker Integration**: Broadcast recordings into 3D spatialized speakers via `/speaker play record`.
 
 ---
 
 ## 💽 Interactive Audio Cassettes
 
 An audio cassette item stores:
-* Recording title and ID.
-* Total audio duration.
-* Creation timestamp.
-* Associated sound stream.
+* Recording title and UUID identifier in persistent PDC data (`cassette_id`).
+* Total audio duration and author name.
+* Playable on right-click or in 3D speakers.
 
-Right-clicking the cassette in the player's main hand begins direct playback with real-time Action Bar diagnostics.
+---
+
+## ✂️ Audio Slicing & Extraction
+
+* **Exact Timestamp Slicing**: Slice specific audio chunks via start timestamp and length (`/record slice`).
+* **Instant Replay**: Grab the last $N$ seconds of a recorded session (`/record slice-last`).
 
 ---
 
@@ -41,21 +45,17 @@ Right-clicking the cassette in the player's main hand begins direct playback wit
 VoiceRecordingService recService = DreamVoice.getService(VoiceRecordingService.class);
 
 // 1. Start an audio recording session:
-UUID sessionId = recService.startRecording();
+VoiceRecording rec = recService.startRecording(player.getUniqueId());
 
 // 2. Stop the session:
-VoiceRecording recording = recService.stopRecording(sessionId);
+recService.stopRecording(rec.getUuid());
 
 // 3. Create a physical interactive Cassette Item from a recording:
-ItemStack cassette = recService.createCassette(recording);
+ItemStack cassette = recService.createCassette(rec);
 player.getInventory().addItem(cassette);
 
-// 4. Bind an external MP3 file / Web URL to an existing item:
-ItemStack customItem = new ItemStack(Material.MUSIC_DISC_5);
-recService.bindAudioToItem(customItem, "https://example.com/audio/clue_01.mp3", 45.0 /* duration in seconds */);
-
-// 5. Play a recording directly to a player:
-recService.playRecording(player, recording);
+// 4. Play a recording directly to a player:
+recService.playRecordingTo(connection, rec);
 ```
 
 ---
@@ -64,10 +64,13 @@ recService.playRecording(player, recording);
 
 | Command | Permission | Description |
 |---|---|---|
-| `/recording start` | `dreamvoice.recording.use` | Starts a voice recording session |
-| `/recording stop [giveCassette]` | `dreamvoice.recording.use` | Stops recording and optionally gives a cassette item |
-| `/recording play <id> [player]` | `dreamvoice.recording.use` | Plays an audio recording |
-| `/recording pause <id>` | `dreamvoice.recording.use` | Pauses audio playback |
-| `/recording cassette <id> <player>` | `dreamvoice.recording.use` | Gives a cassette item for an existing recording |
-| `/recording list` | `dreamvoice.recording.use` | Lists recorded audio sessions |
-| `/recording load <url\|file> <name>` | `dreamvoice.recording.manage` | Loads an external MP3 file or web URL |
+| `/record start` | `dreamvoice.record.start` | Starts recording your voice |
+| `/record stop [id]` | `dreamvoice.record.stop` | Stops active recording (or by ID) |
+| `/record list` | `dreamvoice.record.list` | Lists recorded audio sessions |
+| `/record play <id> [player]` | `dreamvoice.record.play` | Plays an audio recording to a player |
+| `/record cassette <id> [player]` | `dreamvoice.record.cassette` | Gives a physical Cassette item |
+| `/record cassette file <file> [player]` | `dreamvoice.record.cassette` | Creates and gives a cassette from a local file |
+| `/record cassette url <url> [player]` | `dreamvoice.record.cassette` | Creates and gives a cassette from a web audio URL |
+| `/record slice <id> <startMs> <durMs> [give]` | `dreamvoice.record.slice` | Slices a specific segment from a recording |
+| `/record slice-last <id> <durMs> [give]` | `dreamvoice.record.slice` | Extracts the last $N$ milliseconds from a recording |
+| `/record delete <id>` | `dreamvoice.record.delete` | Deletes a recording |

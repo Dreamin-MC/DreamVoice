@@ -17,10 +17,10 @@ The **Projection** module allows projecting a player's voice output to a remote 
 ## 🎯 Concept & Architecture
 
 When a voice projection is active for a player:
-1. **Voice Output**: Their spoken voice no longer emits from their physical player body, but projects directly from the remote projection point.
-2. **Audio Input (`hearPlayerEnvironment`)**:
-   * If enabled (`true`, default): The player continues to hear players speaking around their camera/drone or physical position.
-   * If disabled (`false`): The player only hears audio return from the remote projection point.
+1. **Voice Output**: Their spoken voice can emit at the remote anchor location, at the player body/camera, or both.
+2. **Audio Input**:
+   * `hearAnchorEnvironment`: The player hears audio surrounding the remote anchor point.
+   * `hearPlayerEnvironment`: The player hears audio surrounding their camera or physical position.
 
 ---
 
@@ -28,7 +28,7 @@ When a voice projection is active for a player:
 
 In roleplay and mystery scenarios (e.g. **Danganronpa**, detective minigames with surveillance cameras or drones):
 * The player controls a camera view or a fake player body in another room.
-* Their voice must appear to originate from the remote room or camera speaker.
+* Their voice appears to originate from the remote room or camera speaker.
 * The projection system handles directional audio packets while adhering to `VoiceWall` physics.
 
 ---
@@ -51,17 +51,18 @@ Each projection can be assigned a specific DSP filter (e.g. `disguise`, `robot`,
 ```java
 VoiceProjectionService projService = DreamVoice.getService(VoiceProjectionService.class);
 
-// 1. Create a static projection point:
-VoiceProjection proj = projService.createProjection("lab_camera", targetLocation);
+// 1. Create a projection for a target player:
+VoiceProjection proj = projService.createProjection(player, targetLocation);
 
-// 2. Create a projection bound to a mobile drone entity:
-VoiceProjection droneProj = projService.createProjection("drone_01", droneEntity);
-
-// 3. Assign a player and configure audio properties:
-proj.setPlayerUuid(player.getUniqueId());
+// 2. Configure audio properties:
 proj.setFilterId("disguise");          // Anonymizes the player's voice
 proj.setHearPlayerEnvironment(true);   // Hears voices around the camera
+proj.setHearAnchorEnvironment(true);   // Hears voices around the anchor
 proj.setDistance(24.0);
+
+// 3. Save & reload:
+projService.save();
+projService.load();
 ```
 
 ---
@@ -70,10 +71,18 @@ proj.setDistance(24.0);
 
 | Command | Permission | Description |
 |---|---|---|
-| `/projection create <name> [distance] [filter]` | `dreamvoice.projection.manage` | Creates a projection point at current position |
-| `/projection attach <name>` | `dreamvoice.projection.manage` | Attaches projection to the nearest entity (5 blocks) |
-| `/projection detach <name>` | `dreamvoice.projection.manage` | Detaches projection from entity |
-| `/projection set <name> <player> [hearEnv]` | `dreamvoice.projection.manage` | Assigns a player to the voice projection |
-| `/projection delete <name>` | `dreamvoice.projection.manage` | Deletes the projection point |
-| `/projection list` | `dreamvoice.projection.use` | Lists all active projections |
-| `/projection info <name>` | `dreamvoice.projection.manage` | Displays full projection details (assigned player, entity, filter) |
+| `/projection create [target]` | `dreamvoice.projection.use` | Creates a voice anchor at target player's position |
+| `/projection remove [target]` | `dreamvoice.projection.use` | Removes the active voice anchor |
+| `/projection attach [target]` | `dreamvoice.projection.use` | Attaches anchor to nearest entity (follows movement) |
+| `/projection detach [target]` | `dreamvoice.projection.use` | Detaches anchor from entity |
+| `/projection distance <target> <dist>` | `dreamvoice.projection.use` | Sets projection speaking/hearing range |
+| `/projection filter <target> <filter>` | `dreamvoice.projection.use` | Sets voice filter on projection |
+| `/projection emit-anchor <target> <bool>` | `dreamvoice.projection.use` | Toggles voice emission at anchor |
+| `/projection emit-player <target> <bool>` | `dreamvoice.projection.use` | Toggles voice emission at camera/player |
+| `/projection hear-anchor <target> <bool>` | `dreamvoice.projection.use` | Toggles hearing around anchor |
+| `/projection hear-player <target> <bool>` | `dreamvoice.projection.use` | Toggles hearing around camera/player |
+| `/projection wall <target> <bool>` | `dreamvoice.projection.use` | Toggles VoiceWall occlusion on projection |
+| `/projection list` | `dreamvoice.projection.use` | Lists all active voice projections |
+| `/projection info [target]` | `dreamvoice.projection.use` | Displays full projection settings |
+| `/projection save` | `dreamvoice.projection.save` | Saves all projections to disk |
+| `/projection reload` | `dreamvoice.projection.reload` | Reloads all projections from disk |
