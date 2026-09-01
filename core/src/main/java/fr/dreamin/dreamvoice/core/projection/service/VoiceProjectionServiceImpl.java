@@ -12,9 +12,11 @@ import fr.dreamin.dreamvoice.api.voice.event.MicrophonePacketEvent;
 import fr.dreamin.dreamvoice.api.voice.service.VoiceService;
 import fr.dreamin.dreamvoice.api.wall.service.VoiceWallService;
 import fr.dreamin.dreamvoice.core.DreamVoice;
+import fr.dreamin.dreamvoice.core.utils.audio.AudioLimiter;
 import fr.dreamin.dreamvoice.core.utils.raycast.VoiceRayCast;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -37,6 +39,7 @@ public final class VoiceProjectionServiceImpl implements VoiceProjectionService,
   private final @NotNull Map<UUID, VoiceProjection> projections = new ConcurrentHashMap<>();
   private final @NotNull Map<String, StaticAudioChannel> playerAudioChannels = new ConcurrentHashMap<>();
   private final @NotNull Map<String, Long> lastChannelActivity = new ConcurrentHashMap<>();
+  private boolean voiceServiceMissingLogged = false;
 
   public VoiceProjectionServiceImpl(final @NotNull DreamVoice plugin) {
     this.plugin = plugin;
@@ -82,7 +85,7 @@ public final class VoiceProjectionServiceImpl implements VoiceProjectionService,
   }
 
   @Override
-  public @NotNull VoiceProjection createProjection(final @NotNull UUID playerUuid, final @NotNull org.bukkit.entity.Entity anchorEntity) {
+  public @NotNull VoiceProjection createProjection(final @NotNull UUID playerUuid, final @NotNull Entity anchorEntity) {
     final var proj = new VoiceProjection(playerUuid, anchorEntity);
     register(proj);
     return proj;
@@ -132,9 +135,8 @@ public final class VoiceProjectionServiceImpl implements VoiceProjectionService,
   @Override
   public void updateLocation(final @NotNull UUID playerUuid, final @NotNull Location newLocation) {
     final var proj = this.projections.get(playerUuid);
-    if (proj != null) {
+    if (proj != null)
       proj.setAnchorLocation(newLocation);
-    }
   }
 
   private @Nullable StaticAudioChannel getOrCreateChannel(final @NotNull String streamKey, final @NotNull VoicechatConnection conn) {
@@ -172,6 +174,13 @@ public final class VoiceProjectionServiceImpl implements VoiceProjectionService,
     final var voiceService = DreamVoice.getService(VoiceService.class);
     final var wallService = DreamVoice.getService(VoiceWallService.class);
     final var filterService = DreamVoice.getService(VoiceFilterService.class);
+    if (voiceService == null) {
+      if (!this.voiceServiceMissingLogged) {
+        this.voiceServiceMissingLogged = true;
+        this.plugin.getLogger().warning("VoiceService is unavailable. Projection audio processing is skipped.");
+      }
+      return;
+    }
 
     // =========================================================================
     // Case 1: The speaker HAS a Projection (Player is speaking from camera/view)
@@ -247,7 +256,7 @@ public final class VoiceProjectionServiceImpl implements VoiceProjectionService,
               }
 
               // Soft limiter
-              processed = fr.dreamin.dreamvoice.core.utils.audio.AudioLimiter.process(processed);
+              processed = AudioLimiter.process(processed);
 
               final var newOpus = encoder.encode(processed);
               final var streamKey = "proj_out:" + senderUuid + ":" + listener.getUniqueId();
@@ -257,7 +266,8 @@ public final class VoiceProjectionServiceImpl implements VoiceProjectionService,
                 this.lastChannelActivity.put(streamKey, System.currentTimeMillis());
               }
             }
-          } catch (Exception ignored) {
+          } catch (Exception exception) {
+            this.plugin.getLogger().warning("Failed to project owner voice from anchor (owner=" + ownerProjection.getPlayerUuid() + ", sender=" + senderUuid + ", listener=" + listener.getUniqueId() + "): " + exception.getMessage());
           }
         }
       }
@@ -325,7 +335,7 @@ public final class VoiceProjectionServiceImpl implements VoiceProjectionService,
           }
 
           // Soft limiter
-          processed = fr.dreamin.dreamvoice.core.utils.audio.AudioLimiter.process(processed);
+          processed = AudioLimiter.process(processed);
 
           final var newOpus = encoder.encode(processed);
           final var streamKey = "proj_in:" + senderUuid + ":" + proj.getPlayerUuid();
@@ -335,7 +345,8 @@ public final class VoiceProjectionServiceImpl implements VoiceProjectionService,
             this.lastChannelActivity.put(streamKey, System.currentTimeMillis());
           }
         }
-      } catch (Exception ignored) {
+      } catch (Exception exception) {
+        this.plugin.getLogger().warning("Failed to project anchor environment voice to owner (owner=" + proj.getPlayerUuid() + ", sender=" + senderUuid + "): " + exception.getMessage());
       }
     }
 

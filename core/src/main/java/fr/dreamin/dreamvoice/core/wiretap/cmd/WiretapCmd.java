@@ -26,11 +26,22 @@ import java.util.stream.Collectors;
 
 public final class WiretapCmd {
 
-  private final @NotNull VoiceWiretapService wiretapService =
+  private final @Nullable VoiceWiretapService wiretapService =
     DreamVoice.getService(VoiceWiretapService.class);
+
+  private @Nullable VoiceWiretapService requireWiretapService(final @NotNull CommandSender sender) {
+    if (this.wiretapService == null) {
+      sender.sendMessage(Component.text("[WIRETAP] Service wiretap indisponible.", NamedTextColor.RED));
+      return null;
+    }
+    return this.wiretapService;
+  }
 
   @Suggestions("wiretaps")
   public List<String> suggWiretaps(final @NotNull CommandContext<CommandSender> ctx, final @NotNull String in) {
+    if (this.wiretapService == null)
+      return List.of();
+
     return this.wiretapService.getWiretaps().stream()
       .map(VoiceWiretap::getName)
       .filter(name -> name.startsWith(in.toLowerCase()))
@@ -68,8 +79,12 @@ public final class WiretapCmd {
       return;
     }
 
+    final var wiretapService = requireWiretapService(sender);
+    if (wiretapService == null)
+      return;
+
     final var loc = player.getLocation();
-    final var wt = this.wiretapService.createWiretap(name, loc);
+    final var wt = wiretapService.createWiretap(name, loc);
     if (distance != null)
       wt.setDistance(distance);
     if (filterId != null && !filterId.equalsIgnoreCase("none"))
@@ -89,13 +104,17 @@ public final class WiretapCmd {
     final @NotNull CommandSender sender,
     @Argument(value = "name", suggestions = "wiretaps") final @NotNull String name
   ) {
-    final var wt = this.wiretapService.getWiretap(name);
+    final var wiretapService = requireWiretapService(sender);
+    if (wiretapService == null)
+      return;
+
+    final var wt = wiretapService.getWiretap(name);
     if (wt == null) {
       sender.sendMessage(Component.text("[WIRETAP] Point d'écoute introuvable: " + name, NamedTextColor.RED));
       return;
     }
 
-    this.wiretapService.removeWiretap(name);
+    wiretapService.removeWiretap(name);
     sender.sendMessage(Component.text("[WIRETAP] Point d'écoute '" + name + "' supprimé avec succès.", NamedTextColor.GREEN));
   }
 
@@ -111,7 +130,11 @@ public final class WiretapCmd {
       return;
     }
 
-    final var wt = this.wiretapService.getWiretap(name);
+    final var wiretapService = requireWiretapService(sender);
+    if (wiretapService == null)
+      return;
+
+    final var wt = wiretapService.getWiretap(name);
     if (wt == null) {
       sender.sendMessage(Component.text("[WIRETAP] Point d'écoute introuvable: " + name, NamedTextColor.RED));
       return;
@@ -145,7 +168,11 @@ public final class WiretapCmd {
     final @NotNull CommandSender sender,
     @Argument(value = "name", suggestions = "wiretaps") final @NotNull String name
   ) {
-    final var wt = this.wiretapService.getWiretap(name);
+    final var wiretapService = requireWiretapService(sender);
+    if (wiretapService == null)
+      return;
+
+    final var wt = wiretapService.getWiretap(name);
     if (wt == null) {
       sender.sendMessage(Component.text("[WIRETAP] Point d'écoute introuvable: " + name, NamedTextColor.RED));
       return;
@@ -156,7 +183,7 @@ public final class WiretapCmd {
       return;
     }
 
-    this.wiretapService.detachFromEntity(name);
+    wiretapService.detachFromEntity(name);
     sender.sendMessage(
       Component.text("[WIRETAP] Micro '", NamedTextColor.GREEN)
         .append(Component.text(wt.getName(), NamedTextColor.YELLOW))
@@ -172,10 +199,14 @@ public final class WiretapCmd {
     @Argument(value = "name", suggestions = "wiretaps") final @NotNull String name,
     @Argument("target") final @Nullable Player targetArg
   ) {
+    final var wiretapService = requireWiretapService(sender);
+    if (wiretapService == null)
+      return;
+
     final var target = resolvePlayer(sender, targetArg);
     if (target == null) return;
 
-    final var wt = this.wiretapService.getWiretap(name);
+    final var wt = wiretapService.getWiretap(name);
     if (wt == null) {
       sender.sendMessage(Component.text("[WIRETAP] Point d'écoute introuvable: " + name, NamedTextColor.RED));
       return;
@@ -199,10 +230,14 @@ public final class WiretapCmd {
     @Argument(value = "name", suggestions = "wiretaps") final @NotNull String name,
     @Argument("target") final @Nullable Player targetArg
   ) {
+    final var wiretapService = requireWiretapService(sender);
+    if (wiretapService == null)
+      return;
+
     final var target = resolvePlayer(sender, targetArg);
     if (target == null) return;
 
-    final var wt = this.wiretapService.getWiretap(name);
+    final var wt = wiretapService.getWiretap(name);
     if (wt == null) {
       sender.sendMessage(Component.text("[WIRETAP] Point d'écoute introuvable: " + name, NamedTextColor.RED));
       return;
@@ -225,7 +260,11 @@ public final class WiretapCmd {
     final @NotNull CommandSender sender,
     @Argument(value = "name", suggestions = "wiretaps") final @NotNull String name
   ) {
-    final var wt = this.wiretapService.getWiretap(name);
+    final var wiretapService = requireWiretapService(sender);
+    if (wiretapService == null)
+      return;
+
+    final var wt = wiretapService.getWiretap(name);
     if (wt == null) {
       sender.sendMessage(Component.text("[WIRETAP] Point d'écoute introuvable: " + name, NamedTextColor.RED));
       return;
@@ -236,7 +275,7 @@ public final class WiretapCmd {
       return;
     }
 
-    this.wiretapService.startRecording(name);
+    wiretapService.startRecording(name);
     sender.sendMessage(
       Component.text("[WIRETAP] Enregistrement démarré sur '", NamedTextColor.GREEN)
         .append(Component.text(name, NamedTextColor.YELLOW))
@@ -252,7 +291,11 @@ public final class WiretapCmd {
     @Argument(value = "name", suggestions = "wiretaps") final @NotNull String name,
     @Argument("giveCassette") final @Nullable Boolean giveCassette
   ) {
-    final var wt = this.wiretapService.getWiretap(name);
+    final var wiretapService = requireWiretapService(sender);
+    if (wiretapService == null)
+      return;
+
+    final var wt = wiretapService.getWiretap(name);
     if (wt == null) {
       sender.sendMessage(Component.text("[WIRETAP] Point d'écoute introuvable: " + name, NamedTextColor.RED));
       return;
@@ -263,7 +306,7 @@ public final class WiretapCmd {
       return;
     }
 
-    final var rec = this.wiretapService.stopRecording(name);
+    final var rec = wiretapService.stopRecording(name);
     if (rec == null) {
       sender.sendMessage(Component.text("[WIRETAP] Erreur lors de l'arrêt de l'enregistrement.", NamedTextColor.RED));
       return;
@@ -277,11 +320,13 @@ public final class WiretapCmd {
 
     if (giveCassette != null && giveCassette && sender instanceof Player player) {
       final var recService = DreamVoice.getService(VoiceRecordingService.class);
-      if (recService != null) {
-        final var item = recService.createCassette(rec);
-        player.getInventory().addItem(item);
-        player.sendMessage(Component.text("[WIRETAP] Cassette audio ajoutée à votre inventaire !", NamedTextColor.GREEN));
+      if (recService == null) {
+        sender.sendMessage(Component.text("[WIRETAP] Service d'enregistrement indisponible.", NamedTextColor.RED));
+        return;
       }
+      final var item = recService.createCassette(rec);
+      player.getInventory().addItem(item);
+      player.sendMessage(Component.text("[WIRETAP] Cassette audio ajoutée à votre inventaire !", NamedTextColor.GREEN));
     }
   }
 
@@ -293,7 +338,11 @@ public final class WiretapCmd {
     @Argument(value = "name", suggestions = "wiretaps") final @NotNull String name,
     @Argument("player") final @NotNull Player player
   ) {
-    final var wt = this.wiretapService.getWiretap(name);
+    final var wiretapService = requireWiretapService(sender);
+    if (wiretapService == null)
+      return;
+
+    final var wt = wiretapService.getWiretap(name);
     if (wt == null) {
       sender.sendMessage(Component.text("[WIRETAP] Point d'écoute introuvable: " + name, NamedTextColor.RED));
       return;
@@ -307,11 +356,14 @@ public final class WiretapCmd {
 
     final var latest = recordings.get(recordings.size() - 1);
     final var recService = DreamVoice.getService(VoiceRecordingService.class);
-    if (recService != null) {
-      final var item = recService.createCassette(latest);
-      player.getInventory().addItem(item);
-      sender.sendMessage(Component.text("[WIRETAP] Cassette de l'espion '" + name + "' donnée à " + player.getName() + " !", NamedTextColor.GREEN));
+    if (recService == null) {
+      sender.sendMessage(Component.text("[WIRETAP] Service d'enregistrement indisponible.", NamedTextColor.RED));
+      return;
     }
+
+    final var item = recService.createCassette(latest);
+    player.getInventory().addItem(item);
+    sender.sendMessage(Component.text("[WIRETAP] Cassette de l'espion '" + name + "' donnée à " + player.getName() + " !", NamedTextColor.GREEN));
   }
 
   @CommandDescription("Show detailed info of a wiretap")
@@ -321,7 +373,11 @@ public final class WiretapCmd {
     final @NotNull CommandSender sender,
     @Argument(value = "name", suggestions = "wiretaps") final @NotNull String name
   ) {
-    final var wt = this.wiretapService.getWiretap(name);
+    final var wiretapService = requireWiretapService(sender);
+    if (wiretapService == null)
+      return;
+
+    final var wt = wiretapService.getWiretap(name);
     if (wt == null) {
       sender.sendMessage(Component.text("[WIRETAP] Point d'écoute introuvable: " + name, NamedTextColor.RED));
       return;
@@ -344,7 +400,11 @@ public final class WiretapCmd {
   @CommandMethod("wiretap list")
   @CommandPermission("dreamvoice.wiretap.use")
   private void listWiretaps(final @NotNull CommandSender sender) {
-    final var wiretaps = this.wiretapService.getWiretaps();
+    final var wiretapService = requireWiretapService(sender);
+    if (wiretapService == null)
+      return;
+
+    final var wiretaps = wiretapService.getWiretaps();
     if (wiretaps.isEmpty()) {
       sender.sendMessage(Component.text("[WIRETAP] Aucun point d'écoute actif.", NamedTextColor.GRAY));
       return;
@@ -377,4 +437,3 @@ public final class WiretapCmd {
   }
 
 }
-

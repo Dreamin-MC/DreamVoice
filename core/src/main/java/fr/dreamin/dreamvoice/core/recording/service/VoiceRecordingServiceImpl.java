@@ -4,23 +4,36 @@ import de.maxhenkel.voicechat.api.VoicechatConnection;
 import de.maxhenkel.voicechat.api.VoicechatServerApi;
 import de.maxhenkel.voicechat.api.VolumeCategory;
 import fr.dreamin.dreamvoice.api.filter.service.VoiceFilterService;
+import fr.dreamin.dreamvoice.api.recording.model.TimedAudioFrame;
 import fr.dreamin.dreamvoice.api.recording.model.VoiceRecording;
 import fr.dreamin.dreamvoice.api.recording.service.VoiceRecordingService;
 import fr.dreamin.dreamvoice.api.voice.event.MicrophonePacketEvent;
 import fr.dreamin.dreamvoice.api.voice.service.VoiceService;
 import fr.dreamin.dreamvoice.core.DreamVoice;
+import fr.dreamin.dreamvoice.core.recording.item.CassetteItem;
+import fr.dreamin.dreamvoice.core.recording.storage.VoiceRecordingPersistence;
+import fr.dreamin.dreamvoice.core.utils.RawUtils;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jspecify.annotations.NonNull;
 
+import java.io.File;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 
 public final class VoiceRecordingServiceImpl implements VoiceRecordingService, Listener {
 
@@ -32,6 +45,7 @@ public final class VoiceRecordingServiceImpl implements VoiceRecordingService, L
   private VolumeCategory volumeCategory;
 
   private final @NotNull Map<UUID, VoiceRecording> voiceRecordings = new HashMap<>();
+  private boolean voiceServiceMissingLogged = false;
 
   // ###############################################################
   // --------------------- CONSTRUCTOR METHODS ---------------------
@@ -61,8 +75,8 @@ public final class VoiceRecordingServiceImpl implements VoiceRecordingService, L
     this.api.registerVolumeCategory(this.volumeCategory);
 
     // Load saved recordings from disk
-    final var recordingsDir = new java.io.File(this.plugin.getDataFolder(), "recordings");
-    final var loaded = fr.dreamin.dreamvoice.core.recording.storage.VoiceRecordingPersistence.loadAll(recordingsDir);
+    final var recordingsDir = new File(this.plugin.getDataFolder(), "recordings");
+    final var loaded = VoiceRecordingPersistence.loadAll(recordingsDir);
     for (final var rec : loaded)
       this.voiceRecordings.put(rec.getUuid(), rec);
 
@@ -199,8 +213,8 @@ public final class VoiceRecordingServiceImpl implements VoiceRecordingService, L
     final var rec = this.voiceRecordings.get(recId);
     if (rec != null && rec.isRecording()) {
       rec.stop();
-      final var recordingsDir = new java.io.File(this.plugin.getDataFolder(), "recordings");
-      fr.dreamin.dreamvoice.core.recording.storage.VoiceRecordingPersistence.save(rec, recordingsDir);
+      final var recordingsDir = new File(this.plugin.getDataFolder(), "recordings");
+      VoiceRecordingPersistence.save(rec, recordingsDir);
     }
   }
 
@@ -209,12 +223,12 @@ public final class VoiceRecordingServiceImpl implements VoiceRecordingService, L
   // ###############################################################
 
   @EventHandler
-  private void onPlayerInteract(final @NotNull org.bukkit.event.player.PlayerInteractEvent event) {
+  private void onPlayerInteract(final @NotNull PlayerInteractEvent event) {
     if (!event.getAction().name().contains("RIGHT_CLICK"))
       return;
 
     final var item = event.getItem();
-    final var recUuid = fr.dreamin.dreamvoice.core.recording.item.CassetteItem.getRecordingUuid(item);
+    final var recUuid = CassetteItem.getRecordingUuid(item);
     if (recUuid == null)
       return;
 
@@ -222,43 +236,43 @@ public final class VoiceRecordingServiceImpl implements VoiceRecordingService, L
     final var player = event.getPlayer();
     final var recording = this.voiceRecordings.get(recUuid);
     if (recording == null) {
-      player.sendMessage(net.kyori.adventure.text.Component.text("[SVC] Enregistrement introuvable sur le serveur !", net.kyori.adventure.text.format.NamedTextColor.RED));
+      player.sendMessage(Component.text("[SVC] Enregistrement introuvable sur le serveur !", NamedTextColor.RED));
       return;
     }
 
     final var conn = this.api.getConnectionOf(player.getUniqueId());
     if (conn == null) {
-      player.sendMessage(net.kyori.adventure.text.Component.text("[SVC] Vous n'êtes pas connecté au chat vocal !", net.kyori.adventure.text.format.NamedTextColor.RED));
+      player.sendMessage(Component.text("[SVC] Vous n'êtes pas connecté au chat vocal !", NamedTextColor.RED));
       return;
     }
 
     player.sendMessage(
-      net.kyori.adventure.text.Component.text("▶ Lecture de la cassette vocale (", net.kyori.adventure.text.format.NamedTextColor.GREEN)
-        .append(net.kyori.adventure.text.Component.text(String.format("%.1f", recording.getDurationSeconds()) + "s", net.kyori.adventure.text.format.NamedTextColor.YELLOW))
-        .append(net.kyori.adventure.text.Component.text(")...", net.kyori.adventure.text.format.NamedTextColor.GREEN))
+      Component.text("▶ Lecture de la cassette vocale (", NamedTextColor.GREEN)
+        .append(Component.text(String.format("%.1f", recording.getDurationSeconds()) + "s", NamedTextColor.YELLOW))
+        .append(Component.text(")...", NamedTextColor.GREEN))
     );
 
     playRecordingTo(conn, recording);
   }
 
   @Override
-  public org.bukkit.inventory.ItemStack linkItem(final @NotNull org.bukkit.inventory.ItemStack item, final @NotNull VoiceRecording recording) {
-    return fr.dreamin.dreamvoice.core.recording.item.CassetteItem.linkItem(item, recording);
+  public ItemStack linkItem(final @NotNull ItemStack item, final @NotNull VoiceRecording recording) {
+    return CassetteItem.linkItem(item, recording);
   }
 
   @Override
-  public org.bukkit.inventory.ItemStack linkItem(final @NotNull org.bukkit.inventory.ItemStack item, final @NotNull UUID recordingUuid) {
-    return fr.dreamin.dreamvoice.core.recording.item.CassetteItem.linkItem(item, recordingUuid);
+  public ItemStack linkItem(final @NotNull ItemStack item, final @NotNull UUID recordingUuid) {
+    return CassetteItem.linkItem(item, recordingUuid);
   }
 
   @Override
-  public org.bukkit.inventory.ItemStack createCassette(final @NotNull VoiceRecording recording) {
-    return fr.dreamin.dreamvoice.core.recording.item.CassetteItem.create(recording);
+  public ItemStack createCassette(final @NotNull VoiceRecording recording) {
+    return CassetteItem.create(recording);
   }
 
   @Override
-  public java.util.concurrent.CompletableFuture<VoiceRecording> createRecordingFromPcm(final @NotNull short[] pcm, final @NotNull UUID speakerUuid) {
-    return java.util.concurrent.CompletableFuture.supplyAsync(() -> {
+  public CompletableFuture<VoiceRecording> createRecordingFromPcm(final @NotNull short[] pcm, final @NotNull UUID speakerUuid) {
+    return CompletableFuture.supplyAsync(() -> {
       final var recording = new VoiceRecording(speakerUuid);
       recording.start();
 
@@ -273,7 +287,7 @@ public final class VoiceRecordingServiceImpl implements VoiceRecordingService, L
         System.arraycopy(pcm, offset, chunk, 0, length);
         final var opus = encoder.encode(chunk);
         if (opus != null && opus.length > 0) {
-          recording.getAudioFrames().add(new fr.dreamin.dreamvoice.api.recording.model.TimedAudioFrame(timestamp, opus));
+          recording.getAudioFrames().add(new TimedAudioFrame(timestamp, opus));
         }
         offset += length;
         timestamp += 20L;
@@ -282,56 +296,56 @@ public final class VoiceRecordingServiceImpl implements VoiceRecordingService, L
       recording.stop();
       register(recording);
 
-      final var recordingsDir = new java.io.File(this.plugin.getDataFolder(), "recordings");
-      fr.dreamin.dreamvoice.core.recording.storage.VoiceRecordingPersistence.save(recording, recordingsDir);
+      final var recordingsDir = new File(this.plugin.getDataFolder(), "recordings");
+      VoiceRecordingPersistence.save(recording, recordingsDir);
 
       return recording;
     });
   }
 
   @Override
-  public java.util.concurrent.CompletableFuture<VoiceRecording> createRecordingFromFile(final @NotNull java.io.File file, final @Nullable String name) {
-    return java.util.concurrent.CompletableFuture.supplyAsync(() -> {
+  public CompletableFuture<VoiceRecording> createRecordingFromFile(final @NotNull File file, final @Nullable String name) {
+    return CompletableFuture.supplyAsync(() -> {
       try {
-        final var pcm = fr.dreamin.dreamvoice.core.utils.RawUtils.fileToShorts48Hz(file);
+        final var pcm = RawUtils.fileToShorts48Hz(file);
         final var speakerUuid = UUID.randomUUID();
         return createRecordingFromPcm(pcm, speakerUuid).join();
       } catch (Exception e) {
-        throw new java.util.concurrent.CompletionException(e);
+        throw new CompletionException(e);
       }
     });
   }
 
   @Override
-  public java.util.concurrent.CompletableFuture<VoiceRecording> createRecordingFromFile(final @NotNull String fileName) {
-    final var soundDir = new java.io.File(this.plugin.getDataFolder(), "sounds");
-    final var file = new java.io.File(soundDir, fileName);
+  public CompletableFuture<VoiceRecording> createRecordingFromFile(final @NotNull String fileName) {
+    final var soundDir = new File(this.plugin.getDataFolder(), "sounds");
+    final var file = new File(soundDir, fileName);
     return createRecordingFromFile(file, fileName);
   }
 
   @Override
-  public java.util.concurrent.CompletableFuture<VoiceRecording> createRecordingFromUrl(final @NotNull String url, final @Nullable String name) {
-    return java.util.concurrent.CompletableFuture.supplyAsync(() -> {
+  public CompletableFuture<VoiceRecording> createRecordingFromUrl(final @NotNull String url, final @Nullable String name) {
+    return CompletableFuture.supplyAsync(() -> {
       try {
-        final var pcm = fr.dreamin.dreamvoice.core.utils.RawUtils.urlToShorts48Hz(url);
+        final var pcm = RawUtils.urlToShorts48Hz(url);
         final var speakerUuid = UUID.randomUUID();
         return createRecordingFromPcm(pcm, speakerUuid).join();
       } catch (Exception e) {
-        throw new java.util.concurrent.CompletionException(e);
+        throw new CompletionException(e);
       }
     });
   }
 
   @Override
-  public @Nullable VoiceRecording sliceRecording(final @NotNull UUID recordingUuid, final @NotNull java.time.Instant timestamp, final @NotNull java.time.Duration duration) {
+  public @Nullable VoiceRecording sliceRecording(final @NotNull UUID recordingUuid, final @NotNull Instant timestamp, final @NotNull Duration duration) {
     final var rec = this.voiceRecordings.get(recordingUuid);
     if (rec == null)
       return null;
 
     final var sliced = rec.slice(timestamp, duration);
     register(sliced);
-    final var recordingsDir = new java.io.File(this.plugin.getDataFolder(), "recordings");
-    fr.dreamin.dreamvoice.core.recording.storage.VoiceRecordingPersistence.save(sliced, recordingsDir);
+    final var recordingsDir = new File(this.plugin.getDataFolder(), "recordings");
+    VoiceRecordingPersistence.save(sliced, recordingsDir);
     return sliced;
   }
 
@@ -343,13 +357,13 @@ public final class VoiceRecordingServiceImpl implements VoiceRecordingService, L
 
     final var sliced = rec.slice(startOffsetMs, durationMs);
     register(sliced);
-    final var recordingsDir = new java.io.File(this.plugin.getDataFolder(), "recordings");
-    fr.dreamin.dreamvoice.core.recording.storage.VoiceRecordingPersistence.save(sliced, recordingsDir);
+    final var recordingsDir = new File(this.plugin.getDataFolder(), "recordings");
+    VoiceRecordingPersistence.save(sliced, recordingsDir);
     return sliced;
   }
 
   @Override
-  public @Nullable VoiceRecording sliceLastRecording(final @NotNull UUID recordingUuid, final @NotNull java.time.Duration duration) {
+  public @Nullable VoiceRecording sliceLastRecording(final @NotNull UUID recordingUuid, final @NotNull Duration duration) {
     return sliceLastRecording(recordingUuid, duration.toMillis());
   }
 
@@ -361,8 +375,8 @@ public final class VoiceRecordingServiceImpl implements VoiceRecordingService, L
 
     final var sliced = rec.sliceLast(durationMs);
     register(sliced);
-    final var recordingsDir = new java.io.File(this.plugin.getDataFolder(), "recordings");
-    fr.dreamin.dreamvoice.core.recording.storage.VoiceRecordingPersistence.save(sliced, recordingsDir);
+    final var recordingsDir = new File(this.plugin.getDataFolder(), "recordings");
+    VoiceRecordingPersistence.save(sliced, recordingsDir);
     return sliced;
   }
 
@@ -386,8 +400,13 @@ public final class VoiceRecordingServiceImpl implements VoiceRecordingService, L
     final var filterService = DreamVoice.getService(VoiceFilterService.class);
 
     if (filterService != null && filterService.hasActiveFilters(speakerUUID)) {
-      try {
-        final var voiceService = DreamVoice.getService(VoiceService.class);
+      final var voiceService = DreamVoice.getService(VoiceService.class);
+      if (voiceService == null) {
+        if (!this.voiceServiceMissingLogged) {
+          this.voiceServiceMissingLogged = true;
+          this.plugin.getLogger().warning("VoiceService is unavailable. Recording filters are skipped.");
+        }
+      } else try {
         final var decoder = voiceService.getDecoder(speakerUUID);
         final var encoder = voiceService.getEncoder(speakerUUID);
         final var pcm = decoder.decode(opusData);
@@ -405,8 +424,6 @@ public final class VoiceRecordingServiceImpl implements VoiceRecordingService, L
   }
 
 }
-
-
 
 
 

@@ -257,7 +257,18 @@ public final class PlayerServiceImpl implements PlayerService, Listener {
         return;
 
       final var service = DreamVoice.getService(VoiceService.class);
-      final var client = service.getAPI().getConnectionOf(player.getUniqueId());
+      if (service == null) {
+        this.plugin.getLogger().warning("Skipping VPlayer creation for " + player.getName() + ": VoiceService is unavailable.");
+        return;
+      }
+
+      final var api = service.getAPI();
+      if (api == null) {
+        this.plugin.getLogger().warning("Skipping VPlayer creation for " + player.getName() + ": Voice chat API is not ready.");
+        return;
+      }
+
+      final var client = api.getConnectionOf(player.getUniqueId());
 
       final var vPlayer = new VPlayer(player, client);
 
@@ -275,5 +286,4 @@ public final class PlayerServiceImpl implements PlayerService, Listener {
   }
 
 }
-
 

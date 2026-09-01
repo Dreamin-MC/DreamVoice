@@ -13,16 +13,19 @@ import fr.dreamin.dreamvoice.api.wall.service.VoiceWallService;
 import fr.dreamin.dreamvoice.api.wiretap.model.VoiceWiretap;
 import fr.dreamin.dreamvoice.api.wiretap.service.VoiceWiretapService;
 import fr.dreamin.dreamvoice.core.DreamVoice;
+import fr.dreamin.dreamvoice.core.recording.storage.VoiceRecordingPersistence;
 import fr.dreamin.dreamvoice.core.utils.audio.AudioLimiter;
 import fr.dreamin.dreamvoice.core.utils.raycast.VoiceRayCast;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.entity.Entity;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.io.File;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
@@ -38,6 +41,8 @@ public final class VoiceWiretapServiceImpl implements VoiceWiretapService, Liste
   private final @NotNull Map<String, VoiceWiretap> wiretaps = new ConcurrentHashMap<>();
   private final @NotNull Map<String, StaticAudioChannel> channels = new ConcurrentHashMap<>();
   private final @NotNull Map<String, Long> lastChannelActivity = new ConcurrentHashMap<>();
+  private boolean recordingServiceMissingLogged = false;
+  private boolean voiceServiceMissingLogged = false;
 
   public VoiceWiretapServiceImpl(final @NotNull DreamVoice plugin) {
     this.plugin = plugin;
@@ -73,18 +78,17 @@ public final class VoiceWiretapServiceImpl implements VoiceWiretapService, Liste
   }
 
   @Override
-  public @NotNull VoiceWiretap createWiretap(final @NotNull String name, final @NotNull org.bukkit.entity.Entity entity) {
+  public @NotNull VoiceWiretap createWiretap(final @NotNull String name, final @NotNull Entity entity) {
     final var wiretap = new VoiceWiretap(name, entity);
     register(wiretap);
     return wiretap;
   }
 
   @Override
-  public void attachToEntity(final @NotNull String name, final @NotNull org.bukkit.entity.Entity entity) {
+  public void attachToEntity(final @NotNull String name, final @NotNull Entity entity) {
     final var wt = getWiretap(name);
-    if (wt != null) {
+    if (wt != null)
       wt.setTargetEntity(entity);
-    }
   }
 
   @Override
@@ -167,6 +171,10 @@ public final class VoiceWiretapServiceImpl implements VoiceWiretapService, Liste
     final var recService = DreamVoice.getService(VoiceRecordingService.class);
     if (recService != null)
       recService.register(rec);
+    else if (!this.recordingServiceMissingLogged) {
+      this.recordingServiceMissingLogged = true;
+      this.plugin.getLogger().warning("VoiceRecordingService is unavailable. Wiretap recordings won't be registered globally.");
+    }
     return rec;
   }
 
@@ -177,8 +185,8 @@ public final class VoiceWiretapServiceImpl implements VoiceWiretapService, Liste
       return null;
     final var rec = wt.stopRecording();
     if (rec != null) {
-      final var recordingsDir = new java.io.File(this.plugin.getDataFolder(), "recordings");
-      fr.dreamin.dreamvoice.core.recording.storage.VoiceRecordingPersistence.save(rec, recordingsDir);
+      final var recordingsDir = new File(this.plugin.getDataFolder(), "recordings");
+      VoiceRecordingPersistence.save(rec, recordingsDir);
     }
     return rec;
   }
@@ -216,6 +224,13 @@ public final class VoiceWiretapServiceImpl implements VoiceWiretapService, Liste
     final var voiceService = DreamVoice.getService(VoiceService.class);
     final var wallService = DreamVoice.getService(VoiceWallService.class);
     final var filterService = DreamVoice.getService(VoiceFilterService.class);
+    if (voiceService == null) {
+      if (!this.voiceServiceMissingLogged) {
+        this.voiceServiceMissingLogged = true;
+        this.plugin.getLogger().warning("VoiceService is unavailable. Wiretap audio processing is skipped.");
+      }
+      return;
+    }
 
     for (final var wiretap : this.wiretaps.values()) {
       final var wtLoc = wiretap.getLocation();
@@ -314,7 +329,8 @@ public final class VoiceWiretapServiceImpl implements VoiceWiretapService, Liste
             }
           }
         }
-      } catch (Exception ignored) {
+      } catch (Exception exception) {
+        this.plugin.getLogger().warning("Failed to process wiretap voice packet (wiretap=" + wiretap.getName() + ", wiretapId=" + wiretap.getUuid() + ", sender=" + senderUuid + "): " + exception.getMessage());
       }
     }
   }

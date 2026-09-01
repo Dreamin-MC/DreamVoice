@@ -2,11 +2,14 @@ package fr.dreamin.dreamvoice.core.transmitter.service;
 
 import de.maxhenkel.voicechat.api.VoicechatServerApi;
 import de.maxhenkel.voicechat.api.VolumeCategory;
+import de.maxhenkel.voicechat.api.audiochannel.StaticAudioChannel;
 import fr.dreamin.dreamvoice.api.filter.service.VoiceFilterService;
 import fr.dreamin.dreamvoice.api.transmitter.model.ReceiverConfig;
 import fr.dreamin.dreamvoice.api.transmitter.service.VoiceTransmitterService;
 import fr.dreamin.dreamvoice.api.voice.event.MicrophonePacketEvent;
+import fr.dreamin.dreamvoice.api.voice.service.VoiceService;
 import fr.dreamin.dreamvoice.core.DreamVoice;
+import fr.dreamin.dreamvoice.core.utils.audio.AudioLimiter;
 import lombok.RequiredArgsConstructor;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -28,6 +31,7 @@ public final class VoiceTransmitterServiceImpl implements VoiceTransmitterServic
   private final @NotNull DreamVoice plugin;
   private @NotNull VoicechatServerApi api;
   private VolumeCategory volumeCategory;
+  private boolean voiceServiceMissingLogged = false;
 
   private final Map<UUID, Map<UUID, ReceiverConfig>> transmitters = new ConcurrentHashMap<>();
 
@@ -222,7 +226,7 @@ public final class VoiceTransmitterServiceImpl implements VoiceTransmitterServic
     this.transmitters.forEach((transmitter, map) -> map.remove(receiver));
   }
 
-  private final Map<String, de.maxhenkel.voicechat.api.audiochannel.StaticAudioChannel> receiverChannels = new ConcurrentHashMap<>();
+  private final Map<String, StaticAudioChannel> receiverChannels = new ConcurrentHashMap<>();
   private final Map<String, Long> lastChannelActivity = new ConcurrentHashMap<>();
 
   // ###############################################################
@@ -251,19 +255,25 @@ public final class VoiceTransmitterServiceImpl implements VoiceTransmitterServic
     final var filterService = DreamVoice.getService(VoiceFilterService.class);
 
     if (filterService != null && filterService.hasActiveFilters(senderUuid)) {
-      try {
-        final var voiceService = DreamVoice.getService(fr.dreamin.dreamvoice.api.voice.service.VoiceService.class);
+      final var voiceService = DreamVoice.getService(VoiceService.class);
+      if (voiceService == null) {
+        if (!this.voiceServiceMissingLogged) {
+          this.voiceServiceMissingLogged = true;
+          this.plugin.getLogger().warning("VoiceService is unavailable. Transmitter filters are skipped.");
+        }
+      } else try {
         final var decoder = voiceService.getDecoder(senderUuid);
         final var encoder = voiceService.getEncoder(senderUuid);
         if (decoder != null && encoder != null) {
           final var pcm = decoder.decode(opusData);
           if (pcm != null && pcm.length > 0) {
             var filteredPcm = filterService.applyFilters(senderUuid, pcm);
-            filteredPcm = fr.dreamin.dreamvoice.core.utils.audio.AudioLimiter.process(filteredPcm);
+            filteredPcm = AudioLimiter.process(filteredPcm);
             opusData = encoder.encode(filteredPcm);
           }
         }
-      } catch (Exception ignored) {
+      } catch (Exception exception) {
+        this.plugin.getLogger().warning("Failed to process transmitter voice filters (sender=" + senderUuid + ", receiverCount=" + receivers.size() + "): " + exception.getMessage());
       }
     }
 
@@ -317,5 +327,3 @@ public final class VoiceTransmitterServiceImpl implements VoiceTransmitterServic
   }
 
 }
-
-

@@ -12,6 +12,8 @@ import fr.dreamin.dreamvoice.api.codex.service.CodexService;
 import fr.dreamin.dreamvoice.api.player.model.PlayerState;
 import fr.dreamin.dreamvoice.api.player.service.PlayerService;
 import fr.dreamin.dreamvoice.api.recording.service.VoiceRecordingService;
+import fr.dreamin.dreamvoice.api.projection.service.VoiceProjectionService;
+import fr.dreamin.dreamvoice.api.radio.service.VoiceRadioService;
 import fr.dreamin.dreamvoice.api.speaker.service.VoiceSpeakerService;
 import fr.dreamin.dreamvoice.api.transmitter.service.VoiceTransmitterService;
 import fr.dreamin.dreamvoice.api.voice.event.EntitySoundPacketEvent;
@@ -19,12 +21,14 @@ import fr.dreamin.dreamvoice.api.voice.event.MicrophonePacketEvent;
 import fr.dreamin.dreamvoice.api.voice.model.VoiceSoundBuilder;
 import fr.dreamin.dreamvoice.api.voice.service.VoiceService;
 import fr.dreamin.dreamvoice.api.wall.service.VoiceWallService;
+import fr.dreamin.dreamvoice.api.wiretap.service.VoiceWiretapService;
 import fr.dreamin.dreamvoice.core.DreamVoice;
 import org.bukkit.Bukkit;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -48,6 +52,7 @@ public final class VoiceServiceImpl implements VoiceService, VoicechatPlugin, Li
   private final @NotNull CodexService codexService;
   private final @NotNull PlayerService playerService;
   private final @NotNull VoiceWallService voiceWallService;
+  private boolean projectionServiceMissingLogged = false;
 
   // Pool + cache players actifs
   private final Queue<UUID> channelIdPool = new ConcurrentLinkedQueue<>();
@@ -314,13 +319,28 @@ public final class VoiceServiceImpl implements VoiceService, VoicechatPlugin, Li
 
     this.plugin.getLogger().info("SVC API ready ! Init DreamVoice...");
 
-    DreamVoice.getService(VoiceWallService.class).init(this.api);
-    DreamVoice.getService(VoiceSpeakerService.class).init(this.api);
-    DreamVoice.getService(VoiceRecordingService.class).init(this.api);
-    DreamVoice.getService(VoiceTransmitterService.class).init(this.api);
-    DreamVoice.getService(fr.dreamin.dreamvoice.api.radio.service.VoiceRadioService.class).init(this.api);
-    DreamVoice.getService(fr.dreamin.dreamvoice.api.projection.service.VoiceProjectionService.class).init(this.api);
-    DreamVoice.getService(fr.dreamin.dreamvoice.api.wiretap.service.VoiceWiretapService.class).init(this.api);
+    final var wallService = requireService(VoiceWallService.class, "voice startup");
+    final var speakerService = requireService(VoiceSpeakerService.class, "voice startup");
+    final var recordingService = requireService(VoiceRecordingService.class, "voice startup");
+    final var transmitterService = requireService(VoiceTransmitterService.class, "voice startup");
+    final var radioService = requireService(VoiceRadioService.class, "voice startup");
+    final var projectionService = requireService(VoiceProjectionService.class, "voice startup");
+    final var wiretapService = requireService(VoiceWiretapService.class, "voice startup");
+
+    if (wallService == null || speakerService == null || recordingService == null
+      || transmitterService == null || radioService == null || projectionService == null || wiretapService == null) {
+      this.plugin.getLogger().severe("DreamVoice startup aborted: one or more required services are missing.");
+      Bukkit.getPluginManager().disablePlugin(this.plugin);
+      return;
+    }
+
+    wallService.init(this.api);
+    speakerService.init(this.api);
+    recordingService.init(this.api);
+    transmitterService.init(this.api);
+    radioService.init(this.api);
+    projectionService.init(this.api);
+    wiretapService.init(this.api);
 
     this.plugin.getLogger().info("DreamVoice is ready !");
 
@@ -337,7 +357,7 @@ public final class VoiceServiceImpl implements VoiceService, VoicechatPlugin, Li
     final var senderUUID = senderConn.getPlayer().getUuid();
     final var receiverUUID = receiverCon.getPlayer().getUuid();
 
-    final var projectionService = DreamVoice.getService(fr.dreamin.dreamvoice.api.projection.service.VoiceProjectionService.class);
+    final var projectionService = DreamVoice.getService(VoiceProjectionService.class);
     if (projectionService != null) {
       final var projection = projectionService.getProjection(senderUUID);
       if (projection != null && !projection.isEmitVoiceAtPlayer()) {
@@ -349,6 +369,9 @@ public final class VoiceServiceImpl implements VoiceService, VoicechatPlugin, Li
         event.cancel();
         return;
       }
+    } else if (!this.projectionServiceMissingLogged) {
+      this.projectionServiceMissingLogged = true;
+      this.plugin.getLogger().warning("VoiceProjectionService is unavailable. Projection constraints are skipped.");
     }
 
 
@@ -383,6 +406,11 @@ public final class VoiceServiceImpl implements VoiceService, VoicechatPlugin, Li
     this.encoders.remove(uuid);
   }
 
+  private <T> @Nullable T requireService(final @NotNull Class<T> serviceClass, final @NotNull String phase) {
+    final var service = DreamVoice.getService(serviceClass);
+    if (service == null)
+      this.plugin.getLogger().severe("Missing required service " + serviceClass.getSimpleName() + " during " + phase + ".");
+    return service;
+  }
+
 }
-
-

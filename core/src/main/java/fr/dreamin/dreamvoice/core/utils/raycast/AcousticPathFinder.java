@@ -52,9 +52,8 @@ public final class AcousticPathFinder {
     final var targetBlockY = targetLoc.getBlockY();
     final var targetBlockZ = targetLoc.getBlockZ();
 
-    if (startBlockX == targetBlockX && startBlockY == targetBlockY && startBlockZ == targetBlockZ) {
+    if (startBlockX == targetBlockX && startBlockY == targetBlockY && startBlockZ == targetBlockZ)
       return new AcousticPath(true, startLoc.distance(targetLoc), List.of(startLoc, targetLoc));
-    }
 
     final var startNode = new Node(startBlockX, startBlockY, startBlockZ);
     final var targetNode = new Node(targetBlockX, targetBlockY, targetBlockZ);
@@ -147,9 +146,8 @@ public final class AcousticPathFinder {
 
     // Doors, Trapdoors, and Fence Gates: passable if OPEN
     final var data = block.getBlockData();
-    if (data instanceof Openable openable) {
+    if (data instanceof Openable openable)
       return openable.isOpen();
-    }
 
     // Glass, carpets, bars, signs, banners, torches, non-solid blocks
     if (type == Material.GLASS || type == Material.GLASS_PANE || type == Material.IRON_BARS)

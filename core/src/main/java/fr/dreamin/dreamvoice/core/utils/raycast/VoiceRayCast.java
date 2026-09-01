@@ -23,6 +23,8 @@ public final class VoiceRayCast {
 
   public static final double[] TARGET_HEIGHTS = { 1.62, 1.00, 0.20 };
   public static final double ATTENUATION_TRANSPARENT_THRESHOLD = 5.0;
+  private static boolean codexServiceMissingLoggedForCheck;
+  private static boolean codexServiceMissingLoggedForPolicy;
 
   public enum PropagationType {
     DIRECT,
@@ -106,21 +108,29 @@ public final class VoiceRayCast {
     final var directDist = from.distance(to);
 
     // 1. Direct Line of Sight check
-    if (hitsTargetAtAnyHeight(from, to, world, directDist)) {
+    if (hitsTargetAtAnyHeight(from, to, world, directDist))
       return new RaycastResult(true, 0.0, PropagationType.DIRECT, List.of(from, to));
-    }
 
-    final var codex = DreamVoice.getService(CodexService.class).getConfig();
-    final var voiceWall = codex.getVoiceWall();
+    final var codexService = DreamVoice.getService(CodexService.class);
+    final Codex codex;
+    if (codexService == null) {
+      if (!codexServiceMissingLoggedForCheck) {
+        codexServiceMissingLoggedForCheck = true;
+        logMissingCodexService("raycast check");
+      }
+      codex = null;
+    } else
+      codex = codexService.getConfig();
+
+    final var voiceWall = codex != null ? codex.getVoiceWall() : null;
     final var diffraction = voiceWall != null ? voiceWall.getDiffractionConfig() : Codex.DiffractionConfig.defaults();
     final var mode = voiceWall != null ? voiceWall.getEffectiveMode() : VoiceWallMode.REALISTIC;
 
     // 2. Diffraction / Acoustic Bypass (Tier 1: Multi-Ray Lateral/Vertical)
     if (diffraction.enabled()) {
       final var tier1 = checkLocalDiffraction(from, to, world, directDist, diffraction);
-      if (tier1 != null) {
+      if (tier1 != null)
         return tier1;
-      }
 
       // Tier 2: Bounded Air Pathfinding (Open Doors, Windows, Corridor Apertures)
       final var path = AcousticPathFinder.findAirPath(from, to, diffraction.maxPathDistance());
@@ -132,9 +142,8 @@ public final class VoiceRayCast {
     }
 
     // 3. Solid Obstacle / Wall Attenuation
-    if (mode == VoiceWallMode.STRICT_BLOCK) {
+    if (mode == VoiceWallMode.STRICT_BLOCK)
       return new RaycastResult(false, 100.0, PropagationType.WALL_BLOCKED, List.of(from, to));
-    }
 
     final var wallAttenuation = computeTotalAttenuation(from, to);
     final var resultType = wallAttenuation >= 99.0 ? PropagationType.WALL_BLOCKED : PropagationType.WALL_ATTENUATED;
@@ -213,18 +222,34 @@ public final class VoiceRayCast {
             return 100.0;
         }
       }
-    } catch (Exception ignored) {
+    } catch (Exception exception) {
+      DreamVoice.getInstance().getLogger().warning("Failed to compute voice wall attenuation from " + from + " to " + to + ": " + exception.getMessage());
     }
 
     return Math.min(100.0, totalDbLoss);
   }
 
   private static SoundMaterialPolicy getSoundPolicy() {
-    final Codex codex = DreamVoice.getService(CodexService.class).getConfig();
+    final var codexService = DreamVoice.getService(CodexService.class);
+    if (codexService == null) {
+      if (!codexServiceMissingLoggedForPolicy) {
+        codexServiceMissingLoggedForPolicy = true;
+        logMissingCodexService("sound material policy");
+      }
+      return SoundMaterialPolicy.defaults();
+    }
+
+    final Codex codex = codexService.getConfig();
     if (codex.getVoiceWall() == null)
       return SoundMaterialPolicy.defaults();
 
     return new SoundMaterialPolicy(codex.getVoiceWall());
+  }
+
+  private static void logMissingCodexService(final @NotNull String context) {
+    final var plugin = DreamVoice.getInstance();
+    if (plugin != null)
+      plugin.getLogger().warning("CodexService is unavailable. Falling back to defaults for " + context + ".");
   }
 
   // ###############################################################

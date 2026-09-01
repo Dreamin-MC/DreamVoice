@@ -10,10 +10,12 @@ import fr.dreamin.dreamvoice.api.speaker.service.VoiceSpeakerService;
 import lombok.Getter;
 import lombok.Setter;
 import org.bukkit.Location;
+import org.bukkit.entity.Entity;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Collections;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -22,7 +24,7 @@ import java.util.function.Predicate;
 @Getter
 public final class Speaker {
 
-  private final @NotNull VoiceSpeakerService speakerService = DreamAPI.getAPI().getService(VoiceSpeakerService.class);
+  private final @Nullable VoiceSpeakerService speakerService = DreamAPI.getAPI().getService(VoiceSpeakerService.class);
 
   private final @NotNull UUID uuid;
   private final @NotNull String name;
@@ -45,14 +47,20 @@ public final class Speaker {
   private final @NotNull LocationalAudioChannel speakerChannel;
   private final @Nullable LocationalAudioChannel voiceChannel;
   @Setter
-  private @Nullable org.bukkit.entity.Entity targetEntity = null;
+  private @Nullable Entity targetEntity = null;
 
 
   // ###############################################################
   // --------------------- CONSTRUCTOR METHODS ---------------------
   // ###############################################################
 
+  private @NotNull VoiceSpeakerService speakerService() {
+    return Objects.requireNonNull(this.speakerService, "VoiceSpeakerService is unavailable");
+  }
+
   private Speaker(final @NotNull Builder builder) {
+    final var speakerService = speakerService();
+
     this.uuid = builder.uuid != null ? builder.uuid : UUID.randomUUID();
     this.name = builder.name;
     this.location = builder.location;
@@ -61,14 +69,14 @@ public final class Speaker {
     this.mode = builder.mode != null ? builder.mode : SpeakerMode.GLOBAL;
     this.allowedSpeakers.addAll(builder.allowedSpeakers);
 
-    this.serverLevel = this.speakerService.getAPI().fromServerLevel(location.getWorld());
-    this.position = this.speakerService.getAPI().createPosition(
+    this.serverLevel = speakerService.getAPI().fromServerLevel(location.getWorld());
+    this.position = speakerService.getAPI().createPosition(
       location.getX(),
       location.getY(),
       location.getZ()
     );
 
-    final var channel = this.speakerService.getAPI()
+    final var channel = speakerService.getAPI()
       .createLocationalAudioChannel(
         this.uuid,
         this.serverLevel,
@@ -78,7 +86,7 @@ public final class Speaker {
     if (channel == null)
       throw new IllegalArgumentException("Cannot create locational audio channel");
 
-    channel.setCategory(this.speakerService.getVolumeCategory().getId());
+    channel.setCategory(speakerService.getVolumeCategory().getId());
 
     if (builder.distance != null)
       channel.setDistance(builder.distance);
@@ -88,14 +96,14 @@ public final class Speaker {
 
     this.speakerChannel = channel;
 
-    final var vChan = this.speakerService.getAPI()
+    final var vChan = speakerService.getAPI()
       .createLocationalAudioChannel(
         UUID.randomUUID(),
         this.serverLevel,
         this.position
       );
     if (vChan != null) {
-      vChan.setCategory(this.speakerService.getVolumeCategory().getId());
+      vChan.setCategory(speakerService.getVolumeCategory().getId());
       if (builder.distance != null)
         vChan.setDistance(builder.distance);
       if (builder.filter != null)
@@ -103,7 +111,7 @@ public final class Speaker {
     }
     this.voiceChannel = vChan;
 
-    this.speakerService.register(this);
+    speakerService.register(this);
   }
 
 
@@ -147,9 +155,8 @@ public final class Speaker {
   public @NotNull Location getLocation() {
     if (this.targetEntity != null && this.targetEntity.isValid()) {
       final var loc = this.targetEntity.getLocation();
-      if (!loc.equals(this.location)) {
+      if (!loc.equals(this.location))
         updatePosition(loc);
-      }
       return loc;
     }
     return this.location;
@@ -157,7 +164,7 @@ public final class Speaker {
 
   public void updatePosition(final @NotNull Location location) {
     this.location = location;
-    this.position = speakerService.getAPI()
+    this.position = speakerService().getAPI()
       .createPosition(location.getBlockX(), location.getBlockY(), location.getBlockZ());
     this.speakerChannel.updateLocation(this.position);
     if (this.voiceChannel != null)
@@ -241,5 +248,3 @@ public final class Speaker {
   }
 
 }
-
-
