@@ -26,7 +26,7 @@ public final class VoiceWallCmd {
 
   private @Nullable VoiceWallService requireWallService(final @NotNull CommandSender sender) {
     if (this.wallService == null) {
-      sender.sendMessage(Component.text("[VOICEWALL] Service VoiceWall indisponible.", NamedTextColor.RED));
+      sender.sendMessage(Component.text("[VOICEWALL] VoiceWall service unavailable.", NamedTextColor.RED));
       return null;
     }
     return this.wallService;
@@ -56,16 +56,16 @@ public final class VoiceWallCmd {
       case "realistic" -> mode = VoiceWallMode.REALISTIC;
       case "off", "disabled" -> mode = VoiceWallMode.OFF;
       default -> {
-        sender.sendMessage(Component.text("[VOICEWALL] Mode inconnu. Choix: strict, realistic, off", NamedTextColor.RED));
+        sender.sendMessage(Component.text("[VOICEWALL] Unknown mode. Choices: strict, realistic, off", NamedTextColor.RED));
         return;
       }
     }
 
     wallService.setMode(mode);
     sender.sendMessage(
-      Component.text("[VOICEWALL] Mode d'occlusion des murs défini sur : ", NamedTextColor.GREEN)
+      Component.text("[VOICEWALL] Wall occlusion mode set to: ", NamedTextColor.GREEN)
         .append(Component.text(mode.name(), NamedTextColor.YELLOW))
-        .append(Component.text(mode == VoiceWallMode.STRICT_BLOCK ? " (Murs 100% étanches / Son coupé)" : "", NamedTextColor.AQUA))
+        .append(Component.text(mode == VoiceWallMode.STRICT_BLOCK ? " (Fully soundproof walls / Muted)" : "", NamedTextColor.AQUA))
     );
   }
 
@@ -80,8 +80,8 @@ public final class VoiceWallCmd {
     final var newEnable = !wallService.isEnable();
     wallService.setEnable(newEnable);
     sender.sendMessage(
-      Component.text("[VOICEWALL] Système d'occlusion des murs : ", NamedTextColor.GREEN)
-        .append(Component.text(newEnable ? "ACTIVÉ (Mode " + wallService.getMode() + ")" : "DÉSACTIVÉ", newEnable ? NamedTextColor.YELLOW : NamedTextColor.RED))
+      Component.text("[VOICEWALL] Wall occlusion system: ", NamedTextColor.GREEN)
+        .append(Component.text(newEnable ? "ENABLED (Mode " + wallService.getMode() + ")" : "DISABLED", newEnable ? NamedTextColor.YELLOW : NamedTextColor.RED))
     );
   }
 
@@ -98,8 +98,8 @@ public final class VoiceWallCmd {
 
     wallService.setAirDampingEnabled(enabled);
     sender.sendMessage(
-      Component.text("[VOICEWALL] Amortissement de l'air : ", NamedTextColor.GREEN)
-        .append(Component.text(enabled ? "ACTIVÉ" : "DÉSACTIVÉ", enabled ? NamedTextColor.YELLOW : NamedTextColor.RED))
+      Component.text("[VOICEWALL] Air damping: ", NamedTextColor.GREEN)
+        .append(Component.text(enabled ? "ENABLED" : "DISABLED", enabled ? NamedTextColor.YELLOW : NamedTextColor.RED))
     );
   }
 
@@ -116,16 +116,16 @@ public final class VoiceWallCmd {
 
     final var player = (targetPlayer != null) ? targetPlayer : (sender instanceof Player p ? p : null);
     if (player == null) {
-      sender.sendMessage(Component.text("[VOICEWALL] Précisez un joueur pour activer le debug visuel !", NamedTextColor.RED));
+      sender.sendMessage(Component.text("[VOICEWALL] Specify a player to toggle visual debug!", NamedTextColor.RED));
       return;
     }
 
     final var active = wallService.toggleDebugPlayer(player);
     sender.sendMessage(
-      Component.text("[VOICEWALL] Debug visuel par particules pour ", NamedTextColor.GREEN)
+      Component.text("[VOICEWALL] Particle raycast debugging for ", NamedTextColor.GREEN)
         .append(Component.text(player.getName(), NamedTextColor.YELLOW))
-        .append(Component.text(" : ", NamedTextColor.GREEN))
-        .append(Component.text(active ? "ACTIVÉ 🟢 (Particules Vertes=Libre, Jaunes=Contourné, Rouges=Bloqué)" : "DÉSACTIVÉ ⚪", active ? NamedTextColor.GREEN : NamedTextColor.RED))
+        .append(Component.text(": ", NamedTextColor.GREEN))
+        .append(Component.text(active ? "ENABLED 🟢 (Green=Direct, Yellow=Diffracted, Red=Occluded)" : "DISABLED ⚪", active ? NamedTextColor.GREEN : NamedTextColor.RED))
     );
   }
 
@@ -139,7 +139,7 @@ public final class VoiceWallCmd {
 
     final var codexService = DreamVoice.getService(CodexService.class);
     if (codexService == null) {
-      sender.sendMessage(Component.text("[VOICEWALL] Service de configuration indisponible.", NamedTextColor.RED));
+      sender.sendMessage(Component.text("[VOICEWALL] Configuration service unavailable.", NamedTextColor.RED));
       return;
     }
 
@@ -147,10 +147,10 @@ public final class VoiceWallCmd {
     final var diff = codex.getVoiceWall() != null ? codex.getVoiceWall().getDiffractionConfig() : null;
 
     sender.sendMessage(Component.text("==== [VOICEWALL SETTINGS] ====", NamedTextColor.GOLD));
-    sender.sendMessage(Component.text("Actif: ", NamedTextColor.GRAY).append(Component.text(String.valueOf(wallService.isEnable()), wallService.isEnable() ? NamedTextColor.GREEN : NamedTextColor.RED)));
-    sender.sendMessage(Component.text("Mode actuel: ", NamedTextColor.GRAY).append(Component.text(wallService.getMode().name(), NamedTextColor.YELLOW)));
-    sender.sendMessage(Component.text("Amortissement Air: ", NamedTextColor.GRAY).append(Component.text(String.valueOf(wallService.isAirDampingEnabled()), NamedTextColor.AQUA)));
-    sender.sendMessage(Component.text("Diffraction / Contournement: ", NamedTextColor.GRAY).append(Component.text(diff != null && diff.enabled() ? "OUI (Bypass=" + diff.maxBypassWidth() + "m, Path=" + diff.maxPathDistance() + "m)" : "NON", NamedTextColor.YELLOW)));
+    sender.sendMessage(Component.text("Active: ", NamedTextColor.GRAY).append(Component.text(String.valueOf(wallService.isEnable()), wallService.isEnable() ? NamedTextColor.GREEN : NamedTextColor.RED)));
+    sender.sendMessage(Component.text("Current Mode: ", NamedTextColor.GRAY).append(Component.text(wallService.getMode().name(), NamedTextColor.YELLOW)));
+    sender.sendMessage(Component.text("Air Damping: ", NamedTextColor.GRAY).append(Component.text(String.valueOf(wallService.isAirDampingEnabled()), NamedTextColor.AQUA)));
+    sender.sendMessage(Component.text("Diffraction / Bypass: ", NamedTextColor.GRAY).append(Component.text(diff != null && diff.enabled() ? "YES (Bypass=" + diff.maxBypassWidth() + "m, Path=" + diff.maxPathDistance() + "m)" : "NO", NamedTextColor.YELLOW)));
   }
 
 }

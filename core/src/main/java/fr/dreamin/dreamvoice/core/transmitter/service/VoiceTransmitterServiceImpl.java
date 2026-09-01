@@ -9,6 +9,7 @@ import fr.dreamin.dreamvoice.api.transmitter.service.VoiceTransmitterService;
 import fr.dreamin.dreamvoice.api.voice.event.MicrophonePacketEvent;
 import fr.dreamin.dreamvoice.api.voice.service.VoiceService;
 import fr.dreamin.dreamvoice.core.DreamVoice;
+import fr.dreamin.dreamvoice.core.transmitter.storage.TransmittersPersistence;
 import fr.dreamin.dreamvoice.core.utils.audio.AudioLimiter;
 import lombok.RequiredArgsConstructor;
 import org.bukkit.Bukkit;
@@ -18,6 +19,8 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.jetbrains.annotations.NotNull;
 import org.jspecify.annotations.NonNull;
+
+import java.io.File;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -224,6 +227,17 @@ public final class VoiceTransmitterServiceImpl implements VoiceTransmitterServic
   @Override
   public void removeReceiverFromAll(final @NotNull UUID receiver) {
     this.transmitters.forEach((transmitter, map) -> map.remove(receiver));
+  }
+
+  @Override
+  public void save() {
+    TransmittersPersistence.save(this, new File(this.plugin.getDataFolder(), "data"));
+  }
+
+  @Override
+  public void load() {
+    this.transmitters.clear();
+    TransmittersPersistence.load(this, new File(this.plugin.getDataFolder(), "data"));
   }
 
   private final Map<String, StaticAudioChannel> receiverChannels = new ConcurrentHashMap<>();

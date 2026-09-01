@@ -16,6 +16,7 @@ import fr.dreamin.dreamvoice.core.DreamVoice;
 import fr.dreamin.dreamvoice.core.recording.storage.VoiceRecordingPersistence;
 import fr.dreamin.dreamvoice.core.utils.audio.AudioLimiter;
 import fr.dreamin.dreamvoice.core.utils.raycast.VoiceRayCast;
+import fr.dreamin.dreamvoice.core.wiretap.storage.WiretapsPersistence;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Entity;
@@ -189,6 +190,17 @@ public final class VoiceWiretapServiceImpl implements VoiceWiretapService, Liste
       VoiceRecordingPersistence.save(rec, recordingsDir);
     }
     return rec;
+  }
+
+  @Override
+  public void save() {
+    WiretapsPersistence.save(this, new File(this.plugin.getDataFolder(), "data"));
+  }
+
+  @Override
+  public void load() {
+    this.wiretaps.clear();
+    WiretapsPersistence.load(this, new File(this.plugin.getDataFolder(), "data"));
   }
 
   private void cleanupIdleChannels() {

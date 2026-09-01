@@ -42,6 +42,12 @@ public interface VoiceSpeakerService {
 
   void stopSound(final @NotNull Speaker speaker);
 
+  void save();
+
+  void load();
+
+  void save(final @NotNull UUID uuid);
+
 }
 
 

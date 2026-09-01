@@ -21,7 +21,7 @@ public final class TransmitterCmd {
 
   private @Nullable VoiceTransmitterService requireTransmissionService(final @NotNull CommandSender sender) {
     if (this.transmissionService == null) {
-      sender.sendMessage(Component.text("Transmitter service unavailable.", NamedTextColor.RED));
+      sender.sendMessage(Component.text("[TRANSMITTER] Transmitter service unavailable.", NamedTextColor.RED));
       return null;
     }
     return this.transmissionService;
@@ -47,7 +47,7 @@ public final class TransmitterCmd {
     transmissionService.createTransmitter(player);
 
     sender.sendMessage(
-      Component.text("Transmitter enabled.", NamedTextColor.GREEN)
+      Component.text("[TRANSMITTER] Transmitter mode enabled.", NamedTextColor.GREEN)
     );
   }
 
@@ -71,7 +71,7 @@ public final class TransmitterCmd {
     transmissionService.removeTransmitter(player);
 
     sender.sendMessage(
-      Component.text("Transmitter disabled.", NamedTextColor.RED)
+      Component.text("[TRANSMITTER] Transmitter mode disabled.", NamedTextColor.RED)
     );
   }
 
@@ -97,26 +97,26 @@ public final class TransmitterCmd {
       return;
 
     if (!transmissionService.isTransmitter(player)) {
-      sender.sendMessage(Component.text("You are not a transmitter!", NamedTextColor.RED));
+      sender.sendMessage(Component.text("[TRANSMITTER] You are not a transmitter! Enable it first with /transmitter enable.", NamedTextColor.RED));
       return;
     }
 
     if (distance != null && distance <= 0) {
-      sender.sendMessage(Component.text("Distance must be > 0.", NamedTextColor.RED));
+      sender.sendMessage(Component.text("[TRANSMITTER] Distance must be > 0.", NamedTextColor.RED));
       return;
     }
 
     if (distance != null) {
       transmissionService.addReceiver(player, target, distance);
       sender.sendMessage(
-        Component.text("Added receiver: ", NamedTextColor.GREEN)
+        Component.text("[TRANSMITTER] Added receiver: ", NamedTextColor.GREEN)
           .append(Component.text(target.getName(), NamedTextColor.AQUA))
-          .append(Component.text(" (range: " + distance + ")", NamedTextColor.GRAY))
+          .append(Component.text(" (range: " + distance + "m)", NamedTextColor.GRAY))
       );
     } else {
       transmissionService.addReceiver(player, target);
       sender.sendMessage(
-        Component.text("Added receiver: ", NamedTextColor.GREEN)
+        Component.text("[TRANSMITTER] Added receiver: ", NamedTextColor.GREEN)
           .append(Component.text(target.getName(), NamedTextColor.AQUA))
           .append(Component.text(" (infinite range)", NamedTextColor.GRAY))
       );
@@ -146,7 +146,7 @@ public final class TransmitterCmd {
     transmissionService.removeReceiver(player, target);
 
     sender.sendMessage(
-      Component.text("Removed receiver: ", NamedTextColor.YELLOW)
+      Component.text("[TRANSMITTER] Removed receiver: ", NamedTextColor.YELLOW)
         .append(Component.text(target.getName(), NamedTextColor.AQUA))
     );
   }
@@ -169,19 +169,19 @@ public final class TransmitterCmd {
       return;
 
     if (!transmissionService.isTransmitter(player)) {
-      sender.sendMessage(Component.text("You are not a transmitter!", NamedTextColor.RED));
+      sender.sendMessage(Component.text("[TRANSMITTER] You are not a transmitter!", NamedTextColor.RED));
       return;
     }
 
     final var receivers = transmissionService.getReceivers(player);
 
     if (receivers.isEmpty()) {
-      sender.sendMessage(Component.text("No receivers.", NamedTextColor.GRAY));
+      sender.sendMessage(Component.text("[TRANSMITTER] No active receivers configured.", NamedTextColor.GRAY));
       return;
     }
 
     sender.sendMessage(
-      Component.text("Receivers (" + receivers.size() + "):", NamedTextColor.YELLOW)
+      Component.text("[TRANSMITTER] Configured receivers (" + receivers.size() + "):", NamedTextColor.YELLOW)
     );
 
     for (final var config : receivers) {
@@ -190,17 +190,57 @@ public final class TransmitterCmd {
         continue;
 
       final var rangeText = config.hasMaxDistance()
-        ? String.valueOf(config.getMaxDistance())
+        ? config.getMaxDistance() + "m"
         : "infinite";
 
       sender.sendMessage(
-        Component.text("- ", NamedTextColor.GRAY)
+        Component.text(" - ", NamedTextColor.GRAY)
           .append(Component.text(target.getName(), NamedTextColor.AQUA))
-          .append(Component.text(" | range: ", NamedTextColor.GRAY))
+          .append(Component.text(" | Range: ", NamedTextColor.GRAY))
           .append(Component.text(rangeText, NamedTextColor.GREEN))
       );
     }
   }
 
-}
+  @CommandDescription("Clear all receivers from your transmitter")
+  @CommandMethod("transmitter clear")
+  @CommandPermission("dreamvoice.transmitter.modify")
+  private void clearReceivers(final @NotNull CommandSender sender) {
+    if (!(sender instanceof Player player)) {
+      sender.sendMessage(Component.text("Player only!", NamedTextColor.RED));
+      return;
+    }
 
+    final var transmissionService = requireTransmissionService(sender);
+    if (transmissionService == null)
+      return;
+
+    transmissionService.clearReceivers(player);
+    sender.sendMessage(Component.text("[TRANSMITTER] All receivers cleared.", NamedTextColor.YELLOW));
+  }
+
+  @CommandDescription("Save all transmitters to disk")
+  @CommandMethod("transmitter save")
+  @CommandPermission("dreamvoice.transmitter.save")
+  private void saveTransmitters(final @NotNull CommandSender sender) {
+    final var transmissionService = requireTransmissionService(sender);
+    if (transmissionService == null)
+      return;
+
+    transmissionService.save();
+    sender.sendMessage(Component.text("[TRANSMITTER] All transmitters successfully saved to disk!", NamedTextColor.GREEN));
+  }
+
+  @CommandDescription("Reload all transmitters from disk")
+  @CommandMethod("transmitter reload")
+  @CommandPermission("dreamvoice.transmitter.reload")
+  private void reloadTransmitters(final @NotNull CommandSender sender) {
+    final var transmissionService = requireTransmissionService(sender);
+    if (transmissionService == null)
+      return;
+
+    transmissionService.load();
+    sender.sendMessage(Component.text("[TRANSMITTER] Transmitters successfully reloaded from disk!", NamedTextColor.GREEN));
+  }
+
+}

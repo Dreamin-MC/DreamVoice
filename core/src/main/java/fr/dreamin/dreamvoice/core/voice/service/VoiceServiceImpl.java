@@ -9,6 +9,7 @@ import de.maxhenkel.voicechat.api.events.VoicechatServerStartedEvent;
 import de.maxhenkel.voicechat.api.opus.OpusDecoder;
 import de.maxhenkel.voicechat.api.opus.OpusEncoder;
 import fr.dreamin.dreamvoice.api.codex.service.CodexService;
+import fr.dreamin.dreamvoice.api.persistence.service.VoicePersistenceService;
 import fr.dreamin.dreamvoice.api.player.model.PlayerState;
 import fr.dreamin.dreamvoice.api.player.service.PlayerService;
 import fr.dreamin.dreamvoice.api.recording.service.VoiceRecordingService;
@@ -341,6 +342,10 @@ public final class VoiceServiceImpl implements VoiceService, VoicechatPlugin, Li
     radioService.init(this.api);
     projectionService.init(this.api);
     wiretapService.init(this.api);
+
+    final var persistenceService = DreamVoice.getService(VoicePersistenceService.class);
+    if (persistenceService != null)
+      persistenceService.loadAll();
 
     this.plugin.getLogger().info("DreamVoice is ready !");
 

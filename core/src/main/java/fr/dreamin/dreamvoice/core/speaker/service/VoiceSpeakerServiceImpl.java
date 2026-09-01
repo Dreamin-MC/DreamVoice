@@ -11,6 +11,7 @@ import fr.dreamin.dreamvoice.api.voice.event.MicrophonePacketEvent;
 import fr.dreamin.dreamvoice.api.voice.service.VoiceService;
 import fr.dreamin.dreamvoice.api.wall.service.VoiceWallService;
 import fr.dreamin.dreamvoice.core.DreamVoice;
+import fr.dreamin.dreamvoice.core.speaker.storage.SpeakersPersistence;
 import fr.dreamin.dreamvoice.core.utils.RawUtils;
 import fr.dreamin.dreamvoice.core.utils.audio.AudioLimiter;
 import fr.dreamin.dreamvoice.core.utils.raycast.VoiceRayCast;
@@ -251,6 +252,22 @@ public final class VoiceSpeakerServiceImpl implements VoiceSpeakerService, Liste
   @Override
   public void stopSound(final @NotNull Speaker speaker) {
     speaker.stopPlaying();
+  }
+
+  @Override
+  public void save() {
+    SpeakersPersistence.save(this, new File(this.plugin.getDataFolder(), "data"));
+  }
+
+  @Override
+  public void load() {
+    unregisterAll();
+    SpeakersPersistence.load(this, new File(this.plugin.getDataFolder(), "data"));
+  }
+
+  @Override
+  public void save(final @NotNull UUID uuid) {
+    save();
   }
 
 

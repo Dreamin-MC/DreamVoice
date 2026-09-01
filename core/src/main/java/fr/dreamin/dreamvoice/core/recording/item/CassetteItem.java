@@ -27,26 +27,26 @@ public final class CassetteItem {
       return item;
 
     final var speakerPlayer = Bukkit.getOfflinePlayer(recording.getSpeakerUUID());
-    final var speakerName = speakerPlayer.getName() != null ? speakerPlayer.getName() : "Inconnu";
+    final var speakerName = speakerPlayer.getName() != null ? speakerPlayer.getName() : "Unknown";
     final var duration = String.format("%.1f", recording.getDurationSeconds());
 
     meta.displayName(
-      Component.text("Cassette Vocale", NamedTextColor.GOLD, TextDecoration.BOLD)
+      Component.text("Voice Cassette", NamedTextColor.GOLD, TextDecoration.BOLD)
         .decoration(TextDecoration.ITALIC, false)
     );
 
     meta.lore(List.of(
-      Component.text("Auteur: ", NamedTextColor.GRAY)
+      Component.text("Author: ", NamedTextColor.GRAY)
         .append(Component.text(speakerName, NamedTextColor.YELLOW))
         .decoration(TextDecoration.ITALIC, false),
-      Component.text("Durée: ", NamedTextColor.GRAY)
+      Component.text("Duration: ", NamedTextColor.GRAY)
         .append(Component.text(duration + "s", NamedTextColor.AQUA))
         .decoration(TextDecoration.ITALIC, false),
       Component.text("ID: ", NamedTextColor.DARK_GRAY)
         .append(Component.text(recording.getUuid().toString().substring(0, 8) + "...", NamedTextColor.DARK_GRAY))
         .decoration(TextDecoration.ITALIC, false),
       Component.empty(),
-      Component.text("▶ Clic-Droit pour écouter", NamedTextColor.GREEN)
+      Component.text("▶ Right-Click to play", NamedTextColor.GREEN)
         .decoration(TextDecoration.ITALIC, false)
     ));
 

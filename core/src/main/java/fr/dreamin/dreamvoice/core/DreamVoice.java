@@ -4,6 +4,7 @@ import de.maxhenkel.voicechat.api.BukkitVoicechatService;
 import fr.dreamin.dreamapi.plugin.DreamPlugin;
 import fr.dreamin.dreamvoice.api.codex.service.CodexService;
 import fr.dreamin.dreamvoice.api.filter.service.VoiceFilterService;
+import fr.dreamin.dreamvoice.api.persistence.service.VoicePersistenceService;
 import fr.dreamin.dreamvoice.api.player.service.PlayerService;
 import fr.dreamin.dreamvoice.api.projection.service.VoiceProjectionService;
 import fr.dreamin.dreamvoice.api.radio.service.VoiceRadioService;
@@ -14,8 +15,10 @@ import fr.dreamin.dreamvoice.api.voice.service.VoiceService;
 import fr.dreamin.dreamvoice.api.wall.service.VoiceWallService;
 import fr.dreamin.dreamvoice.api.wiretap.service.VoiceWiretapService;
 import fr.dreamin.dreamvoice.core.cmd.DebugCmd;
+import fr.dreamin.dreamvoice.core.cmd.DreamVoiceCmd;
 import fr.dreamin.dreamvoice.core.codex.service.CodexServiceImpl;
 import fr.dreamin.dreamvoice.core.filter.service.VoiceFilterServiceImpl;
+import fr.dreamin.dreamvoice.core.persistence.service.VoicePersistenceServiceImpl;
 import fr.dreamin.dreamvoice.core.player.service.PlayerServiceImpl;
 import fr.dreamin.dreamvoice.core.projection.cmd.ProjectionCmd;
 import fr.dreamin.dreamvoice.core.projection.service.VoiceProjectionServiceImpl;
@@ -47,6 +50,7 @@ public final class DreamVoice extends DreamPlugin implements Listener {
     initVoiceService();
 
     registerCommand(new DebugCmd());
+    registerCommand(new DreamVoiceCmd());
     registerCommand(new RecordingCmd());
     registerCommand(new TransmitterCmd());
     registerCommand(new SpeakerCmd());
@@ -60,6 +64,10 @@ public final class DreamVoice extends DreamPlugin implements Listener {
 
   @Override
   public void onDreamDisable() {
+    final var persistenceService = getService(VoicePersistenceService.class);
+    if (persistenceService != null)
+      persistenceService.saveAll();
+
     final var voiceService = getService(VoiceService.class);
     if (voiceService != null)
       voiceService.clearAllSounds();
@@ -87,6 +95,7 @@ public final class DreamVoice extends DreamPlugin implements Listener {
     final var voiceProjectionService = new VoiceProjectionServiceImpl(this);
     final var voiceWiretapService = new VoiceWiretapServiceImpl(this);
     final var voiceWallService = new VoiceWallServiceImpl(this, playerService);
+    final var persistenceService = new VoicePersistenceServiceImpl(this);
     final var codexService = new CodexServiceImpl(this, voiceWallService);
     final var voiceService = new VoiceServiceImpl(this, codexService, playerService, voiceWallService);
 
@@ -100,6 +109,7 @@ public final class DreamVoice extends DreamPlugin implements Listener {
     Bukkit.getServicesManager().register(VoiceRadioService.class, voiceRadioService, this, ServicePriority.Normal);
     Bukkit.getServicesManager().register(VoiceProjectionService.class, voiceProjectionService, this, ServicePriority.Normal);
     Bukkit.getServicesManager().register(VoiceWiretapService.class, voiceWiretapService, this, ServicePriority.Normal);
+    Bukkit.getServicesManager().register(VoicePersistenceService.class, persistenceService, this, ServicePriority.Normal);
     Bukkit.getServicesManager().register(VoiceService.class, voiceService, this, ServicePriority.Normal);
     service.registerPlugin(voiceService);
   }

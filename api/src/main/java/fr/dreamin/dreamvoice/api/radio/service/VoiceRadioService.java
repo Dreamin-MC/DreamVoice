@@ -26,4 +26,8 @@ public interface VoiceRadioService {
 
   void removeChannel(final @NotNull String name);
 
+  void save();
+
+  void load();
+
 }

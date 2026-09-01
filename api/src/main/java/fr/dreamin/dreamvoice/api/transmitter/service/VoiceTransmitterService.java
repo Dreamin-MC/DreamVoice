@@ -64,5 +64,9 @@ public interface VoiceTransmitterService {
 
   void removeReceiverFromAll(@NotNull Player receiver);
   void removeReceiverFromAll(@NotNull UUID receiver);
+
+  void save();
+
+  void load();
 }
 

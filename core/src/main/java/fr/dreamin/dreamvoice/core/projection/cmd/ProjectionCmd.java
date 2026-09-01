@@ -32,7 +32,7 @@ public final class ProjectionCmd {
 
   private @Nullable VoiceProjectionService requireProjectionService(final @NotNull CommandSender sender) {
     if (this.projectionService == null) {
-      sender.sendMessage(Component.text("[PROJECTION] Service projection indisponible.", NamedTextColor.RED));
+      sender.sendMessage(Component.text("[PROJECTION] Projection service unavailable.", NamedTextColor.RED));
       return null;
     }
     return this.projectionService;
@@ -72,9 +72,9 @@ public final class ProjectionCmd {
     final var proj = projectionService.createProjection(target, loc);
 
     sender.sendMessage(
-      Component.text("[PROJECTION] Ancre vocale créée pour ", NamedTextColor.GREEN)
+      Component.text("[PROJECTION] Voice anchor created for ", NamedTextColor.GREEN)
         .append(Component.text(target.getName(), NamedTextColor.YELLOW))
-        .append(Component.text(String.format(" en (%.1f, %.1f, %.1f) !", loc.getX(), loc.getY(), loc.getZ()), NamedTextColor.GREEN))
+        .append(Component.text(String.format(" at (%.1f, %.1f, %.1f)!", loc.getX(), loc.getY(), loc.getZ()), NamedTextColor.GREEN))
     );
   }
 
@@ -93,13 +93,13 @@ public final class ProjectionCmd {
     if (target == null) return;
 
     if (!projectionService.hasProjection(target)) {
-      sender.sendMessage(Component.text("[PROJECTION] Aucune ancre active pour ce joueur.", NamedTextColor.GRAY));
+      sender.sendMessage(Component.text("[PROJECTION] No active anchor for this player.", NamedTextColor.GRAY));
       return;
     }
 
     projectionService.removeProjection(target);
     sender.sendMessage(
-      Component.text("[PROJECTION] Ancre vocale supprimée pour ", NamedTextColor.GREEN)
+      Component.text("[PROJECTION] Voice anchor removed for ", NamedTextColor.GREEN)
         .append(Component.text(target.getName(), NamedTextColor.YELLOW))
         .append(Component.text(".", NamedTextColor.GREEN))
     );
@@ -121,7 +121,7 @@ public final class ProjectionCmd {
 
     final var proj = projectionService.getProjection(target);
     if (proj == null) {
-      sender.sendMessage(Component.text("[PROJECTION] Aucune ancre active pour " + target.getName(), NamedTextColor.RED));
+      sender.sendMessage(Component.text("[PROJECTION] No active anchor for " + target.getName(), NamedTextColor.RED));
       return;
     }
 
@@ -133,17 +133,17 @@ public final class ProjectionCmd {
       .orElse(null);
 
     if (nearby == null) {
-      sender.sendMessage(Component.text("[PROJECTION] Aucune entité trouvée à proximité pour accrocher l'ancre.", NamedTextColor.RED));
+      sender.sendMessage(Component.text("[PROJECTION] No entity found nearby to attach anchor.", NamedTextColor.RED));
       return;
     }
 
     proj.setAnchorEntity(nearby);
     sender.sendMessage(
-      Component.text("[PROJECTION] Ancre de ", NamedTextColor.GREEN)
+      Component.text("[PROJECTION] Anchor of ", NamedTextColor.GREEN)
         .append(Component.text(target.getName(), NamedTextColor.YELLOW))
-        .append(Component.text(" accrochée à l'entité ", NamedTextColor.GREEN))
+        .append(Component.text(" attached to entity ", NamedTextColor.GREEN))
         .append(Component.text(nearby.getType().name() + " (" + nearby.getUniqueId().toString().substring(0, 8) + ")", NamedTextColor.AQUA))
-        .append(Component.text(" ! L'audio suivra ses déplacements.", NamedTextColor.GREEN))
+        .append(Component.text("! Audio will now follow its movements.", NamedTextColor.GREEN))
     );
   }
 
@@ -163,16 +163,16 @@ public final class ProjectionCmd {
 
     final var proj = projectionService.getProjection(target);
     if (proj == null) {
-      sender.sendMessage(Component.text("[PROJECTION] Aucune ancre active pour " + target.getName(), NamedTextColor.RED));
+      sender.sendMessage(Component.text("[PROJECTION] No active anchor for " + target.getName(), NamedTextColor.RED));
       return;
     }
 
     proj.setAnchorLocation(proj.getAnchorLocation());
     proj.setAnchorEntity(null);
     sender.sendMessage(
-      Component.text("[PROJECTION] Ancre de ", NamedTextColor.GREEN)
+      Component.text("[PROJECTION] Anchor of ", NamedTextColor.GREEN)
         .append(Component.text(target.getName(), NamedTextColor.YELLOW))
-        .append(Component.text(" détachée de l'entité (position figée).", NamedTextColor.GREEN))
+        .append(Component.text(" detached from entity (position frozen).", NamedTextColor.GREEN))
     );
   }
 
@@ -190,15 +190,15 @@ public final class ProjectionCmd {
 
     final var proj = projectionService.getProjection(target);
     if (proj == null) {
-      sender.sendMessage(Component.text("[PROJECTION] Aucune ancre active pour " + target.getName(), NamedTextColor.RED));
+      sender.sendMessage(Component.text("[PROJECTION] No active anchor for " + target.getName(), NamedTextColor.RED));
       return;
     }
 
     proj.setDistance(distance);
     sender.sendMessage(
-      Component.text("[PROJECTION] Portée définie sur ", NamedTextColor.GREEN)
+      Component.text("[PROJECTION] Distance set to ", NamedTextColor.GREEN)
         .append(Component.text(distance + "m", NamedTextColor.YELLOW))
-        .append(Component.text(" pour ", NamedTextColor.GREEN))
+        .append(Component.text(" for ", NamedTextColor.GREEN))
         .append(Component.text(target.getName(), NamedTextColor.AQUA))
     );
   }
@@ -217,15 +217,15 @@ public final class ProjectionCmd {
 
     final var proj = projectionService.getProjection(target);
     if (proj == null) {
-      sender.sendMessage(Component.text("[PROJECTION] Aucune ancre active pour " + target.getName(), NamedTextColor.RED));
+      sender.sendMessage(Component.text("[PROJECTION] No active anchor for " + target.getName(), NamedTextColor.RED));
       return;
     }
 
     proj.setFilterId(filterId.equalsIgnoreCase("none") ? null : filterId.toLowerCase());
     sender.sendMessage(
-      Component.text("[PROJECTION] Filtre de l'ancre défini sur ", NamedTextColor.GREEN)
+      Component.text("[PROJECTION] Filter set to ", NamedTextColor.GREEN)
         .append(Component.text(filterId, NamedTextColor.YELLOW))
-        .append(Component.text(" pour ", NamedTextColor.GREEN))
+        .append(Component.text(" for ", NamedTextColor.GREEN))
         .append(Component.text(target.getName(), NamedTextColor.AQUA))
     );
   }
@@ -244,11 +244,11 @@ public final class ProjectionCmd {
 
     final var proj = projectionService.getProjection(target);
     if (proj == null) {
-      sender.sendMessage(Component.text("[PROJECTION] Aucune ancre active pour " + target.getName(), NamedTextColor.RED));
+      sender.sendMessage(Component.text("[PROJECTION] No active anchor for " + target.getName(), NamedTextColor.RED));
       return;
     }
     proj.setEmitVoiceAtAnchor(enabled);
-    sender.sendMessage(Component.text("[PROJECTION] Émission voix à l'ancre : " + (enabled ? "ON" : "OFF"), NamedTextColor.YELLOW));
+    sender.sendMessage(Component.text("[PROJECTION] Voice emission at anchor: " + (enabled ? "ON" : "OFF"), NamedTextColor.YELLOW));
   }
 
   @CommandDescription("Toggle emitting voice at the camera/player location")
@@ -265,11 +265,11 @@ public final class ProjectionCmd {
 
     final var proj = projectionService.getProjection(target);
     if (proj == null) {
-      sender.sendMessage(Component.text("[PROJECTION] Aucune ancre active pour " + target.getName(), NamedTextColor.RED));
+      sender.sendMessage(Component.text("[PROJECTION] No active anchor for " + target.getName(), NamedTextColor.RED));
       return;
     }
     proj.setEmitVoiceAtPlayer(enabled);
-    sender.sendMessage(Component.text("[PROJECTION] Émission voix à la caméra : " + (enabled ? "ON" : "OFF"), NamedTextColor.YELLOW));
+    sender.sendMessage(Component.text("[PROJECTION] Voice emission at player/camera: " + (enabled ? "ON" : "OFF"), NamedTextColor.YELLOW));
   }
 
   @CommandDescription("Toggle hearing audio around the anchor location")
@@ -286,11 +286,11 @@ public final class ProjectionCmd {
 
     final var proj = projectionService.getProjection(target);
     if (proj == null) {
-      sender.sendMessage(Component.text("[PROJECTION] Aucune ancre active pour " + target.getName(), NamedTextColor.RED));
+      sender.sendMessage(Component.text("[PROJECTION] No active anchor for " + target.getName(), NamedTextColor.RED));
       return;
     }
     proj.setHearAnchorEnvironment(enabled);
-    sender.sendMessage(Component.text("[PROJECTION] Écoute autour de l'ancre : " + (enabled ? "ON" : "OFF"), NamedTextColor.YELLOW));
+    sender.sendMessage(Component.text("[PROJECTION] Listening around anchor: " + (enabled ? "ON" : "OFF"), NamedTextColor.YELLOW));
   }
 
   @CommandDescription("Toggle hearing audio around the camera/player location")
@@ -307,11 +307,11 @@ public final class ProjectionCmd {
 
     final var proj = projectionService.getProjection(target);
     if (proj == null) {
-      sender.sendMessage(Component.text("[PROJECTION] Aucune ancre active pour " + target.getName(), NamedTextColor.RED));
+      sender.sendMessage(Component.text("[PROJECTION] No active anchor for " + target.getName(), NamedTextColor.RED));
       return;
     }
     proj.setHearPlayerEnvironment(enabled);
-    sender.sendMessage(Component.text("[PROJECTION] Écoute autour de la caméra : " + (enabled ? "ON" : "OFF"), NamedTextColor.YELLOW));
+    sender.sendMessage(Component.text("[PROJECTION] Listening around player/camera: " + (enabled ? "ON" : "OFF"), NamedTextColor.YELLOW));
   }
 
   @CommandDescription("Toggle VoiceWall occlusion on projection")
@@ -328,11 +328,11 @@ public final class ProjectionCmd {
 
     final var proj = projectionService.getProjection(target);
     if (proj == null) {
-      sender.sendMessage(Component.text("[PROJECTION] Aucune ancre active pour " + target.getName(), NamedTextColor.RED));
+      sender.sendMessage(Component.text("[PROJECTION] No active anchor for " + target.getName(), NamedTextColor.RED));
       return;
     }
     proj.setApplyVoiceWall(enabled);
-    sender.sendMessage(Component.text("[PROJECTION] VoiceWall pour l'ancre : " + (enabled ? "ON" : "OFF"), NamedTextColor.YELLOW));
+    sender.sendMessage(Component.text("[PROJECTION] VoiceWall for anchor: " + (enabled ? "ON" : "OFF"), NamedTextColor.YELLOW));
   }
 
   @CommandDescription("Show detailed info of an active projection")
@@ -351,7 +351,7 @@ public final class ProjectionCmd {
 
     final var proj = projectionService.getProjection(target);
     if (proj == null) {
-      sender.sendMessage(Component.text("[PROJECTION] Aucune ancre active pour " + target.getName(), NamedTextColor.GRAY));
+      sender.sendMessage(Component.text("[PROJECTION] No active anchor for " + target.getName(), NamedTextColor.GRAY));
       return;
     }
 
@@ -359,13 +359,13 @@ public final class ProjectionCmd {
     final var attached = proj.getAnchorEntity() != null ? proj.getAnchorEntity().getType().name() : "None";
 
     sender.sendMessage(Component.text("==== [PROJECTION INFO] ====", NamedTextColor.GOLD));
-    sender.sendMessage(Component.text("Joueur: ", NamedTextColor.GRAY).append(Component.text(target.getName(), NamedTextColor.YELLOW)));
-    sender.sendMessage(Component.text("Position Ancre: ", NamedTextColor.GRAY).append(Component.text(String.format("%.1f, %.1f, %.1f (%s)", loc.getX(), loc.getY(), loc.getZ(), loc.getWorld() != null ? loc.getWorld().getName() : "?"), NamedTextColor.AQUA)));
-    sender.sendMessage(Component.text("Entité attachée: ", NamedTextColor.GRAY).append(Component.text(attached, NamedTextColor.LIGHT_PURPLE)));
-    sender.sendMessage(Component.text("Portée: ", NamedTextColor.GRAY).append(Component.text(proj.getDistance() + "m", NamedTextColor.YELLOW)));
-    sender.sendMessage(Component.text("Filtre: ", NamedTextColor.GRAY).append(Component.text(proj.getFilterId() != null ? proj.getFilterId() : "none", NamedTextColor.AQUA)));
-    sender.sendMessage(Component.text("Émission Ancre / Caméra: ", NamedTextColor.GRAY).append(Component.text(proj.isEmitVoiceAtAnchor() + " / " + proj.isEmitVoiceAtPlayer(), NamedTextColor.GREEN)));
-    sender.sendMessage(Component.text("Écoute Ancre / Caméra: ", NamedTextColor.GRAY).append(Component.text(proj.isHearAnchorEnvironment() + " / " + proj.isHearPlayerEnvironment(), NamedTextColor.GREEN)));
+    sender.sendMessage(Component.text("Player: ", NamedTextColor.GRAY).append(Component.text(target.getName(), NamedTextColor.YELLOW)));
+    sender.sendMessage(Component.text("Anchor Position: ", NamedTextColor.GRAY).append(Component.text(String.format("%.1f, %.1f, %.1f (%s)", loc.getX(), loc.getY(), loc.getZ(), loc.getWorld() != null ? loc.getWorld().getName() : "?"), NamedTextColor.AQUA)));
+    sender.sendMessage(Component.text("Attached Entity: ", NamedTextColor.GRAY).append(Component.text(attached, NamedTextColor.LIGHT_PURPLE)));
+    sender.sendMessage(Component.text("Range: ", NamedTextColor.GRAY).append(Component.text(proj.getDistance() + "m", NamedTextColor.YELLOW)));
+    sender.sendMessage(Component.text("Filter: ", NamedTextColor.GRAY).append(Component.text(proj.getFilterId() != null ? proj.getFilterId() : "none", NamedTextColor.AQUA)));
+    sender.sendMessage(Component.text("Emission Anchor / Player: ", NamedTextColor.GRAY).append(Component.text(proj.isEmitVoiceAtAnchor() + " / " + proj.isEmitVoiceAtPlayer(), NamedTextColor.GREEN)));
+    sender.sendMessage(Component.text("Listening Anchor / Player: ", NamedTextColor.GRAY).append(Component.text(proj.isHearAnchorEnvironment() + " / " + proj.isHearPlayerEnvironment(), NamedTextColor.GREEN)));
     sender.sendMessage(Component.text("VoiceWall: ", NamedTextColor.GRAY).append(Component.text(String.valueOf(proj.isApplyVoiceWall()), NamedTextColor.YELLOW)));
   }
 
@@ -379,12 +379,12 @@ public final class ProjectionCmd {
 
     final var projections = projectionService.getProjections();
     if (projections.isEmpty()) {
-      sender.sendMessage(Component.text("[PROJECTION] Aucune ancre vocale active.", NamedTextColor.GRAY));
+      sender.sendMessage(Component.text("[PROJECTION] No active voice anchors.", NamedTextColor.GRAY));
       return;
     }
 
     sender.sendMessage(
-      Component.text("[PROJECTION] Ancres actives (", NamedTextColor.GRAY)
+      Component.text("[PROJECTION] Active anchors (", NamedTextColor.GRAY)
         .append(Component.text(projections.size(), NamedTextColor.YELLOW))
         .append(Component.text("):", NamedTextColor.GRAY))
     );
@@ -395,10 +395,10 @@ public final class ProjectionCmd {
       final var loc = p.getAnchorLocation();
 
       sender.sendMessage(
-        Component.text(" - Joueur: ", NamedTextColor.GRAY)
+        Component.text(" - Player: ", NamedTextColor.GRAY)
           .append(Component.text(name, NamedTextColor.AQUA))
           .append(Component.text(String.format(" @ (%.1f, %.1f, %.1f in %s)", loc.getX(), loc.getY(), loc.getZ(), loc.getWorld() != null ? loc.getWorld().getName() : "?"), NamedTextColor.YELLOW))
-          .append(Component.text(" [Dist=" + p.getDistance() + "m, Filtre=" + (p.getFilterId() != null ? p.getFilterId() : "none") + "]", NamedTextColor.DARK_GRAY))
+          .append(Component.text(" [Dist=" + p.getDistance() + "m, Filter=" + (p.getFilterId() != null ? p.getFilterId() : "none") + "]", NamedTextColor.DARK_GRAY))
       );
     }
   }
@@ -410,6 +410,30 @@ public final class ProjectionCmd {
       return p;
     sender.sendMessage(Component.text("Specify a player!", NamedTextColor.RED));
     return null;
+  }
+
+  @CommandDescription("Save all projections to disk")
+  @CommandMethod("projection save")
+  @CommandPermission("dreamvoice.projection.save")
+  private void saveProjections(final @NotNull CommandSender sender) {
+    final var projectionService = requireProjectionService(sender);
+    if (projectionService == null)
+      return;
+
+    projectionService.save();
+    sender.sendMessage(Component.text("[PROJECTION] All voice projections successfully saved to disk!", NamedTextColor.GREEN));
+  }
+
+  @CommandDescription("Reload all projections from disk")
+  @CommandMethod("projection reload")
+  @CommandPermission("dreamvoice.projection.reload")
+  private void reloadProjections(final @NotNull CommandSender sender) {
+    final var projectionService = requireProjectionService(sender);
+    if (projectionService == null)
+      return;
+
+    projectionService.load();
+    sender.sendMessage(Component.text("[PROJECTION] Projections successfully reloaded from disk (" + projectionService.getProjections().size() + " active)!", NamedTextColor.GREEN));
   }
 
 }

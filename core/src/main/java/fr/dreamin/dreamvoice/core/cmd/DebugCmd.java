@@ -42,7 +42,7 @@ public final class DebugCmd {
 
   private @Nullable VoiceService requireVoiceService(final @NotNull CommandSender sender) {
     if (this.voiceService == null) {
-      sender.sendMessage(Component.text("[SVC] Service vocal indisponible.", NamedTextColor.RED));
+      sender.sendMessage(Component.text("[SVC] Voice service unavailable.", NamedTextColor.RED));
       return null;
     }
     return this.voiceService;
@@ -50,7 +50,7 @@ public final class DebugCmd {
 
   private @Nullable PlayerService requirePlayerService(final @NotNull CommandSender sender) {
     if (this.playerService == null) {
-      sender.sendMessage(Component.text("[SVC] Service joueur indisponible.", NamedTextColor.RED));
+      sender.sendMessage(Component.text("[SVC] Player service unavailable.", NamedTextColor.RED));
       return null;
     }
     return this.playerService;
@@ -85,7 +85,7 @@ public final class DebugCmd {
 
   private Runnable stopped(final @NotNull CommandSender sender, final @NotNull String label) {
     return () -> sender.sendMessage(
-      Component.text("[SVC] fini: ", NamedTextColor.GRAY)
+      Component.text("[SVC] Finished: ", NamedTextColor.GRAY)
         .append(Component.text(label, NamedTextColor.YELLOW))
     );
   }
@@ -177,7 +177,7 @@ public final class DebugCmd {
       return;
 
     sender.sendMessage(
-      Component.text("[SVC] Download + convert…", NamedTextColor.GRAY)
+      Component.text("[SVC] Downloading and converting audio...", NamedTextColor.GRAY)
     );
 
     CompletableFuture
@@ -201,7 +201,7 @@ public final class DebugCmd {
       )
       .exceptionally(ex -> {
         sender.sendMessage(
-          Component.text("[SVC] Erreur: ", NamedTextColor.RED)
+          Component.text("[SVC] Error: ", NamedTextColor.RED)
             .append(Component.text(ex.getCause().getMessage(), NamedTextColor.GRAY))
         );
         return null;
@@ -230,7 +230,7 @@ public final class DebugCmd {
     final var loc = player.getLocation().clone().add(0, 1.6, 0);
 
     sender.sendMessage(
-      Component.text("[SVC] Download + convert…", NamedTextColor.GRAY)
+      Component.text("[SVC] Downloading and converting audio...", NamedTextColor.GRAY)
     );
 
     CompletableFuture
@@ -256,7 +256,7 @@ public final class DebugCmd {
       )
       .exceptionally(ex -> {
         sender.sendMessage(
-          Component.text("[SVC] Erreur: ", NamedTextColor.RED)
+          Component.text("[SVC] Error: ", NamedTextColor.RED)
             .append(Component.text(ex.getCause().getMessage(), NamedTextColor.GRAY))
         );
         return null;
@@ -283,14 +283,14 @@ public final class DebugCmd {
     final var state = parseState(raw);
     if (state == null) {
       sender.sendMessage(
-        Component.text("[SVC] Etat invalide", NamedTextColor.RED)
+        Component.text("[SVC] Invalid state.", NamedTextColor.RED)
       );
       return;
     }
 
     playerService.setState(state, player.getUniqueId());
     sender.sendMessage(
-      Component.text("[SVC] Etat vocal défini sur ", NamedTextColor.GREEN)
+      Component.text("[SVC] Voice state set to ", NamedTextColor.GREEN)
         .append(Component.text(state.name(), NamedTextColor.YELLOW))
     );
   }
@@ -309,16 +309,16 @@ public final class DebugCmd {
     final var state = parseState(raw);
     if (state == null) {
       sender.sendMessage(
-        Component.text("[SVC] Etat invalide", NamedTextColor.RED)
+        Component.text("[SVC] Invalid state.", NamedTextColor.RED)
       );
       return;
     }
 
     playerService.setState(state, target.getUniqueId());
     sender.sendMessage(
-      Component.text("[SVC] Etat de ", NamedTextColor.GREEN)
+      Component.text("[SVC] Voice state of ", NamedTextColor.GREEN)
         .append(Component.text(target.getName(), NamedTextColor.YELLOW))
-        .append(Component.text(" défini sur ", NamedTextColor.GREEN))
+        .append(Component.text(" set to ", NamedTextColor.GREEN))
         .append(Component.text(state.name(), NamedTextColor.YELLOW))
     );
   }
@@ -335,7 +335,7 @@ public final class DebugCmd {
 
     playerService.setState(PlayerState.ALIVE, target.getUniqueId());
     sender.sendMessage(
-      Component.text("[SVC] Etat vocal reset pour ", NamedTextColor.GREEN)
+      Component.text("[SVC] Voice state reset for ", NamedTextColor.GREEN)
         .append(Component.text(target.getName(), NamedTextColor.YELLOW))
     );
   }
@@ -354,9 +354,9 @@ public final class DebugCmd {
     final var state = vPlayer != null ? vPlayer.getState() : PlayerState.ALIVE;
 
     sender.sendMessage(
-      Component.text("[SVC] Etat vocal de ", NamedTextColor.GRAY)
+      Component.text("[SVC] Voice state of ", NamedTextColor.GRAY)
         .append(Component.text(target.getName(), NamedTextColor.YELLOW))
-        .append(Component.text(" : ", NamedTextColor.GRAY))
+        .append(Component.text(": ", NamedTextColor.GRAY))
         .append(Component.text(state.name(), NamedTextColor.AQUA))
     );
   }
@@ -370,19 +370,19 @@ public final class DebugCmd {
   private void reloadConfig(final @NotNull CommandSender sender) {
     final var codexService = DreamVoice.getService(CodexService.class);
     if (codexService == null) {
-      sender.sendMessage(Component.text("[SVC] Service de configuration indisponible.", NamedTextColor.RED));
+      sender.sendMessage(Component.text("[SVC] Configuration service unavailable.", NamedTextColor.RED));
       return;
     }
 
     try {
       codexService.load();
       sender.sendMessage(
-        Component.text("[SVC] Configuration rechargée avec succès !", NamedTextColor.GREEN)
+        Component.text("[SVC] Configuration successfully reloaded!", NamedTextColor.GREEN)
       );
     } catch (Exception e) {
       sender.sendMessage(
-        Component.text("[SVC] Erreur lors du rechargement de la config: ", NamedTextColor.RED)
-          .append(Component.text(e.getMessage() != null ? e.getMessage() : "Inconnue", NamedTextColor.GRAY))
+        Component.text("[SVC] Error while reloading config: ", NamedTextColor.RED)
+          .append(Component.text(e.getMessage() != null ? e.getMessage() : "Unknown", NamedTextColor.GRAY))
       );
     }
   }
@@ -396,13 +396,13 @@ public final class DebugCmd {
   private void listFilters(final @NotNull CommandSender sender) {
     final var filterService = DreamVoice.getService(VoiceFilterService.class);
     if (filterService == null) {
-      sender.sendMessage(Component.text("[SVC] Service de filtres indisponible.", NamedTextColor.RED));
+      sender.sendMessage(Component.text("[SVC] Filter service unavailable.", NamedTextColor.RED));
       return;
     }
 
     final var filters = filterService.getAvailableFilters();
     sender.sendMessage(
-      Component.text("[SVC] Filtres vocaux disponibles (", NamedTextColor.GRAY)
+      Component.text("[SVC] Available voice filters (", NamedTextColor.GRAY)
         .append(Component.text(filters.size(), NamedTextColor.YELLOW))
         .append(Component.text("):", NamedTextColor.GRAY))
     );
@@ -425,20 +425,20 @@ public final class DebugCmd {
   ) {
     final var filterService = DreamVoice.getService(VoiceFilterService.class);
     if (filterService == null) {
-      sender.sendMessage(Component.text("[SVC] Service de filtres indisponible.", NamedTextColor.RED));
+      sender.sendMessage(Component.text("[SVC] Filter service unavailable.", NamedTextColor.RED));
       return;
     }
 
     if (filterService.getFilter(filterId) == null) {
-      sender.sendMessage(Component.text("[SVC] Filtre inconnu: " + filterId, NamedTextColor.RED));
+      sender.sendMessage(Component.text("[SVC] Unknown filter: " + filterId, NamedTextColor.RED));
       return;
     }
 
     filterService.addFilter(target.getUniqueId(), filterId);
     sender.sendMessage(
-      Component.text("[SVC] Filtre ", NamedTextColor.GREEN)
+      Component.text("[SVC] Filter ", NamedTextColor.GREEN)
         .append(Component.text(filterId, NamedTextColor.YELLOW))
-        .append(Component.text(" appliqué à ", NamedTextColor.GREEN))
+        .append(Component.text(" applied to ", NamedTextColor.GREEN))
         .append(Component.text(target.getName(), NamedTextColor.AQUA))
     );
   }
@@ -452,15 +452,15 @@ public final class DebugCmd {
   ) {
     final var filterService = DreamVoice.getService(VoiceFilterService.class);
     if (filterService == null) {
-      sender.sendMessage(Component.text("[SVC] Service de filtres indisponible.", NamedTextColor.RED));
+      sender.sendMessage(Component.text("[SVC] Filter service unavailable.", NamedTextColor.RED));
       return;
     }
 
     filterService.removeFilter(target.getUniqueId(), filterId);
     sender.sendMessage(
-      Component.text("[SVC] Filtre ", NamedTextColor.YELLOW)
+      Component.text("[SVC] Filter ", NamedTextColor.YELLOW)
         .append(Component.text(filterId, NamedTextColor.YELLOW))
-        .append(Component.text(" retiré de ", NamedTextColor.GREEN))
+        .append(Component.text(" removed from ", NamedTextColor.GREEN))
         .append(Component.text(target.getName(), NamedTextColor.AQUA))
     );
   }
@@ -473,13 +473,13 @@ public final class DebugCmd {
   ) {
     final var filterService = DreamVoice.getService(VoiceFilterService.class);
     if (filterService == null) {
-      sender.sendMessage(Component.text("[SVC] Service de filtres indisponible.", NamedTextColor.RED));
+      sender.sendMessage(Component.text("[SVC] Filter service unavailable.", NamedTextColor.RED));
       return;
     }
 
     filterService.clearFilters(target.getUniqueId());
     sender.sendMessage(
-      Component.text("[SVC] Tous les filtres vocaux ont été réinitialisés pour ", NamedTextColor.GREEN)
+      Component.text("[SVC] All voice filters cleared for ", NamedTextColor.GREEN)
         .append(Component.text(target.getName(), NamedTextColor.AQUA))
     );
   }
@@ -493,15 +493,15 @@ public final class DebugCmd {
   ) {
     final var filterService = DreamVoice.getService(VoiceFilterService.class);
     if (filterService == null) {
-      sender.sendMessage(Component.text("[SVC] Service de filtres indisponible.", NamedTextColor.RED));
+      sender.sendMessage(Component.text("[SVC] Filter service unavailable.", NamedTextColor.RED));
       return;
     }
 
     filterService.setAutoEnvironmentEnabled(target.getUniqueId(), enabled);
     sender.sendMessage(
-      Component.text("[SVC] Filtres d'environnement automatiques ", NamedTextColor.GREEN)
-        .append(Component.text(enabled ? "activés" : "désactivés", enabled ? NamedTextColor.YELLOW : NamedTextColor.RED))
-        .append(Component.text(" pour ", NamedTextColor.GREEN))
+      Component.text("[SVC] Automatic environment filters ", NamedTextColor.GREEN)
+        .append(Component.text(enabled ? "enabled" : "disabled", enabled ? NamedTextColor.YELLOW : NamedTextColor.RED))
+        .append(Component.text(" for ", NamedTextColor.GREEN))
         .append(Component.text(target.getName(), NamedTextColor.AQUA))
     );
   }
@@ -518,17 +518,15 @@ public final class DebugCmd {
   ) {
     final var wallService = DreamVoice.getService(VoiceWallService.class);
     if (wallService == null) {
-      sender.sendMessage(Component.text("[SVC] Service VoiceWall indisponible.", NamedTextColor.RED));
+      sender.sendMessage(Component.text("[SVC] VoiceWall service unavailable.", NamedTextColor.RED));
       return;
     }
 
     wallService.setAirDampingEnabled(enabled);
     sender.sendMessage(
-      Component.text("[SVC] Amortissement acoustique de l'air sur la distance (Air Damping) : ", NamedTextColor.GREEN)
-        .append(Component.text(enabled ? "ACTIVÉ" : "DÉSACTIVÉ", enabled ? NamedTextColor.YELLOW : NamedTextColor.RED))
+      Component.text("[SVC] Air damping over distance: ", NamedTextColor.GREEN)
+        .append(Component.text(enabled ? "ENABLED" : "DISABLED", enabled ? NamedTextColor.YELLOW : NamedTextColor.RED))
     );
   }
 
 }
-
-

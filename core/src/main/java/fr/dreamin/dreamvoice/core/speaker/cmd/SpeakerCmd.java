@@ -6,7 +6,6 @@ import cloud.commandframework.annotations.CommandMethod;
 import cloud.commandframework.annotations.CommandPermission;
 import cloud.commandframework.annotations.suggestions.Suggestions;
 import cloud.commandframework.context.CommandContext;
-import fr.dreamin.dreamvoice.api.recording.model.VoiceRecording;
 import fr.dreamin.dreamvoice.api.recording.service.VoiceRecordingService;
 import fr.dreamin.dreamvoice.api.speaker.model.Speaker;
 import fr.dreamin.dreamvoice.api.speaker.model.SpeakerMode;
@@ -14,7 +13,6 @@ import fr.dreamin.dreamvoice.api.speaker.service.VoiceSpeakerService;
 import fr.dreamin.dreamvoice.core.DreamVoice;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
-import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
@@ -31,7 +29,7 @@ public final class SpeakerCmd {
 
   private @Nullable VoiceSpeakerService requireSpeakerService(final @NotNull CommandSender sender) {
     if (this.speakerService == null) {
-      sender.sendMessage(Component.text("[SVC] Service haut-parleur indisponible.", NamedTextColor.RED));
+      sender.sendMessage(Component.text("[SVC] Speaker service unavailable.", NamedTextColor.RED));
       return null;
     }
     return this.speakerService;
@@ -92,7 +90,7 @@ public final class SpeakerCmd {
       return;
 
     if (speakerService.getSpeaker(name) != null) {
-      player.sendMessage(Component.text("[SVC] Un haut-parleur avec ce nom existe déjà !", NamedTextColor.RED));
+      player.sendMessage(Component.text("[SVC] A speaker with this name already exists!", NamedTextColor.RED));
       return;
     }
 
@@ -105,9 +103,9 @@ public final class SpeakerCmd {
       .build();
 
     player.sendMessage(
-      Component.text("[SVC] Haut-parleur '", NamedTextColor.GREEN)
+      Component.text("[SVC] Speaker '", NamedTextColor.GREEN)
         .append(Component.text(name, NamedTextColor.AQUA))
-        .append(Component.text("' créé à votre position (portée: " + distance + " blocs, mode: GLOBAL) !", NamedTextColor.GREEN))
+        .append(Component.text("' created at your location (range: " + distance + " blocks, mode: GLOBAL)!", NamedTextColor.GREEN))
     );
   }
 
@@ -124,15 +122,15 @@ public final class SpeakerCmd {
 
     final var speaker = speakerService.getSpeaker(speakerName);
     if (speaker == null) {
-      sender.sendMessage(Component.text("[SVC] Haut-parleur introuvable: " + speakerName, NamedTextColor.RED));
+      sender.sendMessage(Component.text("[SVC] Speaker not found: " + speakerName, NamedTextColor.RED));
       return;
     }
 
     speakerService.unregister(speaker);
     sender.sendMessage(
-      Component.text("[SVC] Haut-parleur '", NamedTextColor.YELLOW)
+      Component.text("[SVC] Speaker '", NamedTextColor.YELLOW)
         .append(Component.text(speakerName, NamedTextColor.AQUA))
-        .append(Component.text("' supprimé avec succès !", NamedTextColor.YELLOW))
+        .append(Component.text("' successfully deleted!", NamedTextColor.YELLOW))
     );
   }
 
@@ -146,12 +144,12 @@ public final class SpeakerCmd {
 
     final var speakers = speakerService.getSpeakers();
     if (speakers.isEmpty()) {
-      sender.sendMessage(Component.text("[SVC] Aucun haut-parleur enregistré.", NamedTextColor.GRAY));
+      sender.sendMessage(Component.text("[SVC] No active speakers.", NamedTextColor.GRAY));
       return;
     }
 
     sender.sendMessage(
-      Component.text("[SVC] Haut-parleurs actifs (", NamedTextColor.GRAY)
+      Component.text("[SVC] Active speakers (", NamedTextColor.GRAY)
         .append(Component.text(speakers.size(), NamedTextColor.YELLOW))
         .append(Component.text("):", NamedTextColor.GRAY))
     );
@@ -162,11 +160,40 @@ public final class SpeakerCmd {
       sender.sendMessage(
         Component.text(" - ", NamedTextColor.GRAY)
           .append(Component.text(speaker.getName(), NamedTextColor.AQUA))
-          .append(Component.text(" | Portée: " + speaker.getDistance() + "b | Mode: ", NamedTextColor.GRAY))
+          .append(Component.text(" | Range: " + speaker.getDistance() + "m | Mode: ", NamedTextColor.GRAY))
           .append(Component.text(speaker.getMode().name(), speaker.getMode() == SpeakerMode.GLOBAL ? NamedTextColor.GREEN : NamedTextColor.GOLD))
           .append(Component.text(" | Pos: " + locStr, NamedTextColor.DARK_GRAY))
       );
     }
+  }
+
+  @CommandDescription("Show detailed info of a speaker")
+  @CommandMethod("speaker info <speaker>")
+  @CommandPermission("dreamvoice.speaker.list")
+  private void infoSpeaker(
+    final @NotNull CommandSender sender,
+    @Argument(value = "speaker", suggestions = "speakers") final @NotNull String speakerName
+  ) {
+    final var speakerService = requireSpeakerService(sender);
+    if (speakerService == null)
+      return;
+
+    final var speaker = speakerService.getSpeaker(speakerName);
+    if (speaker == null) {
+      sender.sendMessage(Component.text("[SVC] Speaker not found: " + speakerName, NamedTextColor.RED));
+      return;
+    }
+
+    final var loc = speaker.getLocation();
+    final var attached = speaker.getTargetEntity() != null && speaker.getTargetEntity().isValid() ? speaker.getTargetEntity().getType().name() : "None";
+
+    sender.sendMessage(Component.text("==== [SPEAKER: " + speaker.getName().toUpperCase() + "] ====", NamedTextColor.GOLD));
+    sender.sendMessage(Component.text("Position: ", NamedTextColor.GRAY).append(Component.text(String.format("%.1f, %.1f, %.1f (%s)", loc.getX(), loc.getY(), loc.getZ(), loc.getWorld() != null ? loc.getWorld().getName() : "?"), NamedTextColor.AQUA)));
+    sender.sendMessage(Component.text("Attached Entity: ", NamedTextColor.GRAY).append(Component.text(attached, NamedTextColor.LIGHT_PURPLE)));
+    sender.sendMessage(Component.text("Range: ", NamedTextColor.GRAY).append(Component.text((speaker.getDistance() != null ? speaker.getDistance() : 16.0f) + "m", NamedTextColor.YELLOW)));
+    sender.sendMessage(Component.text("Mode: ", NamedTextColor.GRAY).append(Component.text(speaker.getMode().name(), speaker.getMode() == SpeakerMode.GLOBAL ? NamedTextColor.GREEN : NamedTextColor.GOLD)));
+    sender.sendMessage(Component.text("Playing: ", NamedTextColor.GRAY).append(Component.text(speaker.isPlaying() ? "YES 🎵" : "NO", speaker.isPlaying() ? NamedTextColor.GREEN : NamedTextColor.GRAY)));
+    sender.sendMessage(Component.text("Allowed Players: ", NamedTextColor.GRAY).append(Component.text(speaker.getAllowedSpeakers().size() + " player(s)", NamedTextColor.AQUA)));
   }
 
   @CommandDescription("Change speaker mode (global / restricted)")
@@ -183,7 +210,7 @@ public final class SpeakerCmd {
 
     final var speaker = speakerService.getSpeaker(speakerName);
     if (speaker == null) {
-      sender.sendMessage(Component.text("[SVC] Haut-parleur introuvable: " + speakerName, NamedTextColor.RED));
+      sender.sendMessage(Component.text("[SVC] Speaker not found: " + speakerName, NamedTextColor.RED));
       return;
     }
 
@@ -191,9 +218,9 @@ public final class SpeakerCmd {
     speaker.setMode(mode);
 
     sender.sendMessage(
-      Component.text("[SVC] Mode du haut-parleur '", NamedTextColor.GREEN)
+      Component.text("[SVC] Mode of speaker '", NamedTextColor.GREEN)
         .append(Component.text(speaker.getName(), NamedTextColor.AQUA))
-        .append(Component.text("' défini sur ", NamedTextColor.GREEN))
+        .append(Component.text("' set to ", NamedTextColor.GREEN))
         .append(Component.text(mode.name(), mode == SpeakerMode.GLOBAL ? NamedTextColor.YELLOW : NamedTextColor.GOLD))
     );
   }
@@ -212,17 +239,17 @@ public final class SpeakerCmd {
 
     final var speaker = speakerService.getSpeaker(speakerName);
     if (speaker == null) {
-      sender.sendMessage(Component.text("[SVC] Haut-parleur introuvable: " + speakerName, NamedTextColor.RED));
+      sender.sendMessage(Component.text("[SVC] Speaker not found: " + speakerName, NamedTextColor.RED));
       return;
     }
 
     speaker.linkSpeaker(target.getUniqueId());
     sender.sendMessage(
-      Component.text("[SVC] Joueur ", NamedTextColor.GREEN)
+      Component.text("[SVC] Player ", NamedTextColor.GREEN)
         .append(Component.text(target.getName(), NamedTextColor.AQUA))
-        .append(Component.text(" relié au haut-parleur '", NamedTextColor.GREEN))
+        .append(Component.text(" linked to speaker '", NamedTextColor.GREEN))
         .append(Component.text(speaker.getName(), NamedTextColor.YELLOW))
-        .append(Component.text("' !", NamedTextColor.GREEN))
+        .append(Component.text("'!", NamedTextColor.GREEN))
     );
   }
 
@@ -240,17 +267,17 @@ public final class SpeakerCmd {
 
     final var speaker = speakerService.getSpeaker(speakerName);
     if (speaker == null) {
-      sender.sendMessage(Component.text("[SVC] Haut-parleur introuvable: " + speakerName, NamedTextColor.RED));
+      sender.sendMessage(Component.text("[SVC] Speaker not found: " + speakerName, NamedTextColor.RED));
       return;
     }
 
     speaker.unlinkSpeaker(target.getUniqueId());
     sender.sendMessage(
-      Component.text("[SVC] Joueur ", NamedTextColor.YELLOW)
+      Component.text("[SVC] Player ", NamedTextColor.YELLOW)
         .append(Component.text(target.getName(), NamedTextColor.AQUA))
-        .append(Component.text(" retiré du haut-parleur '", NamedTextColor.YELLOW))
+        .append(Component.text(" unlinked from speaker '", NamedTextColor.YELLOW))
         .append(Component.text(speaker.getName(), NamedTextColor.YELLOW))
-        .append(Component.text("' !", NamedTextColor.YELLOW))
+        .append(Component.text("'!", NamedTextColor.YELLOW))
     );
   }
 
@@ -268,13 +295,13 @@ public final class SpeakerCmd {
 
     final var speaker = speakerService.getSpeaker(speakerName);
     if (speaker == null) {
-      sender.sendMessage(Component.text("[SVC] Haut-parleur introuvable: " + speakerName, NamedTextColor.RED));
+      sender.sendMessage(Component.text("[SVC] Speaker not found: " + speakerName, NamedTextColor.RED));
       return;
     }
 
     final var recService = DreamVoice.getService(VoiceRecordingService.class);
     if (recService == null) {
-      sender.sendMessage(Component.text("[SVC] Service d'enregistrement indisponible.", NamedTextColor.RED));
+      sender.sendMessage(Component.text("[SVC] Recording service unavailable.", NamedTextColor.RED));
       return;
     }
 
@@ -282,18 +309,18 @@ public final class SpeakerCmd {
       final var recUuid = UUID.fromString(recordingIdRaw);
       final var recording = recService.getVoiceRecording(recUuid);
       if (recording == null) {
-        sender.sendMessage(Component.text("[SVC] Enregistrement vocal introuvable: " + recordingIdRaw, NamedTextColor.RED));
+        sender.sendMessage(Component.text("[SVC] Voice recording not found: " + recordingIdRaw, NamedTextColor.RED));
         return;
       }
 
       speakerService.playRecording(speaker, recording);
       sender.sendMessage(
-        Component.text("[SVC] Lecture de l'enregistrement sur le haut-parleur '", NamedTextColor.GREEN)
+        Component.text("[SVC] Playing recording on speaker '", NamedTextColor.GREEN)
           .append(Component.text(speaker.getName(), NamedTextColor.AQUA))
-          .append(Component.text("' !", NamedTextColor.GREEN))
+          .append(Component.text("'!", NamedTextColor.GREEN))
       );
     } catch (Exception e) {
-      sender.sendMessage(Component.text("[SVC] UUID invalide: " + recordingIdRaw, NamedTextColor.RED));
+      sender.sendMessage(Component.text("[SVC] Invalid UUID: " + recordingIdRaw, NamedTextColor.RED));
     }
   }
 
@@ -312,18 +339,18 @@ public final class SpeakerCmd {
 
     final var speaker = speakerService.getSpeaker(speakerName);
     if (speaker == null) {
-      sender.sendMessage(Component.text("[SVC] Haut-parleur introuvable: " + speakerName, NamedTextColor.RED));
+      sender.sendMessage(Component.text("[SVC] Speaker not found: " + speakerName, NamedTextColor.RED));
       return;
     }
 
     final var isLoop = loop != null && loop;
     speakerService.playSoundFile(speaker, fileName, isLoop);
     sender.sendMessage(
-      Component.text("[SVC] Lecture du fichier audio '", NamedTextColor.GREEN)
+      Component.text("[SVC] Playing audio file '", NamedTextColor.GREEN)
         .append(Component.text(fileName, NamedTextColor.YELLOW))
-        .append(Component.text("' sur le haut-parleur '", NamedTextColor.GREEN))
+        .append(Component.text("' on speaker '", NamedTextColor.GREEN))
         .append(Component.text(speaker.getName(), NamedTextColor.AQUA))
-        .append(Component.text("' " + (isLoop ? "(en boucle)" : "") + " !", NamedTextColor.GREEN))
+        .append(Component.text("' " + (isLoop ? "(looping)" : "") + "!", NamedTextColor.GREEN))
     );
   }
 
@@ -342,17 +369,17 @@ public final class SpeakerCmd {
 
     final var speaker = speakerService.getSpeaker(speakerName);
     if (speaker == null) {
-      sender.sendMessage(Component.text("[SVC] Haut-parleur introuvable: " + speakerName, NamedTextColor.RED));
+      sender.sendMessage(Component.text("[SVC] Speaker not found: " + speakerName, NamedTextColor.RED));
       return;
     }
 
     final var isLoop = loop != null && loop;
-    sender.sendMessage(Component.text("[SVC] Chargement du flux audio...", NamedTextColor.GRAY));
+    sender.sendMessage(Component.text("[SVC] Loading audio stream...", NamedTextColor.GRAY));
     speakerService.playSoundUrl(speaker, url, isLoop);
     sender.sendMessage(
-      Component.text("[SVC] Diffusion de l'URL sur le haut-parleur '", NamedTextColor.GREEN)
+      Component.text("[SVC] Streaming audio URL on speaker '", NamedTextColor.GREEN)
         .append(Component.text(speaker.getName(), NamedTextColor.AQUA))
-        .append(Component.text("' " + (isLoop ? "(en boucle)" : "") + " !", NamedTextColor.GREEN))
+        .append(Component.text("' " + (isLoop ? "(looping)" : "") + "!", NamedTextColor.GREEN))
     );
   }
 
@@ -369,18 +396,40 @@ public final class SpeakerCmd {
 
     final var speaker = speakerService.getSpeaker(speakerName);
     if (speaker == null) {
-      sender.sendMessage(Component.text("[SVC] Haut-parleur introuvable: " + speakerName, NamedTextColor.RED));
+      sender.sendMessage(Component.text("[SVC] Speaker not found: " + speakerName, NamedTextColor.RED));
       return;
     }
 
     speakerService.stopSound(speaker);
     sender.sendMessage(
-      Component.text("[SVC] Lecture audio arrêtée sur le haut-parleur '", NamedTextColor.YELLOW)
+      Component.text("[SVC] Audio stopped on speaker '", NamedTextColor.YELLOW)
         .append(Component.text(speaker.getName(), NamedTextColor.AQUA))
-        .append(Component.text("' !", NamedTextColor.YELLOW))
+        .append(Component.text("'!", NamedTextColor.YELLOW))
     );
   }
 
+  @CommandDescription("Save all speakers to disk")
+  @CommandMethod("speaker save")
+  @CommandPermission("dreamvoice.speaker.save")
+  private void saveSpeakers(final @NotNull CommandSender sender) {
+    final var speakerService = requireSpeakerService(sender);
+    if (speakerService == null)
+      return;
+
+    speakerService.save();
+    sender.sendMessage(Component.text("[SVC] All speakers successfully saved to disk!", NamedTextColor.GREEN));
+  }
+
+  @CommandDescription("Reload all speakers from disk")
+  @CommandMethod("speaker reload")
+  @CommandPermission("dreamvoice.speaker.reload")
+  private void reloadSpeakers(final @NotNull CommandSender sender) {
+    final var speakerService = requireSpeakerService(sender);
+    if (speakerService == null)
+      return;
+
+    speakerService.load();
+    sender.sendMessage(Component.text("[SVC] Speakers successfully reloaded from disk (" + speakerService.getSpeakers().size() + " active)!", NamedTextColor.GREEN));
+  }
+
 }
-
-

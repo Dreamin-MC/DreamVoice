@@ -236,18 +236,18 @@ public final class VoiceRecordingServiceImpl implements VoiceRecordingService, L
     final var player = event.getPlayer();
     final var recording = this.voiceRecordings.get(recUuid);
     if (recording == null) {
-      player.sendMessage(Component.text("[SVC] Enregistrement introuvable sur le serveur !", NamedTextColor.RED));
+      player.sendMessage(Component.text("[SVC] Recording not found on the server!", NamedTextColor.RED));
       return;
     }
 
     final var conn = this.api.getConnectionOf(player.getUniqueId());
     if (conn == null) {
-      player.sendMessage(Component.text("[SVC] Vous n'êtes pas connecté au chat vocal !", NamedTextColor.RED));
+      player.sendMessage(Component.text("[SVC] You are not connected to voice chat!", NamedTextColor.RED));
       return;
     }
 
     player.sendMessage(
-      Component.text("▶ Lecture de la cassette vocale (", NamedTextColor.GREEN)
+      Component.text("▶ Playing voice cassette (", NamedTextColor.GREEN)
         .append(Component.text(String.format("%.1f", recording.getDurationSeconds()) + "s", NamedTextColor.YELLOW))
         .append(Component.text(")...", NamedTextColor.GREEN))
     );

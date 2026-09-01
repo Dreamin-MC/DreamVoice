@@ -14,7 +14,6 @@ import fr.dreamin.dreamvoice.api.wiretap.service.VoiceWiretapService;
 import fr.dreamin.dreamvoice.core.DreamVoice;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
-import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
@@ -31,7 +30,7 @@ public final class WiretapCmd {
 
   private @Nullable VoiceWiretapService requireWiretapService(final @NotNull CommandSender sender) {
     if (this.wiretapService == null) {
-      sender.sendMessage(Component.text("[WIRETAP] Service wiretap indisponible.", NamedTextColor.RED));
+      sender.sendMessage(Component.text("[WIRETAP] Wiretap service unavailable.", NamedTextColor.RED));
       return null;
     }
     return this.wiretapService;
@@ -91,10 +90,22 @@ public final class WiretapCmd {
       wt.setFilterId(filterId.toLowerCase());
 
     sender.sendMessage(
-      Component.text("[WIRETAP] Point d'écoute '", NamedTextColor.GREEN)
+      Component.text("[WIRETAP] Listening point '", NamedTextColor.GREEN)
         .append(Component.text(wt.getName(), NamedTextColor.YELLOW))
-        .append(Component.text(String.format("' créé en (%.1f, %.1f, %.1f) [Portée=%.1fm, Filtre=%s] !", loc.getX(), loc.getY(), loc.getZ(), wt.getDistance(), wt.getFilterId() != null ? wt.getFilterId() : "none"), NamedTextColor.GREEN))
+        .append(Component.text(String.format("' created at (%.1f, %.1f, %.1f) [Range=%.1fm, Filter=%s]!", loc.getX(), loc.getY(), loc.getZ(), wt.getDistance(), wt.getFilterId() != null ? wt.getFilterId() : "none"), NamedTextColor.GREEN))
     );
+  }
+
+  @CommandDescription("Add a spatial wiretap (alias for create)")
+  @CommandMethod("wiretap add <name> [distance] [filter]")
+  @CommandPermission("dreamvoice.wiretap.manage")
+  private void addWiretap(
+    final @NotNull CommandSender sender,
+    @Argument("name") final @NotNull String name,
+    @Argument("distance") final @Nullable Double distance,
+    @Argument(value = "filter", suggestions = "voice_filters") final @Nullable String filterId
+  ) {
+    createWiretap(sender, name, distance, filterId);
   }
 
   @CommandDescription("Delete a wiretap listening point")
@@ -110,12 +121,22 @@ public final class WiretapCmd {
 
     final var wt = wiretapService.getWiretap(name);
     if (wt == null) {
-      sender.sendMessage(Component.text("[WIRETAP] Point d'écoute introuvable: " + name, NamedTextColor.RED));
+      sender.sendMessage(Component.text("[WIRETAP] Listening point not found: " + name, NamedTextColor.RED));
       return;
     }
 
     wiretapService.removeWiretap(name);
-    sender.sendMessage(Component.text("[WIRETAP] Point d'écoute '" + name + "' supprimé avec succès.", NamedTextColor.GREEN));
+    sender.sendMessage(Component.text("[WIRETAP] Listening point '" + name + "' successfully deleted.", NamedTextColor.GREEN));
+  }
+
+  @CommandDescription("Remove a wiretap (alias for delete)")
+  @CommandMethod("wiretap remove <name>")
+  @CommandPermission("dreamvoice.wiretap.manage")
+  private void removeWiretap(
+    final @NotNull CommandSender sender,
+    @Argument(value = "name", suggestions = "wiretaps") final @NotNull String name
+  ) {
+    deleteWiretap(sender, name);
   }
 
   @CommandDescription("Attach a wiretap to the nearest entity or target entity")
@@ -136,7 +157,7 @@ public final class WiretapCmd {
 
     final var wt = wiretapService.getWiretap(name);
     if (wt == null) {
-      sender.sendMessage(Component.text("[WIRETAP] Point d'écoute introuvable: " + name, NamedTextColor.RED));
+      sender.sendMessage(Component.text("[WIRETAP] Listening point not found: " + name, NamedTextColor.RED));
       return;
     }
 
@@ -147,17 +168,17 @@ public final class WiretapCmd {
       .orElse(null);
 
     if (nearby == null) {
-      sender.sendMessage(Component.text("[WIRETAP] Aucune entité trouvée à proximité (5 blocs) pour accrocher le micro.", NamedTextColor.RED));
+      sender.sendMessage(Component.text("[WIRETAP] No entity found nearby (5 blocks) to attach wiretap.", NamedTextColor.RED));
       return;
     }
 
     wt.setTargetEntity(nearby);
     sender.sendMessage(
-      Component.text("[WIRETAP] Micro '", NamedTextColor.GREEN)
+      Component.text("[WIRETAP] Wiretap '", NamedTextColor.GREEN)
         .append(Component.text(wt.getName(), NamedTextColor.YELLOW))
-        .append(Component.text("' accroché à l'entité ", NamedTextColor.GREEN))
+        .append(Component.text("' attached to entity ", NamedTextColor.GREEN))
         .append(Component.text(nearby.getType().name() + " (" + nearby.getUniqueId().toString().substring(0, 8) + ")", NamedTextColor.AQUA))
-        .append(Component.text(" ! L'écoute suivra ses déplacements.", NamedTextColor.GREEN))
+        .append(Component.text("! Listening will now follow its movements.", NamedTextColor.GREEN))
     );
   }
 
@@ -174,20 +195,20 @@ public final class WiretapCmd {
 
     final var wt = wiretapService.getWiretap(name);
     if (wt == null) {
-      sender.sendMessage(Component.text("[WIRETAP] Point d'écoute introuvable: " + name, NamedTextColor.RED));
+      sender.sendMessage(Component.text("[WIRETAP] Listening point not found: " + name, NamedTextColor.RED));
       return;
     }
 
     if (!wt.isAttachedToEntity()) {
-      sender.sendMessage(Component.text("[WIRETAP] Ce micro n'est pas attaché à une entité.", NamedTextColor.GRAY));
+      sender.sendMessage(Component.text("[WIRETAP] This wiretap is not attached to any entity.", NamedTextColor.GRAY));
       return;
     }
 
     wiretapService.detachFromEntity(name);
     sender.sendMessage(
-      Component.text("[WIRETAP] Micro '", NamedTextColor.GREEN)
+      Component.text("[WIRETAP] Wiretap '", NamedTextColor.GREEN)
         .append(Component.text(wt.getName(), NamedTextColor.YELLOW))
-        .append(Component.text("' détaché de l'entité (position figée).", NamedTextColor.GREEN))
+        .append(Component.text("' detached from entity (position frozen).", NamedTextColor.GREEN))
     );
   }
 
@@ -208,7 +229,7 @@ public final class WiretapCmd {
 
     final var wt = wiretapService.getWiretap(name);
     if (wt == null) {
-      sender.sendMessage(Component.text("[WIRETAP] Point d'écoute introuvable: " + name, NamedTextColor.RED));
+      sender.sendMessage(Component.text("[WIRETAP] Listening point not found: " + name, NamedTextColor.RED));
       return;
     }
 
@@ -216,9 +237,9 @@ public final class WiretapCmd {
     sender.sendMessage(
       Component.text("[WIRETAP] ", NamedTextColor.GREEN)
         .append(Component.text(target.getName(), NamedTextColor.YELLOW))
-        .append(Component.text(" écoute désormais le micro '", NamedTextColor.GREEN))
+        .append(Component.text(" is now listening to wiretap '", NamedTextColor.GREEN))
         .append(Component.text(wt.getName(), NamedTextColor.AQUA))
-        .append(Component.text("' en direct !", NamedTextColor.GREEN))
+        .append(Component.text("' live!", NamedTextColor.GREEN))
     );
   }
 
@@ -239,7 +260,7 @@ public final class WiretapCmd {
 
     final var wt = wiretapService.getWiretap(name);
     if (wt == null) {
-      sender.sendMessage(Component.text("[WIRETAP] Point d'écoute introuvable: " + name, NamedTextColor.RED));
+      sender.sendMessage(Component.text("[WIRETAP] Listening point not found: " + name, NamedTextColor.RED));
       return;
     }
 
@@ -247,7 +268,7 @@ public final class WiretapCmd {
     sender.sendMessage(
       Component.text("[WIRETAP] ", NamedTextColor.GREEN)
         .append(Component.text(target.getName(), NamedTextColor.YELLOW))
-        .append(Component.text(" n'écoute plus le micro '", NamedTextColor.GREEN))
+        .append(Component.text(" stopped listening to wiretap '", NamedTextColor.GREEN))
         .append(Component.text(wt.getName(), NamedTextColor.AQUA))
         .append(Component.text("'.", NamedTextColor.GREEN))
     );
@@ -266,18 +287,18 @@ public final class WiretapCmd {
 
     final var wt = wiretapService.getWiretap(name);
     if (wt == null) {
-      sender.sendMessage(Component.text("[WIRETAP] Point d'écoute introuvable: " + name, NamedTextColor.RED));
+      sender.sendMessage(Component.text("[WIRETAP] Listening point not found: " + name, NamedTextColor.RED));
       return;
     }
 
     if (wt.isRecording()) {
-      sender.sendMessage(Component.text("[WIRETAP] Cet espion est déjà en train d'enregistrer !", NamedTextColor.RED));
+      sender.sendMessage(Component.text("[WIRETAP] This wiretap is already recording!", NamedTextColor.RED));
       return;
     }
 
     wiretapService.startRecording(name);
     sender.sendMessage(
-      Component.text("[WIRETAP] Enregistrement démarré sur '", NamedTextColor.GREEN)
+      Component.text("[WIRETAP] Recording started on '", NamedTextColor.GREEN)
         .append(Component.text(name, NamedTextColor.YELLOW))
         .append(Component.text("' 🔴", NamedTextColor.RED))
     );
@@ -297,73 +318,77 @@ public final class WiretapCmd {
 
     final var wt = wiretapService.getWiretap(name);
     if (wt == null) {
-      sender.sendMessage(Component.text("[WIRETAP] Point d'écoute introuvable: " + name, NamedTextColor.RED));
+      sender.sendMessage(Component.text("[WIRETAP] Listening point not found: " + name, NamedTextColor.RED));
       return;
     }
 
     if (!wt.isRecording()) {
-      sender.sendMessage(Component.text("[WIRETAP] Aucun enregistrement en cours sur ce micro.", NamedTextColor.GRAY));
+      sender.sendMessage(Component.text("[WIRETAP] No active recording on this wiretap.", NamedTextColor.GRAY));
       return;
     }
 
     final var rec = wiretapService.stopRecording(name);
     if (rec == null) {
-      sender.sendMessage(Component.text("[WIRETAP] Erreur lors de l'arrêt de l'enregistrement.", NamedTextColor.RED));
+      sender.sendMessage(Component.text("[WIRETAP] Error while stopping recording.", NamedTextColor.RED));
       return;
     }
 
     sender.sendMessage(
-      Component.text("[WIRETAP] Enregistrement arrêté sur '", NamedTextColor.GREEN)
+      Component.text("[WIRETAP] Recording stopped on '", NamedTextColor.GREEN)
         .append(Component.text(name, NamedTextColor.YELLOW))
-        .append(Component.text(String.format("' (Durée: %.1fs, ID: %s)", rec.getDurationSeconds(), rec.getUuid().toString().substring(0, 8)), NamedTextColor.AQUA))
+        .append(Component.text(String.format("' (Duration: %.1fs, ID: %s)", rec.getDurationSeconds(), rec.getUuid().toString().substring(0, 8)), NamedTextColor.AQUA))
     );
 
     if (giveCassette != null && giveCassette && sender instanceof Player player) {
       final var recService = DreamVoice.getService(VoiceRecordingService.class);
       if (recService == null) {
-        sender.sendMessage(Component.text("[WIRETAP] Service d'enregistrement indisponible.", NamedTextColor.RED));
+        sender.sendMessage(Component.text("[WIRETAP] Recording service unavailable.", NamedTextColor.RED));
         return;
       }
       final var item = recService.createCassette(rec);
       player.getInventory().addItem(item);
-      player.sendMessage(Component.text("[WIRETAP] Cassette audio ajoutée à votre inventaire !", NamedTextColor.GREEN));
+      player.sendMessage(Component.text("[WIRETAP] Voice cassette added to your inventory!", NamedTextColor.GREEN));
     }
   }
 
   @CommandDescription("Give a cassette of the latest wiretap recording")
-  @CommandMethod("wiretap cassette <name> <player>")
+  @CommandMethod("wiretap cassette <name> [player]")
   @CommandPermission("dreamvoice.wiretap.record")
   private void giveCassette(
     final @NotNull CommandSender sender,
     @Argument(value = "name", suggestions = "wiretaps") final @NotNull String name,
-    @Argument("player") final @NotNull Player player
+    @Argument("player") final @Nullable Player targetArg
   ) {
     final var wiretapService = requireWiretapService(sender);
     if (wiretapService == null)
       return;
 
+    final var player = resolvePlayer(sender, targetArg);
+    if (player == null)
+      return;
+
     final var wt = wiretapService.getWiretap(name);
     if (wt == null) {
-      sender.sendMessage(Component.text("[WIRETAP] Point d'écoute introuvable: " + name, NamedTextColor.RED));
+      sender.sendMessage(Component.text("[WIRETAP] Listening point not found: " + name, NamedTextColor.RED));
       return;
     }
 
     final var recordings = wt.getRecordings();
     if (recordings.isEmpty()) {
-      sender.sendMessage(Component.text("[WIRETAP] Aucun enregistrement disponible pour ce micro.", NamedTextColor.GRAY));
+      sender.sendMessage(Component.text("[WIRETAP] No recordings available for this wiretap.", NamedTextColor.GRAY));
       return;
     }
 
     final var latest = recordings.get(recordings.size() - 1);
     final var recService = DreamVoice.getService(VoiceRecordingService.class);
     if (recService == null) {
-      sender.sendMessage(Component.text("[WIRETAP] Service d'enregistrement indisponible.", NamedTextColor.RED));
+      sender.sendMessage(Component.text("[WIRETAP] Recording service unavailable.", NamedTextColor.RED));
       return;
     }
 
     final var item = recService.createCassette(latest);
     player.getInventory().addItem(item);
-    sender.sendMessage(Component.text("[WIRETAP] Cassette de l'espion '" + name + "' donnée à " + player.getName() + " !", NamedTextColor.GREEN));
+    sender.sendMessage(Component.text("[WIRETAP] Cassette of wiretap '" + name + "' given to " + player.getName() + "!", NamedTextColor.GREEN));
   }
 
   @CommandDescription("Show detailed info of a wiretap")
@@ -379,7 +404,7 @@ public final class WiretapCmd {
 
     final var wt = wiretapService.getWiretap(name);
     if (wt == null) {
-      sender.sendMessage(Component.text("[WIRETAP] Point d'écoute introuvable: " + name, NamedTextColor.RED));
+      sender.sendMessage(Component.text("[WIRETAP] Listening point not found: " + name, NamedTextColor.RED));
       return;
     }
 
@@ -388,12 +413,12 @@ public final class WiretapCmd {
 
     sender.sendMessage(Component.text("==== [WIRETAP: " + wt.getName().toUpperCase() + "] ====", NamedTextColor.GOLD));
     sender.sendMessage(Component.text("Position: ", NamedTextColor.GRAY).append(Component.text(String.format("%.1f, %.1f, %.1f (%s)", loc.getX(), loc.getY(), loc.getZ(), loc.getWorld() != null ? loc.getWorld().getName() : "?"), NamedTextColor.AQUA)));
-    sender.sendMessage(Component.text("Entité attachée: ", NamedTextColor.GRAY).append(Component.text(attached, NamedTextColor.LIGHT_PURPLE)));
-    sender.sendMessage(Component.text("Portée: ", NamedTextColor.GRAY).append(Component.text(wt.getDistance() + "m", NamedTextColor.YELLOW)));
-    sender.sendMessage(Component.text("Filtre: ", NamedTextColor.GRAY).append(Component.text(wt.getFilterId() != null ? wt.getFilterId() : "none", NamedTextColor.AQUA)));
-    sender.sendMessage(Component.text("Enregistrement en cours: ", NamedTextColor.GRAY).append(Component.text(wt.isRecording() ? "OUI 🔴" : "NON", wt.isRecording() ? NamedTextColor.RED : NamedTextColor.GREEN)));
-    sender.sendMessage(Component.text("Nombre d'enregistrements: ", NamedTextColor.GRAY).append(Component.text(wt.getRecordings().size(), NamedTextColor.YELLOW)));
-    sender.sendMessage(Component.text("Auditeurs connectés: ", NamedTextColor.GRAY).append(Component.text(wt.getListeners().size() + " joueur(s)", NamedTextColor.AQUA)));
+    sender.sendMessage(Component.text("Attached Entity: ", NamedTextColor.GRAY).append(Component.text(attached, NamedTextColor.LIGHT_PURPLE)));
+    sender.sendMessage(Component.text("Range: ", NamedTextColor.GRAY).append(Component.text(wt.getDistance() + "m", NamedTextColor.YELLOW)));
+    sender.sendMessage(Component.text("Filter: ", NamedTextColor.GRAY).append(Component.text(wt.getFilterId() != null ? wt.getFilterId() : "none", NamedTextColor.AQUA)));
+    sender.sendMessage(Component.text("Recording: ", NamedTextColor.GRAY).append(Component.text(wt.isRecording() ? "YES 🔴" : "NO", wt.isRecording() ? NamedTextColor.RED : NamedTextColor.GREEN)));
+    sender.sendMessage(Component.text("Recordings Count: ", NamedTextColor.GRAY).append(Component.text(wt.getRecordings().size(), NamedTextColor.YELLOW)));
+    sender.sendMessage(Component.text("Connected Listeners: ", NamedTextColor.GRAY).append(Component.text(wt.getListeners().size() + " player(s)", NamedTextColor.AQUA)));
   }
 
   @CommandDescription("List all active wiretaps")
@@ -406,23 +431,23 @@ public final class WiretapCmd {
 
     final var wiretaps = wiretapService.getWiretaps();
     if (wiretaps.isEmpty()) {
-      sender.sendMessage(Component.text("[WIRETAP] Aucun point d'écoute actif.", NamedTextColor.GRAY));
+      sender.sendMessage(Component.text("[WIRETAP] No active listening points.", NamedTextColor.GRAY));
       return;
     }
 
     sender.sendMessage(
-      Component.text("[WIRETAP] Points d'écoute actifs (", NamedTextColor.GRAY)
+      Component.text("[WIRETAP] Active listening points (", NamedTextColor.GRAY)
         .append(Component.text(wiretaps.size(), NamedTextColor.YELLOW))
         .append(Component.text("):", NamedTextColor.GRAY))
     );
 
     for (final var wt : wiretaps) {
       final var loc = wt.getLocation();
-      final var attached = wt.getTargetEntity() != null ? " [Attaché=" + wt.getTargetEntity().getType().name() + "]" : "";
+      final var attached = wt.getTargetEntity() != null ? " [Attached=" + wt.getTargetEntity().getType().name() + "]" : "";
       sender.sendMessage(
-        Component.text(" - Micro '", NamedTextColor.GRAY)
+        Component.text(" - Wiretap '", NamedTextColor.GRAY)
           .append(Component.text(wt.getName(), NamedTextColor.AQUA))
-          .append(Component.text(String.format("' @ (%.1f, %.1f, %.1f) [Portée=%.1fm, Auditeurs=%d, Rec=%s]%s", loc.getX(), loc.getY(), loc.getZ(), wt.getDistance(), wt.getListeners().size(), wt.isRecording() ? "REC" : "IDLE", attached), NamedTextColor.YELLOW))
+          .append(Component.text(String.format("' @ (%.1f, %.1f, %.1f) [Range=%.1fm, Listeners=%d, Rec=%s]%s", loc.getX(), loc.getY(), loc.getZ(), wt.getDistance(), wt.getListeners().size(), wt.isRecording() ? "REC" : "IDLE", attached), NamedTextColor.YELLOW))
       );
     }
   }
@@ -434,6 +459,30 @@ public final class WiretapCmd {
       return p;
     sender.sendMessage(Component.text("Specify a player!", NamedTextColor.RED));
     return null;
+  }
+
+  @CommandDescription("Save all wiretaps to disk")
+  @CommandMethod("wiretap save")
+  @CommandPermission("dreamvoice.wiretap.save")
+  private void saveWiretaps(final @NotNull CommandSender sender) {
+    final var wiretapService = requireWiretapService(sender);
+    if (wiretapService == null)
+      return;
+
+    wiretapService.save();
+    sender.sendMessage(Component.text("[WIRETAP] All listening points successfully saved to disk!", NamedTextColor.GREEN));
+  }
+
+  @CommandDescription("Reload all wiretaps from disk")
+  @CommandMethod("wiretap reload")
+  @CommandPermission("dreamvoice.wiretap.reload")
+  private void reloadWiretaps(final @NotNull CommandSender sender) {
+    final var wiretapService = requireWiretapService(sender);
+    if (wiretapService == null)
+      return;
+
+    wiretapService.load();
+    sender.sendMessage(Component.text("[WIRETAP] Listening points successfully reloaded from disk (" + wiretapService.getWiretaps().size() + " active)!", NamedTextColor.GREEN));
   }
 
 }

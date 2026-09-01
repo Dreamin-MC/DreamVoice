@@ -12,6 +12,7 @@ import fr.dreamin.dreamvoice.api.voice.event.MicrophonePacketEvent;
 import fr.dreamin.dreamvoice.api.voice.service.VoiceService;
 import fr.dreamin.dreamvoice.api.wall.service.VoiceWallService;
 import fr.dreamin.dreamvoice.core.DreamVoice;
+import fr.dreamin.dreamvoice.core.projection.storage.ProjectionsPersistence;
 import fr.dreamin.dreamvoice.core.utils.audio.AudioLimiter;
 import fr.dreamin.dreamvoice.core.utils.raycast.VoiceRayCast;
 import org.bukkit.Bukkit;
@@ -23,6 +24,8 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import java.io.File;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -137,6 +140,17 @@ public final class VoiceProjectionServiceImpl implements VoiceProjectionService,
     final var proj = this.projections.get(playerUuid);
     if (proj != null)
       proj.setAnchorLocation(newLocation);
+  }
+
+  @Override
+  public void save() {
+    ProjectionsPersistence.save(this, new File(this.plugin.getDataFolder(), "data"));
+  }
+
+  @Override
+  public void load() {
+    clearProjections();
+    ProjectionsPersistence.load(this, new File(this.plugin.getDataFolder(), "data"));
   }
 
   private @Nullable StaticAudioChannel getOrCreateChannel(final @NotNull String streamKey, final @NotNull VoicechatConnection conn) {

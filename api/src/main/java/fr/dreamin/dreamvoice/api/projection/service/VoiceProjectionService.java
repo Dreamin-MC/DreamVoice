@@ -62,4 +62,8 @@ public interface VoiceProjectionService {
 
   void updateLocation(final @NotNull UUID playerUuid, final @NotNull Location newLocation);
 
+  void save();
+
+  void load();
+
 }

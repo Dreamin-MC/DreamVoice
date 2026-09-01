@@ -57,4 +57,8 @@ public interface VoiceWiretapService {
 
   @Nullable VoiceRecording stopRecording(final @NotNull String name);
 
+  void save();
+
+  void load();
+
 }

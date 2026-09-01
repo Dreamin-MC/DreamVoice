@@ -27,7 +27,7 @@ public final class RecordingCmd {
 
   private @Nullable VoiceRecordingService requireRecordingService(final @NotNull CommandSender sender) {
     if (this.recordingService == null) {
-      sender.sendMessage(Component.text("[SVC] Service d'enregistrement indisponible.", NamedTextColor.RED));
+      sender.sendMessage(Component.text("[SVC] Voice recording service unavailable.", NamedTextColor.RED));
       return null;
     }
     return this.recordingService;
@@ -69,7 +69,6 @@ public final class RecordingCmd {
     final var rec = recordingService.startRecording(player.getUniqueId());
 
     sender.sendMessage(
-
       Component.text("Recording started: ", NamedTextColor.GREEN)
         .append(Component.text(rec.getUuid().toString().substring(0, 8), NamedTextColor.YELLOW))
     );
@@ -144,14 +143,14 @@ public final class RecordingCmd {
     final var recordings = recordingService.getVoiceRecordings();
 
     if (recordings.isEmpty()) {
-      sender.sendMessage(Component.text("No recordings found", NamedTextColor.GRAY));
+      sender.sendMessage(Component.text("No recordings found.", NamedTextColor.GRAY));
       return;
     }
 
     sender.sendMessage(
       Component.text("Recordings (", NamedTextColor.GRAY)
         .append(Component.text(recordings.size(), NamedTextColor.YELLOW))
-        .append(Component.text(")", NamedTextColor.GRAY))
+        .append(Component.text("):", NamedTextColor.GRAY))
     );
 
     for (final var rec : recordings) {
@@ -221,16 +220,20 @@ public final class RecordingCmd {
     }
   }
 
-  @CommandMethod("record cassette <player> <id>")
+  @CommandMethod("record cassette <id> [player]")
   @CommandPermission("dreamvoice.record.cassette")
   @CommandDescription("Give a physical cassette item of a recording to a player")
   private void giveCassette(
     final @NotNull CommandSender sender,
-    @Argument("player") final @NotNull Player target,
-    @Argument(value = "id", suggestions = "recordings") final @NotNull String id
+    @Argument(value = "id", suggestions = "recordings") final @NotNull String id,
+    @Argument("player") final @Nullable Player targetArg
   ) {
     final var recordingService = requireRecordingService(sender);
     if (recordingService == null)
+      return;
+
+    final var target = resolvePlayer(sender, targetArg);
+    if (target == null)
       return;
 
     try {
@@ -244,71 +247,79 @@ public final class RecordingCmd {
       target.getInventory().addItem(item);
 
       sender.sendMessage(
-        Component.text("Cassette vocale donnée à ", NamedTextColor.GREEN)
+        Component.text("Voice cassette given to ", NamedTextColor.GREEN)
           .append(Component.text(target.getName(), NamedTextColor.YELLOW))
-          .append(Component.text(" !", NamedTextColor.GREEN))
+          .append(Component.text("!", NamedTextColor.GREEN))
       );
     } catch (Exception e) {
-      sender.sendMessage(Component.text("Enregistrement introuvable: " + id, NamedTextColor.RED));
+      sender.sendMessage(Component.text("Recording not found: " + id, NamedTextColor.RED));
     }
   }
 
-  @CommandMethod("record cassette file <player> <fileName>")
+  @CommandMethod("record cassette file <fileName> [player]")
   @CommandPermission("dreamvoice.record.cassette")
   @CommandDescription("Create and give a cassette linked to a local audio file")
   private void giveCassetteFile(
     final @NotNull CommandSender sender,
-    @Argument("player") final @NotNull Player target,
-    @Argument("fileName") final @NotNull String fileName
+    @Argument("fileName") final @NotNull String fileName,
+    @Argument("player") final @Nullable Player targetArg
   ) {
     final var recordingService = requireRecordingService(sender);
     if (recordingService == null)
       return;
 
-    sender.sendMessage(Component.text("Conversion du fichier audio en cours...", NamedTextColor.GRAY));
+    final var target = resolvePlayer(sender, targetArg);
+    if (target == null)
+      return;
+
+    sender.sendMessage(Component.text("Converting audio file...", NamedTextColor.GRAY));
     recordingService.createRecordingFromFile(fileName)
       .thenAccept(rec -> Bukkit.getScheduler().runTask(DreamVoice.getInstance(), () -> {
         final var item = recordingService.createCassette(rec);
         target.getInventory().addItem(item);
         sender.sendMessage(
-          Component.text("Cassette du fichier '", NamedTextColor.GREEN)
+          Component.text("Cassette of audio file '", NamedTextColor.GREEN)
             .append(Component.text(fileName, NamedTextColor.YELLOW))
-            .append(Component.text("' donnée à ", NamedTextColor.GREEN))
+            .append(Component.text("' given to ", NamedTextColor.GREEN))
             .append(Component.text(target.getName(), NamedTextColor.AQUA))
-            .append(Component.text(" !", NamedTextColor.GREEN))
+            .append(Component.text("!", NamedTextColor.GREEN))
         );
       }))
       .exceptionally(ex -> {
-        sender.sendMessage(Component.text("Erreur lors du chargement du fichier: " + ex.getMessage(), NamedTextColor.RED));
+        sender.sendMessage(Component.text("Error loading audio file: " + ex.getMessage(), NamedTextColor.RED));
         return null;
       });
   }
 
-  @CommandMethod("record cassette url <player> <url>")
+  @CommandMethod("record cassette url <url> [player]")
   @CommandPermission("dreamvoice.record.cassette")
   @CommandDescription("Create and give a cassette linked to a web audio URL")
   private void giveCassetteUrl(
     final @NotNull CommandSender sender,
-    @Argument("player") final @NotNull Player target,
-    @Argument("url") final @NotNull String url
+    @Argument("url") final @NotNull String url,
+    @Argument("player") final @Nullable Player targetArg
   ) {
     final var recordingService = requireRecordingService(sender);
     if (recordingService == null)
       return;
 
-    sender.sendMessage(Component.text("Téléchargement et conversion de l'URL audio...", NamedTextColor.GRAY));
+    final var target = resolvePlayer(sender, targetArg);
+    if (target == null)
+      return;
+
+    sender.sendMessage(Component.text("Downloading and converting audio from URL...", NamedTextColor.GRAY));
     recordingService.createRecordingFromUrl(url, null)
       .thenAccept(rec -> Bukkit.getScheduler().runTask(DreamVoice.getInstance(), () -> {
         final var item = recordingService.createCassette(rec);
         target.getInventory().addItem(item);
         sender.sendMessage(
-          Component.text("Cassette de l'URL donnée à ", NamedTextColor.GREEN)
+          Component.text("Cassette of audio URL given to ", NamedTextColor.GREEN)
             .append(Component.text(target.getName(), NamedTextColor.AQUA))
-            .append(Component.text(" !", NamedTextColor.GREEN))
+            .append(Component.text("!", NamedTextColor.GREEN))
         );
       }))
       .exceptionally(ex -> {
-        sender.sendMessage(Component.text("Erreur lors du téléchargement de l'URL: " + ex.getMessage(), NamedTextColor.RED));
+        sender.sendMessage(Component.text("Error downloading URL: " + ex.getMessage(), NamedTextColor.RED));
         return null;
       });
   }
@@ -332,12 +343,12 @@ public final class RecordingCmd {
       final var uuid = parseRecordingId(id);
       final var sliced = recordingService.sliceRecording(uuid, startMs, durationMs);
       if (sliced == null) {
-        sender.sendMessage(Component.text("Enregistrement introuvable !", NamedTextColor.RED));
+        sender.sendMessage(Component.text("Recording not found!", NamedTextColor.RED));
         return;
       }
 
       sender.sendMessage(
-        Component.text("Segment extrait avec succès: ", NamedTextColor.GREEN)
+        Component.text("Segment sliced successfully: ", NamedTextColor.GREEN)
           .append(Component.text(sliced.getUuid().toString().substring(0, 8), NamedTextColor.YELLOW))
           .append(Component.text(" (" + String.format("%.1fs", sliced.getDurationSeconds()) + ")", NamedTextColor.AQUA))
       );
@@ -345,10 +356,10 @@ public final class RecordingCmd {
       if (give != null && give && sender instanceof Player player) {
         final var item = recordingService.createCassette(sliced);
         player.getInventory().addItem(item);
-        sender.sendMessage(Component.text("Cassette du segment ajoutée à votre inventaire !", NamedTextColor.GREEN));
+        sender.sendMessage(Component.text("Segment cassette added to your inventory!", NamedTextColor.GREEN));
       }
     } catch (Exception e) {
-      sender.sendMessage(Component.text("Erreur lors de l'extraction: " + e.getMessage(), NamedTextColor.RED));
+      sender.sendMessage(Component.text("Error while slicing recording: " + e.getMessage(), NamedTextColor.RED));
     }
   }
 
@@ -369,12 +380,12 @@ public final class RecordingCmd {
       final var uuid = parseRecordingId(id);
       final var sliced = recordingService.sliceLastRecording(uuid, durationMs);
       if (sliced == null) {
-        sender.sendMessage(Component.text("Enregistrement introuvable !", NamedTextColor.RED));
+        sender.sendMessage(Component.text("Recording not found!", NamedTextColor.RED));
         return;
       }
 
       sender.sendMessage(
-        Component.text("Derniers " + (durationMs / 1000.0) + "s extraits avec succès: ", NamedTextColor.GREEN)
+        Component.text("Last " + (durationMs / 1000.0) + "s extracted successfully: ", NamedTextColor.GREEN)
           .append(Component.text(sliced.getUuid().toString().substring(0, 8), NamedTextColor.YELLOW))
           .append(Component.text(" (" + String.format("%.1fs", sliced.getDurationSeconds()) + ")", NamedTextColor.AQUA))
       );
@@ -382,10 +393,10 @@ public final class RecordingCmd {
       if (give != null && give && sender instanceof Player player) {
         final var item = recordingService.createCassette(sliced);
         player.getInventory().addItem(item);
-        sender.sendMessage(Component.text("Cassette du segment ajoutée à votre inventaire !", NamedTextColor.GREEN));
+        sender.sendMessage(Component.text("Segment cassette added to your inventory!", NamedTextColor.GREEN));
       }
     } catch (Exception e) {
-      sender.sendMessage(Component.text("Erreur lors de l'extraction: " + e.getMessage(), NamedTextColor.RED));
+      sender.sendMessage(Component.text("Error while slicing recording: " + e.getMessage(), NamedTextColor.RED));
     }
   }
 
@@ -440,6 +451,15 @@ public final class RecordingCmd {
       return Component.text("[DONE] ", NamedTextColor.GREEN)
         .append(Component.text(String.format("%.1fs ", rec.getDurationSeconds()), NamedTextColor.AQUA));
     return Component.text("[WAIT] ", NamedTextColor.GRAY);
+  }
+
+  private @Nullable Player resolvePlayer(final @NotNull CommandSender sender, final @Nullable Player targetArg) {
+    if (targetArg != null)
+      return targetArg;
+    if (sender instanceof Player p)
+      return p;
+    sender.sendMessage(Component.text("Specify a player!", NamedTextColor.RED));
+    return null;
   }
 
 }

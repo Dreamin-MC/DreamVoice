@@ -8,6 +8,7 @@ import fr.dreamin.dreamvoice.api.radio.service.VoiceRadioService;
 import fr.dreamin.dreamvoice.api.voice.event.MicrophonePacketEvent;
 import fr.dreamin.dreamvoice.api.voice.service.VoiceService;
 import fr.dreamin.dreamvoice.core.DreamVoice;
+import fr.dreamin.dreamvoice.core.radio.storage.RadiosPersistence;
 import fr.dreamin.dreamvoice.core.utils.RawUtils;
 import fr.dreamin.dreamvoice.core.utils.audio.AudioLimiter;
 import org.bukkit.Bukkit;
@@ -16,6 +17,8 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import java.io.File;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -111,6 +114,18 @@ public final class VoiceRadioServiceImpl implements VoiceRadioService, Listener 
     final var ch = this.channels.remove(name.toLowerCase());
     if (ch != null)
       ch.getMembers().forEach(this.playerChannels::remove);
+  }
+
+  @Override
+  public void save() {
+    RadiosPersistence.save(this, new File(this.plugin.getDataFolder(), "data"));
+  }
+
+  @Override
+  public void load() {
+    this.channels.clear();
+    this.playerChannels.clear();
+    RadiosPersistence.load(this, new File(this.plugin.getDataFolder(), "data"));
   }
 
   private void checkRogerBeeps() {
