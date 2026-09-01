@@ -56,7 +56,7 @@ jobs:
         with:
           modrinth-id: ${{ secrets.MODRINTH_PROJECT_ID || vars.MODRINTH_PROJECT_ID || 'dreamvoice' }}
           modrinth-token: ${{ secrets.MODRINTH_TOKEN }}
-          files-primary: core/build/libs/DreamVoice.jar
+          files: core/build/libs/DreamVoice.jar
           name: DreamVoice ${{ env.VERSION }}
           version: ${{ env.VERSION }}
           version-type: release
