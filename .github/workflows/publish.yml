@@ -27,7 +27,7 @@ jobs:
           distribution: 'temurin'
           cache: 'gradle'
 
-      - name: Extract clean version from tag
+      - name: Extract versions from tag and build.gradle
         id: extract_version
         run: |
           TAG="${{ github.ref_name }}"
@@ -35,7 +35,17 @@ jobs:
           CLEAN_VERSION="${TAG#v}"
           echo "VERSION=${CLEAN_VERSION}" >> $GITHUB_ENV
           echo "TAG=${TAG}" >> $GITHUB_ENV
-          echo "Detected Tag: ${TAG} -> Target Version: ${CLEAN_VERSION}"
+          
+          # Extract mcVersion and voiceChatVersion directly from build.gradle
+          MC_VER=$(sed -nE 's/.*def mcVersion\s*=\s*"([^"]+)".*/\1/p' build.gradle)
+          VC_VER=$(sed -nE 's/.*def voiceChatVersion\s*=\s*"([^"]+)".*/\1/p' build.gradle)
+          
+          echo "MC_VERSION=${MC_VER}" >> $GITHUB_ENV
+          echo "VOICECHAT_VERSION=${VC_VER}" >> $GITHUB_ENV
+          
+          echo "Detected Tag Version : ${CLEAN_VERSION}"
+          echo "Extracted Minecraft MC : ${MC_VER}"
+          echo "Extracted VoiceChat VC : ${VC_VER}"
 
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
@@ -65,9 +75,35 @@ jobs:
             paper
             purpur
           game-versions: |
-            26.1.2
+            ${{ env.MC_VERSION }}
           dependencies: |
-            voicechat(required)
+            simple-voice-chat@bukkit-${{ env.VOICECHAT_VERSION }}(required)
+
+      - name: Update Modrinth Project Description
+        env:
+          MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
+          PROJECT_ID: ${{ secrets.MODRINTH_PROJECT_ID || vars.MODRINTH_PROJECT_ID || 'dreamvoice' }}
+        run: |
+          if [ -n "${MODRINTH_TOKEN}" ]; then
+            echo "Fetching current project description from Modrinth API..."
+            CURRENT_BODY=$(curl -s -H "Authorization: ${MODRINTH_TOKEN}" "https://api.modrinth.com/v2/project/${PROJECT_ID}" | jq -r '.body // empty')
+            
+            if [ -n "$CURRENT_BODY" ]; then
+              # Replace the dependency version in the Modrinth body
+              UPDATED_BODY=$(printf '%s\n' "$CURRENT_BODY" | sed -E "s/(compileOnly ['\"]fr\.dreamin:dreamvoice-api:)[^'\"]+(['\"])/\1${{ env.VERSION }}\2/")
+              
+              # Send PATCH to update Modrinth project body
+              PAYLOAD=$(jq -n --arg b "$UPDATED_BODY" '{body: $b}')
+              RESPONSE_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X PATCH "https://api.modrinth.com/v2/project/${PROJECT_ID}" \
+                -H "Authorization: ${MODRINTH_TOKEN}" \
+                -H "Content-Type: application/json" \
+                -d "$PAYLOAD")
+              
+              echo "Modrinth project description update status: ${RESPONSE_CODE}"
+            else
+              echo "Could not fetch current Modrinth project body (or project not found yet)."
+            fi
+          fi
 
       - name: Update README.md and push to main
         run: |
