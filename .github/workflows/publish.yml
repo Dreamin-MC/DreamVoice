@@ -27,11 +27,11 @@ jobs:
           distribution: 'temurin'
           cache: 'gradle'
 
-      - name: Extract versions from tag and build.gradle
+      - name: Extract versions and changelog
         id: extract_version
         run: |
           TAG="${{ github.ref_name }}"
-          # Remove leading 'v' if present (e.g., v1.0.3 -> 1.0.3, 1.0.3 -> 1.0.3)
+          # Remove leading 'v' if present (e.g., v1.0.0 -> 1.0.0, 1.0.0 -> 1.0.0)
           CLEAN_VERSION="${TAG#v}"
           echo "VERSION=${CLEAN_VERSION}" >> $GITHUB_ENV
           echo "TAG=${TAG}" >> $GITHUB_ENV
@@ -43,6 +43,18 @@ jobs:
           echo "MC_VERSION=${MC_VER}" >> $GITHUB_ENV
           echo "VOICECHAT_VERSION=${VC_VER}" >> $GITHUB_ENV
           
+          # Check for changelog file in changelog/ directory
+          if [ -f "changelog/${CLEAN_VERSION}.md" ]; then
+            echo "Found changelog file: changelog/${CLEAN_VERSION}.md"
+            echo "CHANGELOG_FILE=changelog/${CLEAN_VERSION}.md" >> $GITHUB_ENV
+          elif [ -f "changelog/${TAG}.md" ]; then
+            echo "Found changelog file: changelog/${TAG}.md"
+            echo "CHANGELOG_FILE=changelog/${TAG}.md" >> $GITHUB_ENV
+          else
+            echo "No specific changelog file found for version ${CLEAN_VERSION}"
+            echo "CHANGELOG_FILE=" >> $GITHUB_ENV
+          fi
+
           echo "Detected Tag Version : ${CLEAN_VERSION}"
           echo "Extracted Minecraft MC : ${MC_VER}"
           echo "Extracted VoiceChat VC : ${VC_VER}"
@@ -70,6 +82,7 @@ jobs:
           name: DreamVoice ${{ env.VERSION }}
           version: ${{ env.VERSION }}
           version-type: release
+          changelog-file: ${{ env.CHANGELOG_FILE }}
           loaders: |
             spigot
             paper
