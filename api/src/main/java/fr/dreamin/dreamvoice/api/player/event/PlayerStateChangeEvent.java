@@ -8,12 +8,15 @@ import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import org.jetbrains.annotations.NotNull;
 
-@Getter @Setter
+/**
+ * Event fired when a player's {@link PlayerState} is changed. Cancellable.
+ */
+@Getter
+@Setter
 @RequiredArgsConstructor
 public final class PlayerStateChangeEvent extends ToolsCancelEvent {
 
   private final @NotNull VPlayer vPlayer;
-
   private final @NotNull PlayerState oldState;
   private @NotNull PlayerState newState;
 

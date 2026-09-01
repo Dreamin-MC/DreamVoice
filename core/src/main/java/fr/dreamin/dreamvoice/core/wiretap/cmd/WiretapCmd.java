@@ -379,7 +379,7 @@ public final class WiretapCmd {
       return;
     }
 
-    final var latest = recordings.get(recordings.size() - 1);
+    final var latest = recordings.getLast();
     final var recService = DreamVoice.getService(VoiceRecordingService.class);
     if (recService == null) {
       sender.sendMessage(Component.text("[WIRETAP] Recording service unavailable.", NamedTextColor.RED));

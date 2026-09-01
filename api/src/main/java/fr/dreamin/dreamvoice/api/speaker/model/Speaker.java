@@ -21,6 +21,10 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Predicate;
 
+/**
+ * Model representing a 3D locational speaker in the Minecraft world.
+ * Supports dual channels (speech + music), static or mobile entity attachment, and access controls.
+ */
 @Getter
 public final class Speaker {
 
@@ -37,18 +41,15 @@ public final class Speaker {
   @Setter
   private @Nullable AudioPlayer activeAudioPlayer = null;
 
-  // Optionnels (nullables)
   private @Nullable Float distance;
   private @Nullable Predicate<ServerPlayer> filter;
 
-  // Runtime (non-builder)
   private final @NotNull ServerLevel serverLevel;
   private @NotNull Position position;
   private final @NotNull LocationalAudioChannel speakerChannel;
   private final @Nullable LocationalAudioChannel voiceChannel;
   @Setter
   private @Nullable Entity targetEntity = null;
-
 
   // ###############################################################
   // --------------------- CONSTRUCTOR METHODS ---------------------
@@ -114,33 +115,59 @@ public final class Speaker {
     speakerService.register(this);
   }
 
-
   // ###############################################################
   // ----------------------- PUBLIC METHODS ------------------------
   // ###############################################################
 
+  /**
+   * Checks whether a player is authorized to broadcast their voice through this speaker.
+   *
+   * @param speakerUuid the player UUID
+   * @return {@code true} if allowed
+   */
   public boolean isSpeakerAllowed(final @NotNull UUID speakerUuid) {
     if (this.mode == SpeakerMode.GLOBAL)
       return true;
     return this.allowedSpeakers.contains(speakerUuid);
   }
 
+  /**
+   * Authorizes a player to broadcast their voice in RESTRICTED mode.
+   *
+   * @param playerUuid the player UUID
+   */
   public void linkSpeaker(final @NotNull UUID playerUuid) {
     this.allowedSpeakers.add(playerUuid);
   }
 
+  /**
+   * Revokes broadcasting permission from a player.
+   *
+   * @param playerUuid the player UUID
+   */
   public void unlinkSpeaker(final @NotNull UUID playerUuid) {
     this.allowedSpeakers.remove(playerUuid);
   }
 
+  /**
+   * Clears all authorized speakers.
+   */
   public void clearAllowedSpeakers() {
     this.allowedSpeakers.clear();
   }
 
+  /**
+   * Returns an unmodifiable view of authorized speaker UUIDs.
+   *
+   * @return set of authorized player UUIDs
+   */
   public @NotNull Set<UUID> getAllowedSpeakers() {
     return Collections.unmodifiableSet(this.allowedSpeakers);
   }
 
+  /**
+   * Stops any currently active audio playback on this speaker.
+   */
   public void stopPlaying() {
     if (this.activeAudioPlayer != null) {
       this.activeAudioPlayer.stopPlaying();
@@ -148,10 +175,20 @@ public final class Speaker {
     }
   }
 
+  /**
+   * Checks whether audio is currently playing through this speaker.
+   *
+   * @return {@code true} if active playback in progress
+   */
   public boolean isPlaying() {
     return this.activeAudioPlayer != null && this.activeAudioPlayer.isPlaying();
   }
 
+  /**
+   * Resolves the current location of the speaker, updating coordinates if attached to an entity.
+   *
+   * @return current {@link Location}
+   */
   public @NotNull Location getLocation() {
     if (this.targetEntity != null && this.targetEntity.isValid()) {
       final var loc = this.targetEntity.getLocation();
@@ -162,6 +199,11 @@ public final class Speaker {
     return this.location;
   }
 
+  /**
+   * Updates the speaker position in world space and notifies SVC audio channels.
+   *
+   * @param location the new location
+   */
   public void updatePosition(final @NotNull Location location) {
     this.location = location;
     this.position = speakerService().getAPI()
@@ -171,6 +213,11 @@ public final class Speaker {
       this.voiceChannel.updateLocation(this.position);
   }
 
+  /**
+   * Updates the audio falloff distance of the speaker.
+   *
+   * @param distance new distance in blocks
+   */
   public void updateDistance(final @NotNull Float distance) {
     this.distance = distance;
     this.speakerChannel.setDistance(distance);
@@ -178,13 +225,17 @@ public final class Speaker {
       this.voiceChannel.setDistance(distance);
   }
 
+  /**
+   * Updates the listener filter predicate of the speaker.
+   *
+   * @param filter listener predicate
+   */
   public void updateFilter(final @Nullable Predicate<ServerPlayer> filter) {
     this.filter = filter;
     this.speakerChannel.setFilter(filter);
     if (this.voiceChannel != null)
       this.voiceChannel.setFilter(filter);
   }
-
 
   // ###############################################################
   // -------------------------- BUILDER ----------------------------
@@ -194,6 +245,9 @@ public final class Speaker {
     return new Builder();
   }
 
+  /**
+   * Builder class for {@link Speaker}.
+   */
   public static class Builder {
     private UUID uuid;
     private String name;

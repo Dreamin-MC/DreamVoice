@@ -18,6 +18,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
+import java.util.stream.Stream;
 
 public final class VoiceWallCmd {
 
@@ -34,7 +35,7 @@ public final class VoiceWallCmd {
 
   @Suggestions("wall_modes")
   public List<String> suggModes(final @NotNull CommandContext<CommandSender> ctx, final @NotNull String in) {
-    return List.of("strict", "realistic", "off").stream()
+    return Stream.of("strict", "realistic", "off")
       .filter(s -> s.startsWith(in.toLowerCase()))
       .toList();
   }

@@ -17,10 +17,21 @@ import org.jetbrains.annotations.NotNull;
 import java.io.File;
 import java.util.UUID;
 
+/**
+ * Implementation of {@link VoicePersistenceService} coordinating modular JSON persistence across disk.
+ */
 public final class VoicePersistenceServiceImpl implements VoicePersistenceService {
+
+  // ###############################################################
+  // --------------------- INSTANCE FIELDS -------------------------
+  // ###############################################################
 
   private final @NotNull DreamVoice plugin;
   private final @NotNull File dataDir;
+
+  // ###############################################################
+  // --------------------- CONSTRUCTOR METHODS ---------------------
+  // ###############################################################
 
   public VoicePersistenceServiceImpl(final @NotNull DreamVoice plugin) {
     this.plugin = plugin;
@@ -28,6 +39,10 @@ public final class VoicePersistenceServiceImpl implements VoicePersistenceServic
     if (!this.dataDir.exists())
       this.dataDir.mkdirs();
   }
+
+  // ###############################################################
+  // ------------------- PUBLIC SERVICE METHODS --------------------
+  // ###############################################################
 
   @Override
   public void saveAll() {
@@ -67,7 +82,7 @@ public final class VoicePersistenceServiceImpl implements VoicePersistenceServic
     final var service = DreamVoice.getService(VoiceSpeakerService.class);
     if (service != null) {
       service.unregisterAll();
-      SpeakersPersistence.load(service, this.dataDir);
+      SpeakersPersistence.load(this.dataDir);
     }
   }
 

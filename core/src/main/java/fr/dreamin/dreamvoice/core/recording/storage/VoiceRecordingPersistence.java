@@ -2,6 +2,7 @@ package fr.dreamin.dreamvoice.core.recording.storage;
 
 import fr.dreamin.dreamvoice.api.recording.model.TimedAudioFrame;
 import fr.dreamin.dreamvoice.api.recording.model.VoiceRecording;
+import fr.dreamin.dreamvoice.core.DreamVoice;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -50,7 +51,7 @@ public final class VoiceRecordingPersistence {
       }
 
     } catch (Exception e) {
-      e.printStackTrace();
+      DreamVoice.getInstance().getLogger().severe("[DreamVoice] Error saving record: " + e.getMessage());
     }
   }
 

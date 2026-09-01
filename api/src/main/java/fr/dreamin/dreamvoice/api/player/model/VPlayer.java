@@ -19,7 +19,12 @@ import java.util.function.Consumer;
 
 import static fr.dreamin.dreamvoice.api.player.model.PlayerState.ALIVE;
 
-@Getter @Setter
+/**
+ * Wrapper object representing an active player connected to Simple Voice Chat.
+ * Manages player state, attached managers, and mute toggles.
+ */
+@Getter
+@Setter
 public final class VPlayer {
 
   private final @NotNull UUID uuid;
@@ -44,6 +49,11 @@ public final class VPlayer {
   // ----------------------- PUBLIC METHODS ------------------------
   // ###############################################################
 
+  /**
+   * Updates the voice state of the player, firing a {@link PlayerStateChangeEvent}.
+   *
+   * @param state the new player state
+   */
   public void setState(final @NotNull PlayerState state) {
     final var event = new PlayerStateChangeEvent(this, this.state, state);
     event.callEvent();
@@ -53,9 +63,9 @@ public final class VPlayer {
   }
 
   /**
-   * Consumes the Player object if it is online.
+   * Safely executes an action on the online Bukkit Player object.
    *
-   * @param consumer the consumer to accept the Player object
+   * @param consumer the action to execute
    */
   public void consumePlayer(final @NotNull Consumer<Player> consumer) {
     final var player = getBukkitPlayer();
@@ -64,36 +74,47 @@ public final class VPlayer {
   }
 
   /**
-   * Retrieves the Bukkit Player object associated with this GamePlayer instance. If the player is
-   * currently online, it directly returns the Player object. If the player has a DisconnectManager
-   * and it has a valid NPC entity that is a Player, the NPC Player is returned. Otherwise, null
-   * is returned.
+   * Retrieves the Bukkit Player object associated with this wrapper.
    *
-   * @return the Player object if online, an NPC Player if applicable, or null if no valid
-   *         Player is available.
+   * @return the online {@link Player}, or {@code null} if offline
    */
   public @Nullable Player getBukkitPlayer() {
     return Bukkit.getPlayer(this.uuid);
   }
 
   /**
-   * Determines if the player associated with this GamePlayer instance is currently online.
+   * Checks whether the underlying Bukkit player is currently online.
    *
-   * @return true if the player is online, false otherwise.
+   * @return {@code true} if the player is online
    */
   public boolean isOnline() {
-    return getBukkitPlayer() != null && getBukkitPlayer().isOnline();
+    final var p = getBukkitPlayer();
+    return p != null && p.isOnline();
   }
 
   // ###############################################################
   // ----------------------- MANAGER METHODS -----------------------
   // ###############################################################
 
+  /**
+   * Retrieves a manager of the specified class attached to this player.
+   *
+   * @param managerClass the manager class
+   * @param <T>          the manager type
+   * @return the manager instance, or {@code null} if not present
+   */
   @SuppressWarnings("unchecked")
-  public @Nullable <T extends PlayerManager> T getManager(Class<T> managerClass) {
+  public @Nullable <T extends PlayerManager> T getManager(final @NotNull Class<T> managerClass) {
     return (T) this.managers.get(managerClass);
   }
 
+  /**
+   * Safely consumes a manager if present.
+   *
+   * @param managerClass the manager class
+   * @param consumer     the action to perform
+   * @param <T>          the manager type
+   */
   public <T extends PlayerManager> void consumeManager(
     final @NotNull Class<T> managerClass,
     final @NotNull Consumer<T> consumer
@@ -103,32 +124,57 @@ public final class VPlayer {
       consumer.accept(manager);
   }
 
-  public <T extends PlayerManager> void addManager(final @NotNull PlayerManager manager) {
+  /**
+   * Attaches and initializes a manager instance.
+   *
+   * @param manager the manager instance
+   */
+  public void addManager(final @NotNull PlayerManager manager) {
     manager.init();
-
     this.managers.put(manager.getClass(), manager);
   }
 
-  public boolean hasManager(Class<? extends PlayerManager> managerClass) {
+  /**
+   * Checks whether this player has a manager of the given class attached.
+   *
+   * @param managerClass the manager class
+   * @return {@code true} if present
+   */
+  public boolean hasManager(final @NotNull Class<? extends PlayerManager> managerClass) {
     return this.managers.containsKey(managerClass);
   }
 
-  public void removeManager(Class<? extends PlayerManager> managerClass) {
+  /**
+   * Removes and closes a manager from this player.
+   *
+   * @param managerClass the manager class to remove
+   */
+  public void removeManager(final @NotNull Class<? extends PlayerManager> managerClass) {
     if (!hasManager(managerClass))
       return;
     final var manager = this.managers.remove(managerClass);
+    if (manager == null)
+      return;
 
     manager.close();
 
-    if (Listener.class.isAssignableFrom(managerClass))
-      HandlerList.unregisterAll((Listener) manager);
+    if (manager instanceof Listener listener)
+      HandlerList.unregisterAll(listener);
   }
 
+  /**
+   * Cleans up and removes all managers attached to this player.
+   */
   public void removeAllManager() {
     final var copy = new HashMap<>(this.managers);
     copy.keySet().forEach(this::removeManager);
   }
 
+  /**
+   * Removes all managers attached to this player except specified classes.
+   *
+   * @param excludeClass classes to retain
+   */
   @SafeVarargs
   public final void removeAllManager(final @NotNull Class<? extends PlayerManager>... excludeClass) {
     final var excludeSet = Set.of(excludeClass);
@@ -141,4 +187,3 @@ public final class VPlayer {
   }
 
 }
-

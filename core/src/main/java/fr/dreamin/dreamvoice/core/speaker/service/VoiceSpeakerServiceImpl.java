@@ -16,6 +16,7 @@ import fr.dreamin.dreamvoice.core.utils.RawUtils;
 import fr.dreamin.dreamvoice.core.utils.audio.AudioLimiter;
 import fr.dreamin.dreamvoice.core.utils.raycast.VoiceRayCast;
 import org.bukkit.Bukkit;
+import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerQuitEvent;
@@ -23,14 +24,29 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * Implementation of {@link VoiceSpeakerService} managing 3D locational speakers,
+ * dual-channel audio streams, real-time microphone broadcast, and JSON persistence.
+ */
 public final class VoiceSpeakerServiceImpl implements VoiceSpeakerService, Listener {
+
+  // ###############################################################
+  // ----------------------- STATIC FIELDS -------------------------
+  // ###############################################################
+
+  private static final long CLEANUP_INTERVAL_TICKS = 600L;
+  private static final long INACTIVITY_TIMEOUT_MS = 30000L;
+  private static final String CATEGORY_ID = "speaker_volume";
+  private static final String CATEGORY_NAME = "Speaker";
+  private static final String CATEGORY_DESC = "Speaker Volume";
+
+  // ###############################################################
+  // --------------------- INSTANCE FIELDS -------------------------
+  // ###############################################################
 
   private final @NotNull DreamVoice plugin;
   private @NotNull VoicechatServerApi api;
@@ -39,6 +55,8 @@ public final class VoiceSpeakerServiceImpl implements VoiceSpeakerService, Liste
   private boolean voiceServiceMissingLogged = false;
 
   private final @NotNull Map<UUID, Speaker> speakers = new ConcurrentHashMap<>();
+  private final @NotNull Map<String, StaticAudioChannel> listenerChannels = new ConcurrentHashMap<>();
+  private final @NotNull Map<String, Long> lastChannelActivity = new ConcurrentHashMap<>();
 
   // ###############################################################
   // --------------------- CONSTRUCTOR METHODS ---------------------
@@ -48,24 +66,12 @@ public final class VoiceSpeakerServiceImpl implements VoiceSpeakerService, Liste
     this.plugin = plugin;
 
     Bukkit.getPluginManager().registerEvents(this, plugin);
-    Bukkit.getScheduler().runTaskTimer(plugin, this::cleanupIdleChannels, 600L, 600L);
+    Bukkit.getScheduler().runTaskTimer(plugin, this::cleanupIdleChannels, CLEANUP_INTERVAL_TICKS, CLEANUP_INTERVAL_TICKS);
   }
 
-  private void cleanupIdleChannels() {
-    final var now = System.currentTimeMillis();
-    this.lastChannelActivity.entrySet().removeIf(entry -> {
-      if (now - entry.getValue() > 30000L) {
-        this.listenerChannels.remove(entry.getKey());
-        return true;
-      }
-      return false;
-    });
-  }
-
-
-  // ##############################################################
-  // ---------------------- SERVICE METHODS -----------------------
-  // ##############################################################
+  // ###############################################################
+  // ------------------- PUBLIC SERVICE METHODS --------------------
+  // ###############################################################
 
   @Override
   public VoicechatServerApi getAPI() {
@@ -77,9 +83,9 @@ public final class VoiceSpeakerServiceImpl implements VoiceSpeakerService, Liste
     this.api = api;
 
     this.volumeCategory = this.api.volumeCategoryBuilder()
-      .setId("speaker_volume")
-      .setName("Speaker")
-      .setDescription("Speaker Volume")
+      .setId(CATEGORY_ID)
+      .setName(CATEGORY_NAME)
+      .setDescription(CATEGORY_DESC)
       .build();
 
     this.api.registerVolumeCategory(this.volumeCategory);
@@ -185,12 +191,12 @@ public final class VoiceSpeakerServiceImpl implements VoiceSpeakerService, Liste
   }
 
   @Override
-  public void playSound(final @NotNull Speaker speaker, final @NotNull short[] pcm) {
+  public void playSound(final @NotNull Speaker speaker, final short @NotNull [] pcm) {
     playSound(speaker, pcm, false);
   }
 
   @Override
-  public void playSound(final @NotNull Speaker speaker, final @NotNull short[] pcm, final boolean loop) {
+  public void playSound(final @NotNull Speaker speaker, final short @NotNull [] pcm, final boolean loop) {
     speaker.stopPlaying();
 
     try {
@@ -262,7 +268,7 @@ public final class VoiceSpeakerServiceImpl implements VoiceSpeakerService, Liste
   @Override
   public void load() {
     unregisterAll();
-    SpeakersPersistence.load(this, new File(this.plugin.getDataFolder(), "data"));
+    SpeakersPersistence.load(new File(this.plugin.getDataFolder(), "data"));
   }
 
   @Override
@@ -270,12 +276,99 @@ public final class VoiceSpeakerServiceImpl implements VoiceSpeakerService, Liste
     save();
   }
 
+  // ###############################################################
+  // ------------------- PRIVATE HELPER METHODS --------------------
+  // ###############################################################
 
-  private final Map<String, StaticAudioChannel> listenerChannels = new ConcurrentHashMap<>();
-  private final Map<String, Long> lastChannelActivity = new ConcurrentHashMap<>();
+  private void cleanupIdleChannels() {
+    final var now = System.currentTimeMillis();
+    this.lastChannelActivity.entrySet().removeIf(entry -> {
+      if (now - entry.getValue() > INACTIVITY_TIMEOUT_MS) {
+        this.listenerChannels.remove(entry.getKey());
+        return true;
+      }
+      return false;
+    });
+  }
+
+  private void broadcastToDedicatedChannels(final @NotNull List<Speaker> speakers, final @NotNull MicrophonePacketEvent event) {
+    speakers.forEach(speaker -> {
+      final var vc = speaker.getVoiceChannel();
+      Objects.requireNonNullElseGet(vc, speaker::getSpeakerChannel).send(event.getPacket());
+    });
+  }
+
+  private void processSingleListenerStream(
+    final @NotNull Speaker speaker,
+    final @NotNull UUID senderUuid,
+    final @NotNull Player listener,
+    final @NotNull short[] pcm,
+    final @Nullable VoiceWallService wallService,
+    final @Nullable VoiceFilterService filterService,
+    final boolean hasFilters,
+    final boolean isWallEnabled,
+    final float maxDist,
+    final double dist,
+    final @NotNull de.maxhenkel.voicechat.api.opus.OpusEncoder encoder,
+    final long now
+  ) {
+    final var listenerConn = this.api.getConnectionOf(listener.getUniqueId());
+    if (listenerConn == null)
+      return;
+
+    var totalDbLoss = 0.0;
+    if (isWallEnabled) {
+      final var ray = VoiceRayCast.check(speaker.getLocation(), listener);
+      if (ray.isBlocked())
+        totalDbLoss = ray.totalAttenuation();
+    }
+
+    if (totalDbLoss >= 99.0)
+      return;
+
+    final var distRatio = Math.min(1.0, dist / maxDist);
+    final var distGain = (float) Math.max(0.05, 1.0 - (distRatio * 0.85));
+    final var wallGain = (float) Math.pow(10.0, -totalDbLoss / 20.0);
+    final var totalGain = wallGain * distGain;
+
+    var processedPcm = pcm.clone();
+    if (hasFilters && filterService != null)
+      processedPcm = filterService.applyFilters(senderUuid, processedPcm);
+
+    for (int i = 0; i < processedPcm.length; i++)
+      processedPcm[i] = (short) Math.clamp(Math.round(processedPcm[i] * totalGain), Short.MIN_VALUE, Short.MAX_VALUE);
+
+    if (wallService != null && wallService.isAirDampingEnabled() && dist > 5.0) {
+      final var alpha = Math.max(0.10f, 1.0f - (float) (dist - 5.0) * 0.038f);
+      var smooth = (float) processedPcm[0];
+      for (int i = 0; i < processedPcm.length; i++) {
+        smooth = smooth + alpha * (processedPcm[i] - smooth);
+        processedPcm[i] = (short) Math.clamp(Math.round(smooth), Short.MIN_VALUE, Short.MAX_VALUE);
+      }
+    }
+
+    processedPcm = AudioLimiter.process(processedPcm);
+
+    final var listenerOpus = encoder.encode(processedPcm);
+    final var streamKey = speaker.getUuid() + ":" + senderUuid + ":" + listener.getUniqueId();
+    final var ch = this.listenerChannels.computeIfAbsent(streamKey, _ -> {
+      final var sc = this.api.createStaticAudioChannel(UUID.randomUUID());
+      if (sc != null) {
+        sc.addTarget(listenerConn);
+        if (this.volumeCategory != null)
+          sc.setCategory(this.volumeCategory.getId());
+      }
+      return sc;
+    });
+
+    if (ch != null) {
+      ch.send(listenerOpus);
+      this.lastChannelActivity.put(streamKey, now);
+    }
+  }
 
   // ###############################################################
-  // ---------------------- LISTENER METHODS -----------------------
+  // ---------------------- EVENT LISTENERS ------------------------
   // ###############################################################
 
   @EventHandler
@@ -298,15 +391,8 @@ public final class VoiceSpeakerServiceImpl implements VoiceSpeakerService, Liste
     final var hasFilters = filterService != null && filterService.hasActiveFilters(senderUuid);
     final var isWallEnabled = wallService != null && wallService.isEnable();
 
-    // If VoiceWall is disabled and no filters, use dedicated hardware voice channel (doesn't conflict with audio playback)
     if (!isWallEnabled && !hasFilters) {
-      matchingSpeakers.forEach(speaker -> {
-        final var vc = speaker.getVoiceChannel();
-        if (vc != null)
-          vc.send(event.getPacket());
-        else
-          speaker.getSpeakerChannel().send(event.getPacket());
-      });
+      broadcastToDedicatedChannels(matchingSpeakers, event);
       return;
     }
 
@@ -343,60 +429,7 @@ public final class VoiceSpeakerServiceImpl implements VoiceSpeakerService, Liste
           if (dist > maxDist)
             continue;
 
-          final var listenerConn = this.api.getConnectionOf(listener.getUniqueId());
-          if (listenerConn == null)
-            continue;
-
-          var totalDbLoss = 0.0;
-          if (isWallEnabled) {
-            final var ray = VoiceRayCast.check(spkLoc, listener);
-            if (ray.isBlocked())
-              totalDbLoss = ray.totalAttenuation();
-          }
-
-          if (totalDbLoss >= 99.0)
-            continue;
-
-          final var distRatio = Math.min(1.0, dist / maxDist);
-          final var distGain = (float) Math.max(0.05, 1.0 - (distRatio * 0.85));
-          final var wallGain = (float) Math.pow(10.0, -totalDbLoss / 20.0);
-          final var totalGain = wallGain * distGain;
-
-          var processedPcm = pcm.clone();
-          if (hasFilters && filterService != null)
-            processedPcm = filterService.applyFilters(senderUuid, processedPcm);
-
-          for (int i = 0; i < processedPcm.length; i++) {
-            processedPcm[i] = (short) Math.max(Short.MIN_VALUE, Math.min(Short.MAX_VALUE, Math.round(processedPcm[i] * totalGain)));
-          }
-
-          if (wallService != null && wallService.isAirDampingEnabled() && dist > 5.0) {
-            final var alpha = Math.max(0.10f, 1.0f - (float) (dist - 5.0) * 0.038f);
-            var smooth = (float) processedPcm[0];
-            for (int i = 0; i < processedPcm.length; i++) {
-              smooth = smooth + alpha * (processedPcm[i] - smooth);
-              processedPcm[i] = (short) Math.max(Short.MIN_VALUE, Math.min(Short.MAX_VALUE, Math.round(smooth)));
-            }
-          }
-
-          // Soft limiter
-          processedPcm = AudioLimiter.process(processedPcm);
-
-          final var listenerOpus = encoder.encode(processedPcm);
-          final var streamKey = speaker.getUuid().toString() + ":" + senderUuid + ":" + listener.getUniqueId();
-          final var ch = this.listenerChannels.computeIfAbsent(streamKey, k -> {
-            final var sc = this.api.createStaticAudioChannel(UUID.randomUUID());
-            if (sc != null) {
-              sc.addTarget(listenerConn);
-              if (this.volumeCategory != null)
-                sc.setCategory(this.volumeCategory.getId());
-            }
-            return sc;
-          });
-          if (ch != null) {
-            ch.send(listenerOpus);
-            this.lastChannelActivity.put(streamKey, now);
-          }
+          processSingleListenerStream(speaker, senderUuid, listener, pcm, wallService, filterService, hasFilters, isWallEnabled, maxDist, dist, encoder, now);
         }
       }
     } catch (Exception e) {
@@ -412,5 +445,3 @@ public final class VoiceSpeakerServiceImpl implements VoiceSpeakerService, Liste
   }
 
 }
-
-

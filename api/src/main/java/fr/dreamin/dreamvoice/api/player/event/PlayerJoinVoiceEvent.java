@@ -6,6 +6,9 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.jetbrains.annotations.NotNull;
 
+/**
+ * Event fired when a player connects to Simple Voice Chat and is wrapped into a {@link VPlayer}.
+ */
 @Getter
 @RequiredArgsConstructor
 public final class PlayerJoinVoiceEvent extends ToolsEvent {

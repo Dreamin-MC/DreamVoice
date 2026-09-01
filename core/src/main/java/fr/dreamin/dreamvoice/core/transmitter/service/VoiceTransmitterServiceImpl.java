@@ -11,7 +11,6 @@ import fr.dreamin.dreamvoice.api.voice.service.VoiceService;
 import fr.dreamin.dreamvoice.core.DreamVoice;
 import fr.dreamin.dreamvoice.core.transmitter.storage.TransmittersPersistence;
 import fr.dreamin.dreamvoice.core.utils.audio.AudioLimiter;
-import lombok.RequiredArgsConstructor;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -21,15 +20,31 @@ import org.jetbrains.annotations.NotNull;
 import org.jspecify.annotations.NonNull;
 
 import java.io.File;
-
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
-@RequiredArgsConstructor
+/**
+ * Implementation of {@link VoiceTransmitterService} managing point-to-point transmitter routing,
+ * per-receiver distance attenuation, and JSON persistence.
+ */
 public final class VoiceTransmitterServiceImpl implements VoiceTransmitterService, Listener {
+
+  // ###############################################################
+  // ----------------------- STATIC FIELDS -------------------------
+  // ###############################################################
+
+  private static final long CLEANUP_INTERVAL_TICKS = 600L;
+  private static final long INACTIVITY_TIMEOUT_MS = 30000L;
+  private static final String CATEGORY_ID = "trans_volume";
+  private static final String CATEGORY_NAME = "Transmitter";
+  private static final String CATEGORY_DESC = "Transmitter Volume";
+
+  // ###############################################################
+  // --------------------- INSTANCE FIELDS -------------------------
+  // ###############################################################
 
   private final @NotNull DreamVoice plugin;
   private @NotNull VoicechatServerApi api;
@@ -37,6 +52,8 @@ public final class VoiceTransmitterServiceImpl implements VoiceTransmitterServic
   private boolean voiceServiceMissingLogged = false;
 
   private final Map<UUID, Map<UUID, ReceiverConfig>> transmitters = new ConcurrentHashMap<>();
+  private final Map<String, StaticAudioChannel> receiverChannels = new ConcurrentHashMap<>();
+  private final Map<String, Long> lastChannelActivity = new ConcurrentHashMap<>();
 
   // ###############################################################
   // --------------------- CONSTRUCTOR METHODS ---------------------
@@ -46,24 +63,12 @@ public final class VoiceTransmitterServiceImpl implements VoiceTransmitterServic
     this.plugin = plugin;
 
     Bukkit.getPluginManager().registerEvents(this, plugin);
-    Bukkit.getScheduler().runTaskTimer(plugin, this::cleanupIdleChannels, 600L, 600L);
+    Bukkit.getScheduler().runTaskTimer(plugin, this::cleanupIdleChannels, CLEANUP_INTERVAL_TICKS, CLEANUP_INTERVAL_TICKS);
   }
 
-  private void cleanupIdleChannels() {
-    final var now = System.currentTimeMillis();
-    this.lastChannelActivity.entrySet().removeIf(entry -> {
-      if (now - entry.getValue() > 30000L) {
-        this.receiverChannels.remove(entry.getKey());
-        return true;
-      }
-      return false;
-    });
-  }
-
-
-  // ##############################################################
-  // ---------------------- SERVICE METHODS -----------------------
-  // ##############################################################
+  // ###############################################################
+  // ------------------- PUBLIC SERVICE METHODS --------------------
+  // ###############################################################
 
   @Override
   public @NonNull VoicechatServerApi getAPI() {
@@ -75,17 +80,13 @@ public final class VoiceTransmitterServiceImpl implements VoiceTransmitterServic
     this.api = api;
 
     this.volumeCategory = this.api.volumeCategoryBuilder()
-      .setId("trans_volume")
-      .setName("Transmitter")
-      .setDescription("Transmitter Volume")
+      .setId(CATEGORY_ID)
+      .setName(CATEGORY_NAME)
+      .setDescription(CATEGORY_DESC)
       .build();
 
     this.api.registerVolumeCategory(this.volumeCategory);
   }
-
-  // ------------------------------------------------
-  // Transmitter
-  // ------------------------------------------------
 
   @Override
   public boolean isTransmitter(final @NotNull Player player) {
@@ -117,10 +118,6 @@ public final class VoiceTransmitterServiceImpl implements VoiceTransmitterServic
     this.transmitters.remove(uuid);
   }
 
-  // ------------------------------------------------
-  // Receivers
-  // ------------------------------------------------
-
   @Override
   public @NotNull Collection<ReceiverConfig> getReceivers(final @NotNull Player player) {
     return getReceivers(player.getUniqueId());
@@ -138,7 +135,7 @@ public final class VoiceTransmitterServiceImpl implements VoiceTransmitterServic
 
   @Override
   public void addReceiver(final @NotNull UUID transmitter, final @NotNull UUID receiver) {
-    this.transmitters.computeIfAbsent(transmitter, k -> new ConcurrentHashMap<>())
+    this.transmitters.computeIfAbsent(transmitter, _ -> new ConcurrentHashMap<>())
       .put(receiver, new ReceiverConfig(receiver));
   }
 
@@ -187,10 +184,6 @@ public final class VoiceTransmitterServiceImpl implements VoiceTransmitterServic
       map.clear();
   }
 
-  // ------------------------------------------------
-  // Global Operations
-  // ------------------------------------------------
-
   @Override
   public void addReceiverToAll(final @NotNull Player receiver) {
     addReceiverToAll(receiver.getUniqueId());
@@ -199,7 +192,7 @@ public final class VoiceTransmitterServiceImpl implements VoiceTransmitterServic
   @Override
   public void addReceiverToAll(final @NotNull UUID receiver) {
     this.transmitters.forEach((transmitter, map) -> {
-      if (transmitter == receiver)
+      if (transmitter.equals(receiver))
         return;
       map.put(receiver, new ReceiverConfig(receiver));
     });
@@ -213,7 +206,7 @@ public final class VoiceTransmitterServiceImpl implements VoiceTransmitterServic
   @Override
   public void addReceiverToAll(final @NotNull UUID receiver, final double maxDistance) {
     this.transmitters.forEach((transmitter, map) -> {
-      if (transmitter == receiver)
+      if (transmitter.equals(receiver))
         return;
       map.put(receiver, new ReceiverConfig(receiver, maxDistance));
     });
@@ -240,11 +233,54 @@ public final class VoiceTransmitterServiceImpl implements VoiceTransmitterServic
     TransmittersPersistence.load(this, new File(this.plugin.getDataFolder(), "data"));
   }
 
-  private final Map<String, StaticAudioChannel> receiverChannels = new ConcurrentHashMap<>();
-  private final Map<String, Long> lastChannelActivity = new ConcurrentHashMap<>();
+  // ###############################################################
+  // ------------------- PRIVATE HELPER METHODS --------------------
+  // ###############################################################
+
+  private void cleanupIdleChannels() {
+    final var now = System.currentTimeMillis();
+    this.lastChannelActivity.entrySet().removeIf(entry -> {
+      if (now - entry.getValue() > INACTIVITY_TIMEOUT_MS) {
+        this.receiverChannels.remove(entry.getKey());
+        return true;
+      }
+      return false;
+    });
+  }
+
+  private byte[] filterTransmitterAudio(
+    final @NotNull UUID senderUuid,
+    final byte[] opusData,
+    final @NotNull VoiceFilterService filterService
+  ) {
+    final var voiceService = DreamVoice.getService(VoiceService.class);
+    if (voiceService == null) {
+      if (!this.voiceServiceMissingLogged) {
+        this.voiceServiceMissingLogged = true;
+        this.plugin.getLogger().warning("VoiceService is unavailable. Transmitter filters are skipped.");
+      }
+      return opusData;
+    }
+
+    try {
+      final var decoder = voiceService.getDecoder(senderUuid);
+      final var encoder = voiceService.getEncoder(senderUuid);
+      if (decoder != null && encoder != null) {
+        final var pcm = decoder.decode(opusData);
+        if (pcm != null && pcm.length > 0) {
+          var filteredPcm = filterService.applyFilters(senderUuid, pcm);
+          filteredPcm = AudioLimiter.process(filteredPcm);
+          return encoder.encode(filteredPcm);
+        }
+      }
+    } catch (Exception exception) {
+      this.plugin.getLogger().warning("Failed to process transmitter voice filters (sender=" + senderUuid + "): " + exception.getMessage());
+    }
+    return opusData;
+  }
 
   // ###############################################################
-  // ---------------------- LISTENER METHODS -----------------------
+  // ---------------------- EVENT LISTENERS ------------------------
   // ###############################################################
 
   @EventHandler
@@ -255,7 +291,6 @@ public final class VoiceTransmitterServiceImpl implements VoiceTransmitterServic
 
     final var senderUuid = senderConnection.getPlayer().getUuid();
     final var receivers = this.transmitters.get(senderUuid);
-
     if (receivers == null || receivers.isEmpty())
       return;
 
@@ -264,32 +299,11 @@ public final class VoiceTransmitterServiceImpl implements VoiceTransmitterServic
       return;
 
     final var senderLocation = senderPlayer.getLocation();
-
     var opusData = event.getPacket().getOpusEncodedData();
     final var filterService = DreamVoice.getService(VoiceFilterService.class);
 
-    if (filterService != null && filterService.hasActiveFilters(senderUuid)) {
-      final var voiceService = DreamVoice.getService(VoiceService.class);
-      if (voiceService == null) {
-        if (!this.voiceServiceMissingLogged) {
-          this.voiceServiceMissingLogged = true;
-          this.plugin.getLogger().warning("VoiceService is unavailable. Transmitter filters are skipped.");
-        }
-      } else try {
-        final var decoder = voiceService.getDecoder(senderUuid);
-        final var encoder = voiceService.getEncoder(senderUuid);
-        if (decoder != null && encoder != null) {
-          final var pcm = decoder.decode(opusData);
-          if (pcm != null && pcm.length > 0) {
-            var filteredPcm = filterService.applyFilters(senderUuid, pcm);
-            filteredPcm = AudioLimiter.process(filteredPcm);
-            opusData = encoder.encode(filteredPcm);
-          }
-        }
-      } catch (Exception exception) {
-        this.plugin.getLogger().warning("Failed to process transmitter voice filters (sender=" + senderUuid + ", receiverCount=" + receivers.size() + "): " + exception.getMessage());
-      }
-    }
+    if (filterService != null && filterService.hasActiveFilters(senderUuid))
+      opusData = filterTransmitterAudio(senderUuid, opusData, filterService);
 
     final var finalOpus = opusData;
     final var now = System.currentTimeMillis();

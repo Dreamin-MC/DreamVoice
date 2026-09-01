@@ -8,16 +8,14 @@ import de.maxhenkel.voicechat.api.events.EventRegistration;
 import de.maxhenkel.voicechat.api.events.VoicechatServerStartedEvent;
 import de.maxhenkel.voicechat.api.opus.OpusDecoder;
 import de.maxhenkel.voicechat.api.opus.OpusEncoder;
-import fr.dreamin.dreamvoice.api.codex.service.CodexService;
 import fr.dreamin.dreamvoice.api.persistence.service.VoicePersistenceService;
 import fr.dreamin.dreamvoice.api.player.model.PlayerState;
 import fr.dreamin.dreamvoice.api.player.service.PlayerService;
-import fr.dreamin.dreamvoice.api.recording.service.VoiceRecordingService;
 import fr.dreamin.dreamvoice.api.projection.service.VoiceProjectionService;
 import fr.dreamin.dreamvoice.api.radio.service.VoiceRadioService;
+import fr.dreamin.dreamvoice.api.recording.service.VoiceRecordingService;
 import fr.dreamin.dreamvoice.api.speaker.service.VoiceSpeakerService;
 import fr.dreamin.dreamvoice.api.transmitter.service.VoiceTransmitterService;
-import fr.dreamin.dreamvoice.api.voice.event.EntitySoundPacketEvent;
 import fr.dreamin.dreamvoice.api.voice.event.MicrophonePacketEvent;
 import fr.dreamin.dreamvoice.api.voice.model.VoiceSoundBuilder;
 import fr.dreamin.dreamvoice.api.voice.service.VoiceService;
@@ -41,35 +39,48 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
+/**
+ * Core implementation of {@link VoiceService} and {@link VoicechatPlugin} bridging
+ * Simple Voice Chat lifecycle, packet routing, audio streaming channels, and Opus codecs.
+ */
 public final class VoiceServiceImpl implements VoiceService, VoicechatPlugin, Listener {
 
+  // ###############################################################
+  // ----------------------- STATIC FIELDS -------------------------
+  // ###############################################################
+
   private static final int MAX_POOL_SIZE = 1024;
+  private static final String PLUGIN_ID = "DreamVoice";
+
+  // ###############################################################
+  // --------------------- INSTANCE FIELDS -------------------------
+  // ###############################################################
 
   private final @NotNull DreamVoice plugin;
   private VoicechatServerApi api;
 
   private boolean debug = true;
 
-  private final @NotNull CodexService codexService;
   private final @NotNull PlayerService playerService;
   private final @NotNull VoiceWallService voiceWallService;
   private boolean projectionServiceMissingLogged = false;
 
-  // Pool + cache players actifs
   private final Queue<UUID> channelIdPool = new ConcurrentLinkedQueue<>();
   private final Map<UUID, AudioPlayer> activePlayers = new ConcurrentHashMap<>();
 
   private final Map<UUID, OpusDecoder> decoders = new ConcurrentHashMap<>();
   private final Map<UUID, OpusEncoder> encoders = new ConcurrentHashMap<>();
 
+  // ###############################################################
+  // --------------------- CONSTRUCTOR METHODS ---------------------
+  // ###############################################################
+
   public VoiceServiceImpl(
     final @NotNull DreamVoice plugin,
-    final @NotNull CodexService codexService,
     final @NotNull PlayerService playerService,
     final @NotNull VoiceWallService voiceWallService
   ) {
     this.plugin = plugin;
-    this.codexService = codexService;
     this.playerService = playerService;
     this.voiceWallService = voiceWallService;
 
@@ -82,7 +93,7 @@ public final class VoiceServiceImpl implements VoiceService, VoicechatPlugin, Li
 
   @Override
   public String getPluginId() {
-    return "DreamVoice";
+    return PLUGIN_ID;
   }
 
   @Override
@@ -92,10 +103,9 @@ public final class VoiceServiceImpl implements VoiceService, VoicechatPlugin, Li
     registration.registerEvent(de.maxhenkel.voicechat.api.events.EntitySoundPacketEvent.class, this::onEntitySoundPacket);
   }
 
-
-  // ##############################################################
-  // ---------------------- SERVICE METHODS -----------------------
-  // #############################################################
+  // ###############################################################
+  // ------------------- PUBLIC SERVICE METHODS --------------------
+  // ###############################################################
 
   @Override
   public boolean isDebug() {
@@ -131,14 +141,17 @@ public final class VoiceServiceImpl implements VoiceService, VoicechatPlugin, Li
       playLocational(builder, samples);
   }
 
+  @Override
   public int getActiveSoundCount() {
     return this.activePlayers.size();
   }
 
+  @Override
   public Set<UUID> getActiveSoundIds() {
     return Set.copyOf(this.activePlayers.keySet());
   }
 
+  @Override
   public boolean stopSound(final @NotNull UUID channelId) {
     final var p = this.activePlayers.get(channelId);
     if (p == null)
@@ -153,6 +166,7 @@ public final class VoiceServiceImpl implements VoiceService, VoicechatPlugin, Li
     return true;
   }
 
+  @Override
   public void clearAllSounds() {
     final var snapshot = new ArrayList<>(this.activePlayers.entrySet());
     for (final var e : snapshot) {
@@ -175,32 +189,28 @@ public final class VoiceServiceImpl implements VoiceService, VoicechatPlugin, Li
 
   @Override
   public OpusDecoder getDecoder(final @NotNull UUID uuid) {
-    return this.decoders.computeIfAbsent(uuid, id -> this.api.createDecoder());
+    return this.decoders.computeIfAbsent(uuid, _ -> this.api.createDecoder());
   }
 
   @Override
   public OpusEncoder getEncoder(final @NotNull UUID uuid) {
-    return this.encoders.computeIfAbsent(uuid, id -> this.api.createEncoder());
+    return this.encoders.computeIfAbsent(uuid, _ -> this.api.createEncoder());
   }
 
   // ###############################################################
-  // ----------------------- PRIVATE METHODS -----------------------
+  // ------------------- PRIVATE HELPER METHODS --------------------
   // ###############################################################
 
-  private boolean canHear(final PlayerState speaker, final PlayerState listener) {
+  private static boolean canHear(final PlayerState speaker, final PlayerState listener) {
     return switch (listener) {
       case ALIVE, SPECTATE -> speaker == PlayerState.ALIVE;
       case DEAD -> speaker == PlayerState.ALIVE || speaker == PlayerState.DEAD;
     };
   }
 
-  private boolean hasValidConnections(final VoicechatConnection sender, final VoicechatConnection receiver) {
+  private static boolean hasValidConnections(final VoicechatConnection sender, final VoicechatConnection receiver) {
     return sender != null && receiver != null;
   }
-
-  // ###############################################################
-  // --------------------- PLAY SOUND METHODS ----------------------
-  // ###############################################################
 
   private UUID acquireChannelId() {
     final var id = this.channelIdPool.poll();
@@ -239,7 +249,7 @@ public final class VoiceServiceImpl implements VoiceService, VoicechatPlugin, Li
 
   private short[] audioToShorts(final byte[] rawData) {
     if (rawData.length % 2 != 0 || rawData.length == 0) {
-      this.plugin.getLogger().warning("Audio data invalide: " + rawData.length + " bytes");
+      this.plugin.getLogger().warning("Invalid audio data: " + rawData.length + " bytes");
       return new short[0];
     }
 
@@ -284,7 +294,6 @@ public final class VoiceServiceImpl implements VoiceService, VoicechatPlugin, Li
     audioPlayer.startPlaying();
   }
 
-
   private void playLocational(final @NotNull VoiceSoundBuilder builder, final short[] samples) {
     final var loc = builder.getLocation();
     if (loc == null || loc.getWorld() == null)
@@ -311,8 +320,15 @@ public final class VoiceServiceImpl implements VoiceService, VoicechatPlugin, Li
     audioPlayer.startPlaying();
   }
 
+  private <T> @Nullable T requireService(final @NotNull Class<T> serviceClass) {
+    final var service = DreamVoice.getService(serviceClass);
+    if (service == null)
+      this.plugin.getLogger().severe("Missing required service " + serviceClass.getSimpleName() + " during voice startup.");
+    return service;
+  }
+
   // ###############################################################
-  // -------------------- SIMPLE VOICE METHODS ---------------------
+  // -------------------- SVC EVENT CALLBACKS ----------------------
   // ###############################################################
 
   private void onServerStarted(final @NotNull VoicechatServerStartedEvent event) {
@@ -320,13 +336,13 @@ public final class VoiceServiceImpl implements VoiceService, VoicechatPlugin, Li
 
     this.plugin.getLogger().info("SVC API ready ! Init DreamVoice...");
 
-    final var wallService = requireService(VoiceWallService.class, "voice startup");
-    final var speakerService = requireService(VoiceSpeakerService.class, "voice startup");
-    final var recordingService = requireService(VoiceRecordingService.class, "voice startup");
-    final var transmitterService = requireService(VoiceTransmitterService.class, "voice startup");
-    final var radioService = requireService(VoiceRadioService.class, "voice startup");
-    final var projectionService = requireService(VoiceProjectionService.class, "voice startup");
-    final var wiretapService = requireService(VoiceWiretapService.class, "voice startup");
+    final var wallService = requireService(VoiceWallService.class);
+    final var speakerService = requireService(VoiceSpeakerService.class);
+    final var recordingService = requireService(VoiceRecordingService.class);
+    final var transmitterService = requireService(VoiceTransmitterService.class);
+    final var radioService = requireService(VoiceRadioService.class);
+    final var projectionService = requireService(VoiceProjectionService.class);
+    final var wiretapService = requireService(VoiceWiretapService.class);
 
     if (wallService == null || speakerService == null || recordingService == null
       || transmitterService == null || radioService == null || projectionService == null || wiretapService == null) {
@@ -348,8 +364,6 @@ public final class VoiceServiceImpl implements VoiceService, VoicechatPlugin, Li
       persistenceService.loadAll();
 
     this.plugin.getLogger().info("DreamVoice is ready !");
-
-
   }
 
   private void onEntitySoundPacket(final @NotNull de.maxhenkel.voicechat.api.events.EntitySoundPacketEvent event) {
@@ -379,7 +393,6 @@ public final class VoiceServiceImpl implements VoiceService, VoicechatPlugin, Li
       this.plugin.getLogger().warning("VoiceProjectionService is unavailable. Projection constraints are skipped.");
     }
 
-
     final var vSender = this.playerService.getPlayer(senderUUID);
     final var vReceiver = this.playerService.getPlayer(receiverUUID);
     if (vSender == null || vReceiver == null)
@@ -393,8 +406,6 @@ public final class VoiceServiceImpl implements VoiceService, VoicechatPlugin, Li
     this.voiceWallService.processEntitySoundPacket(event, vSender, vReceiver, receiverCon);
   }
 
-
-
   private void onMicrophonePacket(final @NotNull de.maxhenkel.voicechat.api.events.MicrophonePacketEvent event) {
     Bukkit.getScheduler().runTask(this.plugin, () -> new MicrophonePacketEvent(
       event,
@@ -404,18 +415,15 @@ public final class VoiceServiceImpl implements VoiceService, VoicechatPlugin, Li
     ).callEvent());
   }
 
+  // ###############################################################
+  // ---------------------- EVENT LISTENERS ------------------------
+  // ###############################################################
+
   @EventHandler
   private void onPlayerQuit(final @NotNull PlayerQuitEvent event) {
     final var uuid = event.getPlayer().getUniqueId();
     this.decoders.remove(uuid);
     this.encoders.remove(uuid);
-  }
-
-  private <T> @Nullable T requireService(final @NotNull Class<T> serviceClass, final @NotNull String phase) {
-    final var service = DreamVoice.getService(serviceClass);
-    if (service == null)
-      this.plugin.getLogger().severe("Missing required service " + serviceClass.getSimpleName() + " during " + phase + ".");
-    return service;
   }
 
 }

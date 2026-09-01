@@ -1,7 +1,5 @@
 package fr.dreamin.dreamvoice.core.utils.audio;
 
-import org.jetbrains.annotations.NotNull;
-
 /**
  * High performance soft-knee limiter and anti-clipping processor.
  * Prevents harsh digital clipping when multiple voice streams or filters combine.
@@ -24,7 +22,7 @@ public final class AudioLimiter {
         final var excess = abs - THRESHOLD;
         final var compressed = THRESHOLD + (1.0f - THRESHOLD) * (float) Math.tanh(excess / (1.0f - THRESHOLD));
         final var sign = norm < 0 ? -1.0f : 1.0f;
-        pcm[i] = (short) Math.max(Short.MIN_VALUE, Math.min(Short.MAX_VALUE, Math.round(sign * compressed * MAX_VAL)));
+        pcm[i] = (short) Math.clamp(Math.round(sign * compressed * MAX_VAL), Short.MIN_VALUE, Short.MAX_VALUE);
       }
     }
 

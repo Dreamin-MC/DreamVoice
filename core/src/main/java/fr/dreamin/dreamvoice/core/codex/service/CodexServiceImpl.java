@@ -10,13 +10,23 @@ import lombok.RequiredArgsConstructor;
 import org.jetbrains.annotations.NotNull;
 import org.jspecify.annotations.NonNull;
 
+/**
+ * Implementation of {@link CodexService} managing DreamVoice config loading and synchronization.
+ */
 @Getter
 @RequiredArgsConstructor
 public final class CodexServiceImpl implements CodexService {
 
-  private final @NotNull DreamVoice plugin;
+  // ###############################################################
+  // --------------------- INSTANCE FIELDS -------------------------
+  // ###############################################################
 
+  private final @NotNull DreamVoice plugin;
   private @NotNull Codex codex;
+
+  // ###############################################################
+  // --------------------- CONSTRUCTOR METHODS ---------------------
+  // ###############################################################
 
   public CodexServiceImpl(final @NotNull DreamVoice plugin, final @NotNull VoiceWallService voiceWallService) {
     this.plugin = plugin;
@@ -27,12 +37,11 @@ public final class CodexServiceImpl implements CodexService {
       if (this.codex.getVoiceWall().airDamping() != null)
         voiceWallService.setAirDampingEnabled(this.codex.getVoiceWall().airDamping());
     }
-
   }
 
-  // ##############################################################
-  // ---------------------- SERVICE METHODS -----------------------
-  // ##############################################################
+  // ###############################################################
+  // ------------------- PUBLIC SERVICE METHODS --------------------
+  // ###############################################################
 
   @Override
   public void load() {
@@ -47,4 +56,3 @@ public final class CodexServiceImpl implements CodexService {
   }
 
 }
-

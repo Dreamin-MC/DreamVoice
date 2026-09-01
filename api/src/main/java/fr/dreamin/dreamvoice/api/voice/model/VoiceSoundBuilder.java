@@ -11,6 +11,9 @@ import org.jetbrains.annotations.Nullable;
 import java.util.Objects;
 import java.util.function.Predicate;
 
+/**
+ * Fluent builder for creating and playing raw audio streams through Simple Voice Chat.
+ */
 @Builder
 @Getter
 public final class VoiceSoundBuilder {
@@ -29,6 +32,9 @@ public final class VoiceSoundBuilder {
   // ----------------------- PUBLIC METHODS ------------------------
   // ###############################################################
 
+  /**
+   * Dispatches and plays this configured sound through {@link VoiceService}.
+   */
   public void play() {
     Objects.requireNonNull(DreamAPI.getAPI().getService(VoiceService.class), "VoiceService is unavailable")
       .playSound(this);

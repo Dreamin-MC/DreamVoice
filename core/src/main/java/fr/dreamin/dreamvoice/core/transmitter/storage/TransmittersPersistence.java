@@ -2,8 +2,8 @@ package fr.dreamin.dreamvoice.core.transmitter.storage;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import fr.dreamin.dreamapi.api.config.Configurations;
-import fr.dreamin.dreamvoice.api.transmitter.model.ReceiverConfig;
 import fr.dreamin.dreamvoice.api.transmitter.service.VoiceTransmitterService;
+import fr.dreamin.dreamvoice.core.DreamVoice;
 import org.bukkit.Bukkit;
 import org.jetbrains.annotations.NotNull;
 
@@ -48,7 +48,7 @@ public final class TransmittersPersistence {
     try {
       Configurations.saveJson(file, dataList);
     } catch (Exception e) {
-      Bukkit.getLogger().severe("[DreamVoice] Error saving transmitters: " + e.getMessage());
+      DreamVoice.getInstance().getLogger().severe("[DreamVoice] Error saving transmitters: " + e.getMessage());
     }
   }
 
@@ -78,7 +78,7 @@ public final class TransmittersPersistence {
             }
       }
     } catch (Exception e) {
-      Bukkit.getLogger().severe("[DreamVoice] Error loading transmitters: " + e.getMessage());
+      DreamVoice.getInstance().getLogger().severe("[DreamVoice] Error loading transmitters: " + e.getMessage());
     }
   }
 

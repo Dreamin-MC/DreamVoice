@@ -30,18 +30,34 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 
+/**
+ * Implementation of {@link VoiceRecordingService} managing live voice recording capture,
+ * Opus encoding/decoding, slice extractions, cassette binding, and disk persistence.
+ */
 public final class VoiceRecordingServiceImpl implements VoiceRecordingService, Listener {
 
-  private static final int CHUNK_MS = 20, BYTES_PER_MS = 6, CHUNK_SIZE = CHUNK_MS * BYTES_PER_MS;
+  // ###############################################################
+  // ----------------------- STATIC FIELDS -------------------------
+  // ###############################################################
+
+  private static final String CATEGORY_ID = "rec_volume";
+  private static final String CATEGORY_NAME = "Recording";
+  private static final String CATEGORY_DESC = "Recording Volume";
+  private static final int FRAME_SIZE_SAMPLES = 960; // 20ms at 48kHz mono
+  private static final long FRAME_DURATION_MS = 20L;
+
+  // ###############################################################
+  // --------------------- INSTANCE FIELDS -------------------------
+  // ###############################################################
 
   private final @NotNull DreamVoice plugin;
   private @NotNull VoicechatServerApi api;
-
   private VolumeCategory volumeCategory;
 
   private final @NotNull Map<UUID, VoiceRecording> voiceRecordings = new HashMap<>();
@@ -53,28 +69,25 @@ public final class VoiceRecordingServiceImpl implements VoiceRecordingService, L
 
   public VoiceRecordingServiceImpl(final @NotNull DreamVoice plugin) {
     this.plugin = plugin;
-
     Bukkit.getPluginManager().registerEvents(this, plugin);
   }
 
-  // ##############################################################
-  // ---------------------- SERVICE METHODS -----------------------
-  // ##############################################################
+  // ###############################################################
+  // ------------------- PUBLIC SERVICE METHODS --------------------
+  // ###############################################################
 
   @Override
   public void init(final @NotNull VoicechatServerApi api) {
     this.api = api;
 
     this.volumeCategory = this.api.volumeCategoryBuilder()
-      .setId("rec_volume")
-      .setName("Recording")
-      .setDescription("Recording Volume")
+      .setId(CATEGORY_ID)
+      .setName(CATEGORY_NAME)
+      .setDescription(CATEGORY_DESC)
       .build();
-
 
     this.api.registerVolumeCategory(this.volumeCategory);
 
-    // Load saved recordings from disk
     final var recordingsDir = new File(this.plugin.getDataFolder(), "recordings");
     final var loaded = VoiceRecordingPersistence.loadAll(recordingsDir);
     for (final var rec : loaded)
@@ -83,7 +96,6 @@ public final class VoiceRecordingServiceImpl implements VoiceRecordingService, L
     if (!loaded.isEmpty())
       this.plugin.getLogger().info("Loaded " + loaded.size() + " voice recordings from disk.");
   }
-
 
   @Override
   public VoicechatServerApi getAPI() {
@@ -131,8 +143,7 @@ public final class VoiceRecordingServiceImpl implements VoiceRecordingService, L
       return;
     }
 
-    final var channelId = UUID.randomUUID();
-    final var channel = this.api.createStaticAudioChannel(channelId);
+    final var channel = this.api.createStaticAudioChannel(UUID.randomUUID());
     if (channel == null) {
       this.plugin.getLogger().severe("Failed to create static audio channel for playback.");
       return;
@@ -142,52 +153,9 @@ public final class VoiceRecordingServiceImpl implements VoiceRecordingService, L
     if (this.volumeCategory != null)
       channel.setCategory(this.volumeCategory.getId());
 
-    final var pcmList = new ArrayList<short[]>();
-    var totalSamples = 0;
-    var currentStreamTimeMs = 0L;
-
-    try {
-      final var decoder = this.api.createDecoder();
-
-      for (final var frame : frames) {
-        if (frame.data().length == 0)
-          continue;
-
-        final var frameTime = frame.timestampMs();
-
-        if (frameTime - currentStreamTimeMs >= 60) {
-          final var silenceMs = frameTime - currentStreamTimeMs;
-          final var silenceSamples = (int) (silenceMs * 48);
-          if (silenceSamples > 0) {
-            pcmList.add(new short[silenceSamples]);
-            totalSamples += silenceSamples;
-          }
-          currentStreamTimeMs = frameTime;
-        }
-
-        final var pcm = decoder.decode(frame.data());
-        if (pcm != null && pcm.length > 0) {
-          pcmList.add(pcm);
-          totalSamples += pcm.length;
-          currentStreamTimeMs += (pcm.length / 48);
-        }
-      }
-    } catch (Exception e) {
-      this.plugin.getLogger().severe("Error decoding Opus frames: " + e.getMessage());
+    final var fullPcm = decodeRecordingFrames(frames);
+    if (fullPcm == null || fullPcm.length == 0)
       return;
-    }
-
-    if (totalSamples == 0) {
-      this.plugin.getLogger().warning("Recording decoded to 0 samples: " + recording.getUuid());
-      return;
-    }
-
-    final var fullPcm = new short[totalSamples];
-    var offset = 0;
-    for (final var chunk : pcmList) {
-      System.arraycopy(chunk, 0, fullPcm, offset, chunk.length);
-      offset += chunk.length;
-    }
 
     try {
       final var encoder = this.api.createEncoder();
@@ -197,8 +165,6 @@ public final class VoiceRecordingServiceImpl implements VoiceRecordingService, L
       this.plugin.getLogger().severe("Error creating AudioPlayer: " + e.getMessage());
     }
   }
-
-
 
   @Override
   public VoiceRecording startRecording(final @NonNull UUID speakerUUID) {
@@ -218,79 +184,40 @@ public final class VoiceRecordingServiceImpl implements VoiceRecordingService, L
     }
   }
 
-  // ###############################################################
-  // ---------------------- LISTENER METHODS -----------------------
-  // ###############################################################
-
-  @EventHandler
-  private void onPlayerInteract(final @NotNull PlayerInteractEvent event) {
-    if (!event.getAction().name().contains("RIGHT_CLICK"))
-      return;
-
-    final var item = event.getItem();
-    final var recUuid = CassetteItem.getRecordingUuid(item);
-    if (recUuid == null)
-      return;
-
-    event.setCancelled(true);
-    final var player = event.getPlayer();
-    final var recording = this.voiceRecordings.get(recUuid);
-    if (recording == null) {
-      player.sendMessage(Component.text("[SVC] Recording not found on the server!", NamedTextColor.RED));
-      return;
-    }
-
-    final var conn = this.api.getConnectionOf(player.getUniqueId());
-    if (conn == null) {
-      player.sendMessage(Component.text("[SVC] You are not connected to voice chat!", NamedTextColor.RED));
-      return;
-    }
-
-    player.sendMessage(
-      Component.text("▶ Playing voice cassette (", NamedTextColor.GREEN)
-        .append(Component.text(String.format("%.1f", recording.getDurationSeconds()) + "s", NamedTextColor.YELLOW))
-        .append(Component.text(")...", NamedTextColor.GREEN))
-    );
-
-    playRecordingTo(conn, recording);
-  }
-
   @Override
-  public ItemStack linkItem(final @NotNull ItemStack item, final @NotNull VoiceRecording recording) {
+  public @NonNull ItemStack linkItem(final @NotNull ItemStack item, final @NotNull VoiceRecording recording) {
     return CassetteItem.linkItem(item, recording);
   }
 
   @Override
-  public ItemStack linkItem(final @NotNull ItemStack item, final @NotNull UUID recordingUuid) {
+  public @NonNull ItemStack linkItem(final @NotNull ItemStack item, final @NotNull UUID recordingUuid) {
     return CassetteItem.linkItem(item, recordingUuid);
   }
 
   @Override
-  public ItemStack createCassette(final @NotNull VoiceRecording recording) {
+  public @NonNull ItemStack createCassette(final @NotNull VoiceRecording recording) {
     return CassetteItem.create(recording);
   }
 
   @Override
-  public CompletableFuture<VoiceRecording> createRecordingFromPcm(final @NotNull short[] pcm, final @NotNull UUID speakerUuid) {
+  public CompletableFuture<VoiceRecording> createRecordingFromPcm(final short @NotNull [] pcm, final @NotNull UUID speakerUuid) {
     return CompletableFuture.supplyAsync(() -> {
       final var recording = new VoiceRecording(speakerUuid);
       recording.start();
 
       final var encoder = this.api.createEncoder();
-      final var frameSize = 960; // 20ms at 48kHz mono
       var offset = 0;
       var timestamp = 0L;
 
       while (offset < pcm.length) {
-        final var length = Math.min(frameSize, pcm.length - offset);
-        final var chunk = new short[frameSize];
+        final var length = Math.min(FRAME_SIZE_SAMPLES, pcm.length - offset);
+        final var chunk = new short[FRAME_SIZE_SAMPLES];
         System.arraycopy(pcm, offset, chunk, 0, length);
         final var opus = encoder.encode(chunk);
-        if (opus != null && opus.length > 0) {
+        if (opus != null && opus.length > 0)
           recording.getAudioFrames().add(new TimedAudioFrame(timestamp, opus));
-        }
         offset += length;
-        timestamp += 20L;
+        timestamp += FRAME_DURATION_MS;
       }
 
       recording.stop();
@@ -298,7 +225,6 @@ public final class VoiceRecordingServiceImpl implements VoiceRecordingService, L
 
       final var recordingsDir = new File(this.plugin.getDataFolder(), "recordings");
       VoiceRecordingPersistence.save(recording, recordingsDir);
-
       return recording;
     });
   }
@@ -380,9 +306,97 @@ public final class VoiceRecordingServiceImpl implements VoiceRecordingService, L
     return sliced;
   }
 
+  // ###############################################################
+  // ------------------- PRIVATE HELPER METHODS --------------------
+  // ###############################################################
+
+  private short[] decodeRecordingFrames(final @NotNull List<TimedAudioFrame> frames) {
+    final var pcmList = new ArrayList<short[]>();
+    var totalSamples = 0;
+    var currentStreamTimeMs = 0L;
+
+    try {
+      final var decoder = this.api.createDecoder();
+
+      for (final var frame : frames) {
+        if (frame.data().length == 0)
+          continue;
+
+        final var frameTime = frame.timestampMs();
+
+        if (frameTime - currentStreamTimeMs >= 60) {
+          final var silenceMs = frameTime - currentStreamTimeMs;
+          final var silenceSamples = (int) (silenceMs * 48);
+          if (silenceSamples > 0) {
+            pcmList.add(new short[silenceSamples]);
+            totalSamples += silenceSamples;
+          }
+          currentStreamTimeMs = frameTime;
+        }
+
+        final var pcm = decoder.decode(frame.data());
+        if (pcm != null && pcm.length > 0) {
+          pcmList.add(pcm);
+          totalSamples += pcm.length;
+          currentStreamTimeMs += (pcm.length / 48);
+        }
+      }
+    } catch (Exception e) {
+      this.plugin.getLogger().severe("Error decoding Opus frames: " + e.getMessage());
+      return null;
+    }
+
+    if (totalSamples == 0)
+      return null;
+
+    final var fullPcm = new short[totalSamples];
+    var offset = 0;
+    for (final var chunk : pcmList) {
+      System.arraycopy(chunk, 0, fullPcm, offset, chunk.length);
+      offset += chunk.length;
+    }
+
+    return fullPcm;
+  }
+
+  // ###############################################################
+  // ---------------------- EVENT LISTENERS ------------------------
+  // ###############################################################
 
   @EventHandler
+  private void onPlayerInteract(final @NotNull PlayerInteractEvent event) {
+    if (!event.getAction().name().contains("RIGHT_CLICK"))
+      return;
 
+    final var item = event.getItem();
+    final var recUuid = CassetteItem.getRecordingUuid(item);
+    if (recUuid == null)
+      return;
+
+    event.setCancelled(true);
+    final var player = event.getPlayer();
+    final var recording = this.voiceRecordings.get(recUuid);
+    if (recording == null) {
+      player.sendMessage(Component.text("[SVC] Recording not found on the server!", NamedTextColor.RED));
+      return;
+    }
+
+    final var conn = this.api.getConnectionOf(player.getUniqueId());
+    if (conn == null) {
+      player.sendMessage(Component.text("[SVC] You are not connected to voice chat!", NamedTextColor.RED));
+      return;
+    }
+
+    player.sendMessage(
+      Component.text("▶ Playing voice cassette (", NamedTextColor.GREEN)
+        .append(Component.text(String.format("%.1f", recording.getDurationSeconds()) + "s", NamedTextColor.YELLOW))
+        .append(Component.text(")...", NamedTextColor.GREEN))
+    );
+
+    playRecordingTo(conn, recording);
+  }
+
+  @EventHandler
   private void onMicrophone(final @NotNull MicrophonePacketEvent event) {
     final var sender = event.getSender();
     if (sender == null)
@@ -424,7 +438,3 @@ public final class VoiceRecordingServiceImpl implements VoiceRecordingService, L
   }
 
 }
-
-
-
-

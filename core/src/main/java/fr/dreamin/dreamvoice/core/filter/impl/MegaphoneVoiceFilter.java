@@ -4,11 +4,15 @@ import fr.dreamin.dreamvoice.api.filter.model.VoiceFilter;
 import fr.dreamin.dreamvoice.api.player.model.VPlayer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.NonNull;
 
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * DSP audio filter simulating a bullhorn / megaphone horn overdrive with slapback reflection.
+ */
 public final class MegaphoneVoiceFilter implements VoiceFilter {
 
   private static final int SLAP_DELAY = 1920; // 40ms slapback echo
@@ -19,6 +23,10 @@ public final class MegaphoneVoiceFilter implements VoiceFilter {
   private static final float LP_ALPHA = 0.340f;
 
   private final Map<UUID, MegaphoneState> states = new ConcurrentHashMap<>();
+
+  // ##############################################################
+  // ---------------------- SERVICE METHODS -----------------------
+  // ##############################################################
 
   @Override
   public @NotNull String getId() {
@@ -36,9 +44,9 @@ public final class MegaphoneVoiceFilter implements VoiceFilter {
   }
 
   @Override
-  public short[] process(final @NotNull short[] samples, final @Nullable VPlayer player) {
+  public short[] process(final short @NonNull [] samples, final @Nullable VPlayer player) {
     final var uuid = player != null ? player.getUuid() : new UUID(0, 0);
-    final var state = this.states.computeIfAbsent(uuid, k -> new MegaphoneState());
+    final var state = this.states.computeIfAbsent(uuid, _ -> new MegaphoneState());
 
     final var output = new short[samples.length];
 
@@ -65,11 +73,11 @@ public final class MegaphoneVoiceFilter implements VoiceFilter {
       final var distorted = x * 22000.0f;
 
       // Slapback echo (megaphone horn acoustic reflection)
-      final var echo = state.getEcho(SLAP_DELAY);
+      final var echo = state.getEcho();
       state.writeEcho(distorted);
 
       final var result = (distorted * 0.85f) + (echo * 0.40f);
-      output[i] = (short) Math.max(Short.MIN_VALUE, Math.min(Short.MAX_VALUE, Math.round(result)));
+      output[i] = (short) Math.clamp(Math.round(result), Short.MIN_VALUE, Short.MAX_VALUE);
     }
 
     return output;
@@ -79,6 +87,10 @@ public final class MegaphoneVoiceFilter implements VoiceFilter {
   public void resetState(final @NotNull UUID playerUuid) {
     this.states.remove(playerUuid);
   }
+
+  // ###############################################################
+  // ----------------------- PRIVATE METHODS -----------------------
+  // ###############################################################
 
   private static final class MegaphoneState {
     float prevInput = 0.0f;
@@ -92,8 +104,8 @@ public final class MegaphoneVoiceFilter implements VoiceFilter {
       this.writeIndex = (this.writeIndex + 1) % BUFFER_SIZE;
     }
 
-    float getEcho(final int delaySamples) {
-      var readIndex = this.writeIndex - delaySamples;
+    float getEcho() {
+      var readIndex = this.writeIndex - MegaphoneVoiceFilter.SLAP_DELAY;
       if (readIndex < 0)
         readIndex += BUFFER_SIZE;
       return this.delay[readIndex];

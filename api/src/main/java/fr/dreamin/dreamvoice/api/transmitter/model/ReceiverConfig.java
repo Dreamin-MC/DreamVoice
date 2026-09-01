@@ -7,7 +7,12 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.UUID;
 
-@Getter @Setter
+/**
+ * Configuration for a point-to-point transmitter receiver.
+ * Stores target player UUID and optional maximum broadcast distance.
+ */
+@Getter
+@Setter
 public final class ReceiverConfig {
 
   private final @NotNull UUID uuid;
@@ -30,9 +35,13 @@ public final class ReceiverConfig {
   // ----------------------- PUBLIC METHODS ------------------------
   // ###############################################################
 
+  /**
+   * Checks whether this receiver has a finite maximum distance limit.
+   *
+   * @return {@code true} if distance is limited
+   */
   public boolean hasMaxDistance() {
     return this.maxDistance != null && this.maxDistance > 0;
   }
 
 }
-

@@ -10,7 +10,7 @@
   <img src="https://img.shields.io/badge/Java-25-orange.svg" alt="Java 25" />
   <img src="https://img.shields.io/badge/Paper-1.21.4-blue.svg" alt="Paper 1.21.4" />
   <img src="https://img.shields.io/badge/Simple%20Voice%20Chat-2.6.x-green.svg" alt="Simple Voice Chat" />
-  <a href="https://modrinth.com/plugin/dreamvoice"><img src="https://img.shields.io/badge/Modrinth-1.0.7-00AF5C?logo=modrinth&logoColor=white" alt="Modrinth" /></a>
+  <a href="https://modrinth.com/plugin/dreamvoice"><img src="https://img.shields.io/badge/Modrinth-1.0.8-00AF5C?logo=modrinth&logoColor=white" alt="Modrinth" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-GPL%20v3-blue.svg" alt="License: GPL v3" /></a>
 </p>
 
@@ -144,7 +144,7 @@ repositories {
 }
 
 dependencies {
-    compileOnly 'fr.dreamin:dreamvoice-api:1.0.7'
+    compileOnly 'fr.dreamin:dreamvoice-api:1.0.8'
 }
 ```
 

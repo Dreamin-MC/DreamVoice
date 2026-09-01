@@ -9,6 +9,10 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.UUID;
 
+/**
+ * Model representing a voice projection / body anchor for a player.
+ * Allows remote voice emission and remote environmental hearing (e.g. security cameras, drones, intercoms).
+ */
 @Getter
 public final class VoiceProjection {
 
@@ -55,6 +59,11 @@ public final class VoiceProjection {
     this.anchorLocation = anchorLocation;
   }
 
+  /**
+   * Resolves the current anchor coordinates, dynamically tracking the attached entity if valid.
+   *
+   * @return the active location of the anchor
+   */
   public @NotNull Location getAnchorLocation() {
     if (this.anchorEntity != null && this.anchorEntity.isValid())
       return this.anchorEntity.getLocation();

@@ -8,13 +8,29 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.Map;
 
+/**
+ * Root configuration container for DreamVoice settings and VoiceWall acoustic properties.
+ */
 @Getter
 @NoArgsConstructor
 public final class Codex {
 
-  private double distance = 16.0;
+  private final double distance = 16.0;
   private VoiceWall voiceWall;
 
+  /**
+   * VoiceWall acoustic engine configuration.
+   *
+   * @param enabled            whether VoiceWall is enabled globally
+   * @param mode               the configured occlusion mode
+   * @param airDamping         whether high-frequency distance absorption is active
+   * @param globalMultiplier   server-wide soundproofing multiplier
+   * @param defaultAttenuation fallback dB attenuation for unclassified solid blocks
+   * @param categories         dB attenuation values per material category
+   * @param overrides          explicit block-specific dB overrides
+   * @param diffraction        acoustic obstacle bypass and aperture pathfinding settings
+   * @param soundMaterials     legacy material mapping container
+   */
   public record VoiceWall(
     boolean enabled,
     @Nullable VoiceWallMode mode,
@@ -27,22 +43,42 @@ public final class Codex {
     @Nullable SoundMaterials soundMaterials
   ) {
 
+    /**
+     * Resolves the effective VoiceWall mode based on explicit mode and enabled flag.
+     *
+     * @return the resolved {@link VoiceWallMode}
+     */
     public @NotNull VoiceWallMode getEffectiveMode() {
       if (this.mode != null)
         return this.mode;
       return this.enabled ? VoiceWallMode.REALISTIC : VoiceWallMode.OFF;
     }
 
+    /**
+     * Resolves the active diffraction configuration.
+     *
+     * @return the active {@link DiffractionConfig}
+     */
     public @NotNull DiffractionConfig getDiffractionConfig() {
       if (this.diffraction != null)
         return this.diffraction;
       return DiffractionConfig.defaults();
     }
 
+    /**
+     * Gets the effective global soundproofing multiplier.
+     *
+     * @return the multiplier value (defaults to 1.0)
+     */
     public double getMultiplier() {
       return (this.globalMultiplier != null && this.globalMultiplier > 0.0) ? this.globalMultiplier : 1.0;
     }
 
+    /**
+     * Gets the fallback dB attenuation for unclassified blocks.
+     *
+     * @return the default attenuation in dB
+     */
     public double getDefaultAttenuationDb() {
       if (this.defaultAttenuation != null)
         return this.defaultAttenuation;
@@ -51,24 +87,26 @@ public final class Codex {
       return 15.0;
     }
 
+    /**
+     * Calculates the total dB attenuation for a specific Minecraft material.
+     *
+     * @param materialName the name of the material
+     * @return the total attenuation in dB
+     */
     public double getAttenuationDb(final @NotNull String materialName) {
       final var mult = getMultiplier();
       final var matUpper = materialName.toUpperCase();
 
-      // 1. Direct block override
       if (this.overrides != null && this.overrides.containsKey(matUpper))
         return this.overrides.get(matUpper) * mult;
 
-      // Legacy soundMaterials check
       if (this.soundMaterials != null && this.soundMaterials.materialAttenuation != null && this.soundMaterials.materialAttenuation.containsKey(matUpper))
         return this.soundMaterials.materialAttenuation.get(matUpper) * mult;
 
-      // 2. Smart automatic category matching
       final var catAttenuation = resolveCategoryAttenuation(matUpper);
       if (catAttenuation != null)
         return catAttenuation * mult;
 
-      // 3. Default fallback
       return getDefaultAttenuationDb() * mult;
     }
 
@@ -83,7 +121,7 @@ public final class Codex {
       return getDefaultCategoryValue(mat);
     }
 
-    private @Nullable String determineCategoryKey(final @NotNull String mat) {
+    private static @Nullable String determineCategoryKey(final @NotNull String mat) {
       if (mat.contains("GLASS") || mat.contains("PANE") || mat.contains("BEACON"))
         return "glass";
       if (mat.contains("PLANKS") || mat.contains("LOG") || mat.contains("WOOD") || mat.contains("FENCE")
@@ -112,9 +150,10 @@ public final class Codex {
       return null;
     }
 
-    private @Nullable Double getDefaultCategoryValue(final @NotNull String mat) {
+    private static @Nullable Double getDefaultCategoryValue(final @NotNull String mat) {
       final var key = determineCategoryKey(mat);
-      if (key == null) return null;
+      if (key == null)
+        return null;
       return switch (key) {
         case "glass" -> 6.0;
         case "wood" -> 10.0;
@@ -130,6 +169,9 @@ public final class Codex {
 
   }
 
+  /**
+   * Acoustic diffraction and air aperture pathfinding parameters.
+   */
   public record DiffractionConfig(
     boolean enabled,
     double maxBypassWidth,
@@ -138,11 +180,17 @@ public final class Codex {
     double diffractionLossDb,
     double lossPerMeter
   ) {
+    /**
+     * Default diffraction configuration.
+     */
     public static DiffractionConfig defaults() {
       return new DiffractionConfig(true, 2.5, 2.5, 14.0, 4.0, 1.2);
     }
   }
 
+  /**
+   * Legacy sound material container.
+   */
   public record SoundMaterials(
     Map<String, Double> materialAttenuation,
     double defaultAttenuation

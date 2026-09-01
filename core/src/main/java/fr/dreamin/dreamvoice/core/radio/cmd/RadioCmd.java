@@ -89,7 +89,7 @@ public final class RadioCmd {
       Component.text("[RADIO] Frequency channel ", NamedTextColor.GREEN)
         .append(Component.text(channel.getName().toUpperCase(), NamedTextColor.YELLOW))
         .append(Component.text(" successfully created! [Filter=", NamedTextColor.GREEN))
-        .append(Component.text(channel.getFilterId(), NamedTextColor.AQUA))
+        .append(Component.text(channel.getFilterId() != null ? channel.getFilterId() : "N/A", NamedTextColor.AQUA))
         .append(Component.text(", RogerBeep=" + (channel.isRogerBeep() ? "ON" : "OFF") + "]", NamedTextColor.DARK_GRAY))
     );
   }

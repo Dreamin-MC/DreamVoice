@@ -21,6 +21,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
+import java.util.stream.Stream;
 
 public final class DreamVoiceCmd {
 
@@ -41,7 +42,7 @@ public final class DreamVoiceCmd {
 
   @Suggestions("save_modules")
   public List<String> suggModules(final @NotNull CommandContext<CommandSender> ctx, final @NotNull String in) {
-    return List.of("all", "config", "data", "speakers", "wiretaps", "projections", "radios", "transmitters").stream()
+    return Stream.of("all", "config", "data", "speakers", "wiretaps", "projections", "radios", "transmitters")
       .filter(m -> m.startsWith(in.toLowerCase()))
       .toList();
   }

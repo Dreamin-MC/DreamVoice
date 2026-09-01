@@ -4,7 +4,19 @@ import fr.dreamin.dreamvoice.api.filter.model.VoiceFilter;
 import fr.dreamin.dreamvoice.api.filter.service.VoiceFilterService;
 import fr.dreamin.dreamvoice.api.player.service.PlayerService;
 import fr.dreamin.dreamvoice.core.DreamVoice;
-import fr.dreamin.dreamvoice.core.filter.impl.*;
+import fr.dreamin.dreamvoice.core.filter.impl.AlienVoiceFilter;
+import fr.dreamin.dreamvoice.core.filter.impl.CaveVoiceFilter;
+import fr.dreamin.dreamvoice.core.filter.impl.DeepVoiceFilter;
+import fr.dreamin.dreamvoice.core.filter.impl.DisguiseVoiceFilter;
+import fr.dreamin.dreamvoice.core.filter.impl.GasmaskVoiceFilter;
+import fr.dreamin.dreamvoice.core.filter.impl.GhostVoiceFilter;
+import fr.dreamin.dreamvoice.core.filter.impl.HeliumVoiceFilter;
+import fr.dreamin.dreamvoice.core.filter.impl.MegaphoneVoiceFilter;
+import fr.dreamin.dreamvoice.core.filter.impl.MuffledVoiceFilter;
+import fr.dreamin.dreamvoice.core.filter.impl.RadioVoiceFilter;
+import fr.dreamin.dreamvoice.core.filter.impl.RobotVoiceFilter;
+import fr.dreamin.dreamvoice.core.filter.impl.TelephoneVoiceFilter;
+import fr.dreamin.dreamvoice.core.filter.impl.UnderwaterVoiceFilter;
 import fr.dreamin.dreamvoice.core.player.manager.VoiceFilterManager;
 import org.bukkit.Bukkit;
 import org.bukkit.event.EventHandler;
@@ -12,13 +24,27 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.NonNull;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * Implementation of {@link VoiceFilterService} managing DSP audio filter registration,
+ * active per-player filter chains, and automatic environmental effects (underwater, caves).
+ */
 public final class VoiceFilterServiceImpl implements VoiceFilterService, Listener {
 
-  private final @NotNull DreamVoice plugin;
+  // ###############################################################
+  // --------------------- INSTANCE FIELDS -------------------------
+  // ###############################################################
+
   private final @NotNull PlayerService playerService;
 
   private final Map<String, VoiceFilter> registeredFilters = new ConcurrentHashMap<>();
@@ -28,7 +54,6 @@ public final class VoiceFilterServiceImpl implements VoiceFilterService, Listene
   // ###############################################################
 
   public VoiceFilterServiceImpl(final @NotNull DreamVoice plugin, final @NotNull PlayerService playerService) {
-    this.plugin = plugin;
     this.playerService = playerService;
 
     registerDefaults();
@@ -36,7 +61,7 @@ public final class VoiceFilterServiceImpl implements VoiceFilterService, Listene
   }
 
   // ###############################################################
-  // ----------------------- PUBLIC METHODS ------------------------
+  // ------------------- PUBLIC SERVICE METHODS --------------------
   // ###############################################################
 
   @Override
@@ -99,31 +124,14 @@ public final class VoiceFilterServiceImpl implements VoiceFilterService, Listene
 
     final var filters = new ArrayList<VoiceFilter>();
 
-    // Manual filters
     for (final var filterId : manager.getActiveFilterIds()) {
       final var filter = this.registeredFilters.get(filterId);
       if (filter != null)
         filters.add(filter);
     }
 
-    // Auto environment detection
-    if (manager.isAutoEnvironment()) {
-      final var bukkitPlayer = vPlayer.getBukkitPlayer();
-      if (bukkitPlayer != null && bukkitPlayer.isOnline()) {
-        final var loc = bukkitPlayer.getEyeLocation();
-        final var block = loc.getBlock();
-
-        if (block.isLiquid() && !manager.hasFilter("underwater")) {
-          final var underwater = this.registeredFilters.get("underwater");
-          if (underwater != null)
-            filters.add(underwater);
-        } else if (loc.getY() < 55 && block.getLightFromSky() == 0 && !manager.hasFilter("cave")) {
-          final var cave = this.registeredFilters.get("cave");
-          if (cave != null)
-            filters.add(cave);
-        }
-      }
-    }
+    if (manager.isAutoEnvironment())
+      resolveEnvironmentalFilters(vPlayer, manager, filters);
 
     filters.sort(Comparator.comparingInt(VoiceFilter::getPriority));
     return filters;
@@ -154,7 +162,7 @@ public final class VoiceFilterServiceImpl implements VoiceFilterService, Listene
   }
 
   @Override
-  public short[] applyFilters(final @NotNull UUID playerUuid, final @NotNull short[] samples) {
+  public short[] applyFilters(final @NotNull UUID playerUuid, final short @NonNull [] samples) {
     final var vPlayer = this.playerService.getPlayer(playerUuid);
     final var activeFilters = getActiveFilters(playerUuid);
 
@@ -169,18 +177,31 @@ public final class VoiceFilterServiceImpl implements VoiceFilterService, Listene
   }
 
   // ###############################################################
-  // ---------------------- LISTENER METHODS -----------------------
+  // ------------------- PRIVATE HELPER METHODS --------------------
   // ###############################################################
 
-  @EventHandler
-  private void onPlayerQuit(final @NotNull PlayerQuitEvent event) {
-    final var uuid = event.getPlayer().getUniqueId();
-    this.registeredFilters.values().forEach(f -> f.resetState(uuid));
+  private void resolveEnvironmentalFilters(
+    final @NotNull fr.dreamin.dreamvoice.api.player.model.VPlayer vPlayer,
+    final @NotNull VoiceFilterManager manager,
+    final @NotNull List<VoiceFilter> filters
+  ) {
+    final var bukkitPlayer = vPlayer.getBukkitPlayer();
+    if (bukkitPlayer == null || !bukkitPlayer.isOnline())
+      return;
+
+    final var loc = bukkitPlayer.getEyeLocation();
+    final var block = loc.getBlock();
+
+    if (block.isLiquid() && !manager.hasFilter("underwater")) {
+      final var underwater = this.registeredFilters.get("underwater");
+      if (underwater != null)
+        filters.add(underwater);
+    } else if (loc.getY() < 55 && block.getLightFromSky() == 0 && !manager.hasFilter("cave")) {
+      final var cave = this.registeredFilters.get("cave");
+      if (cave != null)
+        filters.add(cave);
+    }
   }
-
-  // ###############################################################
-  // ----------------------- PRIVATE METHODS -----------------------
-  // ###############################################################
 
   private void registerDefaults() {
     registerFilter(new UnderwaterVoiceFilter());
@@ -198,7 +219,14 @@ public final class VoiceFilterServiceImpl implements VoiceFilterService, Listene
     registerFilter(new DisguiseVoiceFilter());
   }
 
+  // ###############################################################
+  // ---------------------- EVENT LISTENERS ------------------------
+  // ###############################################################
+
+  @EventHandler
+  private void onPlayerQuit(final @NotNull PlayerQuitEvent event) {
+    final var uuid = event.getPlayer().getUniqueId();
+    this.registeredFilters.values().forEach(f -> f.resetState(uuid));
+  }
+
 }
-
-
-

@@ -5,7 +5,6 @@ import de.maxhenkel.voicechat.api.VoicechatServerApi;
 import de.maxhenkel.voicechat.api.VolumeCategory;
 import de.maxhenkel.voicechat.api.audiochannel.StaticAudioChannel;
 import fr.dreamin.dreamvoice.api.filter.service.VoiceFilterService;
-import fr.dreamin.dreamvoice.api.player.service.PlayerService;
 import fr.dreamin.dreamvoice.api.projection.model.VoiceProjection;
 import fr.dreamin.dreamvoice.api.projection.service.VoiceProjectionService;
 import fr.dreamin.dreamvoice.api.voice.event.MicrophonePacketEvent;
@@ -26,14 +25,31 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
-
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * Implementation of {@link VoiceProjectionService} managing body anchors,
+ * remote acoustic projection, bidirectional listening, and persistence.
+ */
 public final class VoiceProjectionServiceImpl implements VoiceProjectionService, Listener {
+
+  // ###############################################################
+  // ----------------------- STATIC FIELDS -------------------------
+  // ###############################################################
+
+  private static final long CLEANUP_INTERVAL_TICKS = 600L;
+  private static final long INACTIVITY_TIMEOUT_MS = 30000L;
+  private static final String CATEGORY_ID = "proj_volume";
+  private static final String CATEGORY_NAME = "Projection / Body Anchor";
+  private static final String CATEGORY_DESC = "Volume for body anchor voice projections and camera listening";
+
+  // ###############################################################
+  // --------------------- INSTANCE FIELDS -------------------------
+  // ###############################################################
 
   private final @NotNull DreamVoice plugin;
   private @NotNull VoicechatServerApi api;
@@ -44,32 +60,28 @@ public final class VoiceProjectionServiceImpl implements VoiceProjectionService,
   private final @NotNull Map<String, Long> lastChannelActivity = new ConcurrentHashMap<>();
   private boolean voiceServiceMissingLogged = false;
 
+  // ###############################################################
+  // --------------------- CONSTRUCTOR METHODS ---------------------
+  // ###############################################################
+
   public VoiceProjectionServiceImpl(final @NotNull DreamVoice plugin) {
     this.plugin = plugin;
     Bukkit.getPluginManager().registerEvents(this, plugin);
-    Bukkit.getScheduler().runTaskTimer(plugin, this::cleanupIdleChannels, 600L, 600L);
+    Bukkit.getScheduler().runTaskTimer(plugin, this::cleanupIdleChannels, CLEANUP_INTERVAL_TICKS, CLEANUP_INTERVAL_TICKS);
   }
 
-  private void cleanupIdleChannels() {
-    final var now = System.currentTimeMillis();
-    this.lastChannelActivity.entrySet().removeIf(entry -> {
-      if (now - entry.getValue() > 30000L) {
-        this.playerAudioChannels.remove(entry.getKey());
-        return true;
-      }
-      return false;
-    });
-  }
-
+  // ###############################################################
+  // ------------------- PUBLIC SERVICE METHODS --------------------
+  // ###############################################################
 
   @Override
   public void init(final @NotNull VoicechatServerApi api) {
     this.api = api;
 
     this.volumeCategory = this.api.volumeCategoryBuilder()
-      .setId("proj_volume")
-      .setName("Projection / Body Anchor")
-      .setDescription("Volume for body anchor voice projections and camera listening")
+      .setId(CATEGORY_ID)
+      .setName(CATEGORY_NAME)
+      .setDescription(CATEGORY_DESC)
       .build();
 
     this.api.registerVolumeCategory(this.volumeCategory);
@@ -153,6 +165,21 @@ public final class VoiceProjectionServiceImpl implements VoiceProjectionService,
     ProjectionsPersistence.load(this, new File(this.plugin.getDataFolder(), "data"));
   }
 
+  // ###############################################################
+  // ------------------- PRIVATE HELPER METHODS --------------------
+  // ###############################################################
+
+  private void cleanupIdleChannels() {
+    final var now = System.currentTimeMillis();
+    this.lastChannelActivity.entrySet().removeIf(entry -> {
+      if (now - entry.getValue() > INACTIVITY_TIMEOUT_MS) {
+        this.playerAudioChannels.remove(entry.getKey());
+        return true;
+      }
+      return false;
+    });
+  }
+
   private @Nullable StaticAudioChannel getOrCreateChannel(final @NotNull String streamKey, final @NotNull VoicechatConnection conn) {
     return this.playerAudioChannels.computeIfAbsent(streamKey, id -> {
       final var ch = this.api.createStaticAudioChannel(UUID.randomUUID());
@@ -165,9 +192,166 @@ public final class VoiceProjectionServiceImpl implements VoiceProjectionService,
     });
   }
 
+  private void routeOwnerVoiceToAnchorListeners(
+    final @NotNull VoiceProjection proj,
+    final @NotNull UUID senderUuid,
+    final byte[] rawOpus,
+    final @NotNull VoiceService voiceService,
+    final @Nullable VoiceWallService wallService,
+    final @Nullable VoiceFilterService filterService
+  ) {
+    final var anchorLoc = proj.getAnchorLocation();
+    final var anchorWorld = anchorLoc.getWorld();
+    if (anchorWorld == null)
+      return;
+
+    for (final var listener : Bukkit.getOnlinePlayers()) {
+      if (listener.getUniqueId().equals(senderUuid) || !listener.getWorld().equals(anchorWorld))
+        continue;
+
+      final var dist = anchorLoc.distance(listener.getLocation());
+      if (dist > proj.getDistance())
+        continue;
+
+      final var listenerConn = this.api.getConnectionOf(listener.getUniqueId());
+      if (listenerConn == null)
+        continue;
+
+      var totalDbLoss = 0.0;
+      if (proj.isApplyVoiceWall() && wallService != null && wallService.isEnable()) {
+        final var ray = VoiceRayCast.check(anchorLoc, listener);
+        if (ray.isBlocked())
+          totalDbLoss = ray.totalAttenuation();
+      }
+
+      if (totalDbLoss >= 99.0)
+        continue;
+
+      transmitProjectedPacket(
+        senderUuid,
+        listener.getUniqueId(),
+        listenerConn,
+        rawOpus,
+        proj.getFilterId(),
+        dist,
+        proj.getDistance(),
+        totalDbLoss,
+        voiceService,
+        wallService,
+        filterService,
+        "proj_out:" + senderUuid + ":" + listener.getUniqueId()
+      );
+    }
+  }
+
+  private void routeAnchorEnvironmentToOwner(
+    final @NotNull VoiceProjection proj,
+    final @NotNull Player senderPlayer,
+    final @NotNull UUID senderUuid,
+    final byte[] rawOpus,
+    final @NotNull VoiceService voiceService,
+    final @Nullable VoiceWallService wallService,
+    final @Nullable VoiceFilterService filterService
+  ) {
+    final var anchorLoc = proj.getAnchorLocation();
+    if (!senderPlayer.getWorld().equals(anchorLoc.getWorld()))
+      return;
+
+    final var dist = senderPlayer.getLocation().distance(anchorLoc);
+    if (dist > proj.getDistance())
+      return;
+
+    final var ownerConn = this.api.getConnectionOf(proj.getPlayerUuid());
+    if (ownerConn == null)
+      return;
+
+    var totalDbLoss = 0.0;
+    if (proj.isApplyVoiceWall() && wallService != null && wallService.isEnable()) {
+      final var ray = VoiceRayCast.check(senderPlayer.getEyeLocation(), anchorLoc);
+      if (ray.isBlocked())
+        totalDbLoss = ray.totalAttenuation();
+    }
+
+    if (totalDbLoss >= 99.0)
+      return;
+
+    transmitProjectedPacket(
+      senderUuid,
+      proj.getPlayerUuid(),
+      ownerConn,
+      rawOpus,
+      null,
+      dist,
+      proj.getDistance(),
+      totalDbLoss,
+      voiceService,
+      wallService,
+      filterService,
+      "proj_in:" + senderUuid + ":" + proj.getPlayerUuid()
+    );
+  }
+
+  private void transmitProjectedPacket(
+    final @NotNull UUID senderUuid,
+    final @NotNull UUID receiverUuid,
+    final @NotNull VoicechatConnection receiverConn,
+    final byte[] rawOpus,
+    final @Nullable String customFilterId,
+    final double dist,
+    final double maxDist,
+    final double totalDbLoss,
+    final @NotNull VoiceService voiceService,
+    final @Nullable VoiceWallService wallService,
+    final @Nullable VoiceFilterService filterService,
+    final @NotNull String streamKey
+  ) {
+    try {
+      final var decoder = voiceService.getDecoder(senderUuid);
+      final var encoder = voiceService.getEncoder(senderUuid);
+      final var pcm = decoder.decode(rawOpus);
+      if (pcm == null || pcm.length == 0)
+        return;
+
+      var processed = pcm;
+      if (customFilterId != null && filterService != null && !customFilterId.equalsIgnoreCase("none")) {
+        final var filter = filterService.getFilter(customFilterId);
+        if (filter != null)
+          processed = filter.process(processed, null);
+      } else if (filterService != null && filterService.hasActiveFilters(senderUuid))
+        processed = filterService.applyFilters(senderUuid, processed);
+
+      final var distRatio = Math.min(1.0, dist / maxDist);
+      final var distGain = (float) Math.max(0.05, 1.0 - (distRatio * 0.85));
+      final var wallGain = (float) Math.pow(10.0, -totalDbLoss / 20.0);
+      final var combinedGain = wallGain * distGain;
+
+      for (int i = 0; i < processed.length; i++)
+        processed[i] = (short) Math.max(Short.MIN_VALUE, Math.min(Short.MAX_VALUE, Math.round(processed[i] * combinedGain)));
+
+      if (wallService != null && wallService.isAirDampingEnabled() && dist > 5.0) {
+        final var alpha = Math.max(0.10f, 1.0f - (float) (dist - 5.0) * 0.038f);
+        var smooth = (float) processed[0];
+        for (int i = 0; i < processed.length; i++) {
+          smooth = smooth + alpha * (processed[i] - smooth);
+          processed[i] = (short) Math.max(Short.MIN_VALUE, Math.min(Short.MAX_VALUE, Math.round(smooth)));
+        }
+      }
+
+      processed = AudioLimiter.process(processed);
+
+      final var newOpus = encoder.encode(processed);
+      final var ch = getOrCreateChannel(streamKey, receiverConn);
+      if (ch != null) {
+        ch.send(newOpus);
+        this.lastChannelActivity.put(streamKey, System.currentTimeMillis());
+      }
+    } catch (Exception e) {
+      this.plugin.getLogger().warning("Failed to transmit projected packet (sender=" + senderUuid + ", receiver=" + receiverUuid + "): " + e.getMessage());
+    }
+  }
 
   // ###############################################################
-  // ---------------------- LISTENER METHODS -----------------------
+  // ---------------------- EVENT LISTENERS ------------------------
   // ###############################################################
 
   @EventHandler
@@ -196,180 +380,20 @@ public final class VoiceProjectionServiceImpl implements VoiceProjectionService,
       return;
     }
 
-    // =========================================================================
-    // Case 1: The speaker HAS a Projection (Player is speaking from camera/view)
-    // -> Emit voice at Body Anchor location
-    // =========================================================================
     final var ownerProjection = this.projections.get(senderUuid);
-    if (ownerProjection != null && ownerProjection.isEmitVoiceAtAnchor()) {
-      final var anchorLoc = ownerProjection.getAnchorLocation();
-      final var anchorWorld = anchorLoc.getWorld();
+    if (ownerProjection != null && ownerProjection.isEmitVoiceAtAnchor())
+      routeOwnerVoiceToAnchorListeners(ownerProjection, senderUuid, rawOpus, voiceService, wallService, filterService);
 
-      if (anchorWorld != null) {
-        for (final var listener : Bukkit.getOnlinePlayers()) {
-          if (listener.getUniqueId().equals(senderUuid))
-            continue;
-          if (!listener.getWorld().equals(anchorWorld))
-            continue;
-
-          final var dist = anchorLoc.distance(listener.getLocation());
-          if (dist > ownerProjection.getDistance())
-            continue;
-
-          final var listenerConn = this.api.getConnectionOf(listener.getUniqueId());
-          if (listenerConn == null)
-            continue;
-
-          // Raycast attenuation from Anchor to Listener
-          var totalDbLoss = 0.0;
-          if (ownerProjection.isApplyVoiceWall() && wallService != null && wallService.isEnable()) {
-            final var ray = VoiceRayCast.check(anchorLoc, listener);
-            if (ray.isBlocked())
-              totalDbLoss = ray.totalAttenuation();
-          }
-
-          if (totalDbLoss >= 99.0)
-            continue; // completely blocked
-
-          // Distance falloff attenuation
-          final var distRatio = Math.min(1.0, dist / ownerProjection.getDistance());
-          final var distGain = (float) Math.max(0.05, 1.0 - (distRatio * 0.85));
-
-          try {
-            final var decoder = voiceService.getDecoder(senderUuid);
-            final var encoder = voiceService.getEncoder(senderUuid);
-            final var pcm = decoder.decode(rawOpus);
-            if (pcm != null && pcm.length > 0) {
-              var processed = pcm;
-
-              // Apply filter if specified on projection or player
-              final var filterId = ownerProjection.getFilterId();
-              if (filterId != null && filterService != null && !filterId.equalsIgnoreCase("none")) {
-                final var filter = filterService.getFilter(filterId);
-                if (filter != null)
-                  processed = filter.process(processed, null);
-              } else if (filterService != null && filterService.hasActiveFilters(senderUuid)) {
-                processed = filterService.applyFilters(senderUuid, processed);
-              }
-
-              // Apply gain
-              final var wallGain = (float) Math.pow(10.0, -totalDbLoss / 20.0);
-              final var combinedGain = wallGain * distGain;
-              for (int i = 0; i < processed.length; i++) {
-                processed[i] = (short) Math.max(Short.MIN_VALUE, Math.min(Short.MAX_VALUE, Math.round(processed[i] * combinedGain)));
-              }
-
-              // Air damping
-              if (wallService != null && wallService.isAirDampingEnabled() && dist > 5.0) {
-                final var alpha = Math.max(0.10f, 1.0f - (float) (dist - 5.0) * 0.038f);
-                var smooth = (float) processed[0];
-                for (int i = 0; i < processed.length; i++) {
-                  smooth = smooth + alpha * (processed[i] - smooth);
-                  processed[i] = (short) Math.max(Short.MIN_VALUE, Math.min(Short.MAX_VALUE, Math.round(smooth)));
-                }
-              }
-
-              // Soft limiter
-              processed = AudioLimiter.process(processed);
-
-              final var newOpus = encoder.encode(processed);
-              final var streamKey = "proj_out:" + senderUuid + ":" + listener.getUniqueId();
-              final var ch = getOrCreateChannel(streamKey, listenerConn);
-              if (ch != null) {
-                ch.send(newOpus);
-                this.lastChannelActivity.put(streamKey, System.currentTimeMillis());
-              }
-            }
-          } catch (Exception exception) {
-            this.plugin.getLogger().warning("Failed to project owner voice from anchor (owner=" + ownerProjection.getPlayerUuid() + ", sender=" + senderUuid + ", listener=" + listener.getUniqueId() + "): " + exception.getMessage());
-          }
-        }
-      }
-    }
-
-    // =========================================================================
-    // Case 2: Another player is speaking near a Projection's Body Anchor
-    // -> Transmit sound to the Projection owner (in remote camera/drone view)
-    // =========================================================================
     for (final var proj : this.projections.values()) {
-      if (proj.getPlayerUuid().equals(senderUuid))
-        continue; // handled above
-      if (!proj.isHearAnchorEnvironment())
+      if (proj.getPlayerUuid().equals(senderUuid) || !proj.isHearAnchorEnvironment())
         continue;
-
-      final var anchorLoc = proj.getAnchorLocation();
-      if (!senderPlayer.getWorld().equals(anchorLoc.getWorld()))
-        continue;
-
-      final var dist = senderPlayer.getLocation().distance(anchorLoc);
-      if (dist > proj.getDistance())
-        continue;
-
-      final var ownerConn = this.api.getConnectionOf(proj.getPlayerUuid());
-      if (ownerConn == null)
-        continue;
-
-      // Raycast attenuation between Speaker and Anchor
-      var totalDbLoss = 0.0;
-      if (proj.isApplyVoiceWall() && wallService != null && wallService.isEnable()) {
-        final var ray = VoiceRayCast.check(senderPlayer.getEyeLocation(), anchorLoc);
-        if (ray.isBlocked())
-          totalDbLoss = ray.totalAttenuation();
-      }
-
-      if (totalDbLoss >= 99.0)
-        continue;
-
-      final var distRatio = Math.min(1.0, dist / proj.getDistance());
-      final var distGain = (float) Math.max(0.05, 1.0 - (distRatio * 0.85));
-
-      try {
-        final var decoder = voiceService.getDecoder(senderUuid);
-        final var encoder = voiceService.getEncoder(senderUuid);
-        final var pcm = decoder.decode(rawOpus);
-        if (pcm != null && pcm.length > 0) {
-          var processed = pcm;
-
-          if (filterService != null && filterService.hasActiveFilters(senderUuid))
-            processed = filterService.applyFilters(senderUuid, processed);
-
-          final var wallGain = (float) Math.pow(10.0, -totalDbLoss / 20.0);
-          final var combinedGain = wallGain * distGain;
-          for (int i = 0; i < processed.length; i++) {
-            processed[i] = (short) Math.max(Short.MIN_VALUE, Math.min(Short.MAX_VALUE, Math.round(processed[i] * combinedGain)));
-          }
-
-          if (wallService != null && wallService.isAirDampingEnabled() && dist > 5.0) {
-            final var alpha = Math.max(0.10f, 1.0f - (float) (dist - 5.0) * 0.038f);
-            var smooth = (float) processed[0];
-            for (int i = 0; i < processed.length; i++) {
-              smooth = smooth + alpha * (processed[i] - smooth);
-              processed[i] = (short) Math.max(Short.MIN_VALUE, Math.min(Short.MAX_VALUE, Math.round(smooth)));
-            }
-          }
-
-          // Soft limiter
-          processed = AudioLimiter.process(processed);
-
-          final var newOpus = encoder.encode(processed);
-          final var streamKey = "proj_in:" + senderUuid + ":" + proj.getPlayerUuid();
-          final var ch = getOrCreateChannel(streamKey, ownerConn);
-          if (ch != null) {
-            ch.send(newOpus);
-            this.lastChannelActivity.put(streamKey, System.currentTimeMillis());
-          }
-        }
-      } catch (Exception exception) {
-        this.plugin.getLogger().warning("Failed to project anchor environment voice to owner (owner=" + proj.getPlayerUuid() + ", sender=" + senderUuid + "): " + exception.getMessage());
-      }
+      routeAnchorEnvironmentToOwner(proj, senderPlayer, senderUuid, rawOpus, voiceService, wallService, filterService);
     }
-
   }
 
   @EventHandler
   private void onPlayerQuit(final @NotNull PlayerQuitEvent event) {
     removeProjection(event.getPlayer().getUniqueId());
   }
-
 
 }

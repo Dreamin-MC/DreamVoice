@@ -24,7 +24,7 @@ public final class RawUtils {
 
   private static final HttpClient HTTP_CLIENT = HttpClient.newHttpClient();
 
-  public static byte[] mp3toPcm48Hz(final @NotNull byte[] mp3Data) throws Exception {
+  public static byte[] mp3toPcm48Hz(final byte @NotNull [] mp3Data) throws Exception {
     final var tempMp3 = Files.createTempFile("audio", ".mp3");
     try {
       Files.write(tempMp3, mp3Data);
@@ -47,7 +47,7 @@ public final class RawUtils {
     }
   }
 
-  private static byte[] urlToPcm48HzFFmpeg(final @NotNull byte[] mp3Data) throws Exception {
+  private static byte[] urlToPcm48HzFFmpeg(final byte @NotNull [] mp3Data) throws Exception {
     final var tempMp3 = Files.createTempFile("ffmpeg_in", ".mp3");
     final var tempPcm = Files.createTempFile("ffmpeg_out", ".pcm");
 
@@ -101,7 +101,7 @@ public final class RawUtils {
     return buffer.array();
   }
 
-  public static short[] bytesToShorts(final @NotNull byte[] pcmBytes) {
+  public static short[] bytesToShorts(final byte @NotNull [] pcmBytes) {
     if (pcmBytes.length < 2)
       return new short[0];
 
@@ -121,7 +121,7 @@ public final class RawUtils {
     return bytesToShorts(pcm);
   }
 
-  public static byte[] oggToPcm48Hz(final @NotNull byte[] oggPath) throws Exception {
+  public static byte[] oggToPcm48Hz(final byte @NotNull [] oggPath) throws Exception {
     return mp3toPcm48Hz(oggPath);
   }
 

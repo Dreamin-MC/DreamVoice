@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import fr.dreamin.dreamapi.api.config.Configurations;
 import fr.dreamin.dreamvoice.api.projection.model.VoiceProjection;
 import fr.dreamin.dreamvoice.api.projection.service.VoiceProjectionService;
+import fr.dreamin.dreamvoice.core.DreamVoice;
 import fr.dreamin.dreamvoice.core.storage.model.LocationData;
 import org.bukkit.Bukkit;
 import org.jetbrains.annotations.NotNull;
@@ -62,7 +63,7 @@ public final class ProjectionsPersistence {
     try {
       Configurations.saveJson(file, dataList);
     } catch (Exception e) {
-      Bukkit.getLogger().severe("[DreamVoice] Error saving projections: " + e.getMessage());
+      DreamVoice.getInstance().getLogger().severe("[DreamVoice] Error saving projections: " + e.getMessage());
     }
   }
 
@@ -107,7 +108,7 @@ public final class ProjectionsPersistence {
         service.register(projection);
       }
     } catch (Exception e) {
-      Bukkit.getLogger().severe("[DreamVoice] Error loading projections: " + e.getMessage());
+      DreamVoice.getInstance().getLogger().severe("[DreamVoice] Error loading projections: " + e.getMessage());
     }
   }
 

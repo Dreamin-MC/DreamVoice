@@ -15,14 +15,19 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jspecify.annotations.NonNull;
 
-
 import java.util.Collections;
 import java.util.List;
 
+/**
+ * Acoustic raycasting engine computing sound propagation, wall attenuation, and diffraction bypasses.
+ */
 public final class VoiceRayCast {
 
+  // ###############################################################
+  // ----------------------- STATIC FIELDS -------------------------
+  // ###############################################################
+
   public static final double[] TARGET_HEIGHTS = { 1.62, 1.00, 0.20 };
-  public static final double ATTENUATION_TRANSPARENT_THRESHOLD = 5.0;
   private static boolean codexServiceMissingLoggedForCheck;
   private static boolean codexServiceMissingLoggedForPolicy;
 
@@ -58,10 +63,6 @@ public final class VoiceRayCast {
     return checkLocations(from, to);
   }
 
-  public static boolean hasLineOfSight(final @NotNull Player speaker, final @NotNull Player listener) {
-    return check(speaker, listener).lineOfSight();
-  }
-
   public static boolean hasLineOfSight(final @NotNull Location from, final @NotNull Player listener) {
     return check(from, listener).lineOfSight();
   }
@@ -71,8 +72,6 @@ public final class VoiceRayCast {
   }
 
   public static boolean hitsTargetAtAnyHeight(final @NotNull Location startLoc, final @NotNull Location targetLoc, final @NotNull World world, final double distance) {
-    final var policy = getSoundPolicy();
-
     for (final var h : TARGET_HEIGHTS) {
       final var start = startLoc.clone().add(0, h, 0);
       final var target = targetLoc.clone().add(0, h, 0);
@@ -87,10 +86,6 @@ public final class VoiceRayCast {
       final var fullBlockHit = world.rayTraceBlocks(start, direction, rayDistance, FluidCollisionMode.NEVER, true);
       if (fullBlockHit == null || fullBlockHit.getHitBlock() == null)
         return true;
-
-      final var blockingMat = policy.getAttenuationDb(fullBlockHit.getHitBlock().getType());
-      if (blockingMat < ATTENUATION_TRANSPARENT_THRESHOLD)
-        continue;
     }
 
     return false;

@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import fr.dreamin.dreamapi.api.config.Configurations;
 import fr.dreamin.dreamvoice.api.wiretap.model.VoiceWiretap;
 import fr.dreamin.dreamvoice.api.wiretap.service.VoiceWiretapService;
+import fr.dreamin.dreamvoice.core.DreamVoice;
 import fr.dreamin.dreamvoice.core.storage.model.LocationData;
 import org.bukkit.Bukkit;
 import org.jetbrains.annotations.NotNull;
@@ -57,7 +58,7 @@ public final class WiretapsPersistence {
     try {
       Configurations.saveJson(file, dataList);
     } catch (Exception e) {
-      Bukkit.getLogger().severe("[DreamVoice] Error saving wiretaps: " + e.getMessage());
+      DreamVoice.getInstance().getLogger().severe("[DreamVoice] Error saving wiretaps: " + e.getMessage());
     }
   }
 
@@ -102,7 +103,7 @@ public final class WiretapsPersistence {
         service.register(wiretap);
       }
     } catch (Exception e) {
-      Bukkit.getLogger().severe("[DreamVoice] Error loading wiretaps: " + e.getMessage());
+      DreamVoice.getInstance().getLogger().severe("[DreamVoice] Error loading wiretaps: " + e.getMessage());
     }
   }
 

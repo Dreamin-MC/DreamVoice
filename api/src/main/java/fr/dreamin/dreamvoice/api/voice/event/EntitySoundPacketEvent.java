@@ -8,6 +8,9 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.jetbrains.annotations.NotNull;
 
+/**
+ * Event fired when an EntitySoundPacket (positional player speech) is intercepted from Simple Voice Chat.
+ */
 @Getter
 @RequiredArgsConstructor
 public final class EntitySoundPacketEvent extends ToolsEvent {

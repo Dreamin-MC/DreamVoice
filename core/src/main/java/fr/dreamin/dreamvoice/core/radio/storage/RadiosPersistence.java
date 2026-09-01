@@ -2,9 +2,8 @@ package fr.dreamin.dreamvoice.core.radio.storage;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import fr.dreamin.dreamapi.api.config.Configurations;
-import fr.dreamin.dreamvoice.api.radio.model.RadioChannel;
 import fr.dreamin.dreamvoice.api.radio.service.VoiceRadioService;
-import org.bukkit.Bukkit;
+import fr.dreamin.dreamvoice.core.DreamVoice;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
@@ -41,7 +40,7 @@ public final class RadiosPersistence {
     try {
       Configurations.saveJson(file, dataList);
     } catch (Exception e) {
-      Bukkit.getLogger().severe("[DreamVoice] Error saving radios: " + e.getMessage());
+      DreamVoice.getInstance().getLogger().severe("[DreamVoice] Error saving radios: " + e.getMessage());
     }
   }
 
@@ -68,7 +67,7 @@ public final class RadiosPersistence {
             channel.addMember(member);
       }
     } catch (Exception e) {
-      Bukkit.getLogger().severe("[DreamVoice] Error loading radios: " + e.getMessage());
+      DreamVoice.getInstance().getLogger().severe("[DreamVoice] Error loading radios: " + e.getMessage());
     }
   }
 

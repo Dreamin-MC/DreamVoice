@@ -97,7 +97,7 @@ public final class DreamVoice extends DreamPlugin implements Listener {
     final var voiceWallService = new VoiceWallServiceImpl(this, playerService);
     final var persistenceService = new VoicePersistenceServiceImpl(this);
     final var codexService = new CodexServiceImpl(this, voiceWallService);
-    final var voiceService = new VoiceServiceImpl(this, codexService, playerService, voiceWallService);
+    final var voiceService = new VoiceServiceImpl(this, playerService, voiceWallService);
 
     Bukkit.getServicesManager().register(CodexService.class, codexService, this, ServicePriority.Normal);
     Bukkit.getServicesManager().register(PlayerService.class, playerService, this, ServicePriority.Normal);

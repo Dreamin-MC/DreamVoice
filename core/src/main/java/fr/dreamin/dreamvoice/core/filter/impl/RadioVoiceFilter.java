@@ -4,11 +4,15 @@ import fr.dreamin.dreamvoice.api.filter.model.VoiceFilter;
 import fr.dreamin.dreamvoice.api.player.model.VPlayer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.NonNull;
 
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * DSP audio filter simulating a military/police walkie-talkie radio with 10-bit quantization and saturation.
+ */
 public final class RadioVoiceFilter implements VoiceFilter {
 
   // High-pass 300Hz, Low-pass 3400Hz at 48kHz
@@ -16,6 +20,10 @@ public final class RadioVoiceFilter implements VoiceFilter {
   private static final float LP_ALPHA = 0.360f;
 
   private final Map<UUID, FilterState> states = new ConcurrentHashMap<>();
+
+  // ##############################################################
+  // ---------------------- SERVICE METHODS -----------------------
+  // ##############################################################
 
   @Override
   public @NotNull String getId() {
@@ -33,9 +41,9 @@ public final class RadioVoiceFilter implements VoiceFilter {
   }
 
   @Override
-  public short[] process(final @NotNull short[] samples, final @Nullable VPlayer player) {
+  public short[] process(final short @NonNull [] samples, final @Nullable VPlayer player) {
     final var uuid = player != null ? player.getUuid() : new UUID(0, 0);
-    final var state = this.states.computeIfAbsent(uuid, k -> new FilterState());
+    final var state = this.states.computeIfAbsent(uuid, _ -> new FilterState());
 
     final var output = new short[samples.length];
 
@@ -61,17 +69,20 @@ public final class RadioVoiceFilter implements VoiceFilter {
         x = x - (x * x * x) / 3.0f;
 
       final var result = x * 24000.0f;
-      output[i] = (short) Math.max(Short.MIN_VALUE, Math.min(Short.MAX_VALUE, Math.round(result)));
+      output[i] = (short) Math.clamp(Math.round(result), Short.MIN_VALUE, Short.MAX_VALUE);
     }
 
     return output;
   }
 
-
   @Override
   public void resetState(final @NotNull UUID playerUuid) {
     this.states.remove(playerUuid);
   }
+
+  // ###############################################################
+  // ----------------------- PRIVATE METHODS -----------------------
+  // ###############################################################
 
   private static final class FilterState {
     float prevInput = 0.0f;

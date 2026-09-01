@@ -4,15 +4,28 @@ import fr.dreamin.dreamvoice.api.filter.model.VoiceFilter;
 import fr.dreamin.dreamvoice.api.player.model.VPlayer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.NonNull;
 
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * DSP audio filter simulating underwater acoustics with 4-pole low-pass filtering and turbulence LFOs.
+ */
 public final class UnderwaterVoiceFilter implements VoiceFilter {
 
   private static final float BASE_ALPHA = 0.038f; // ~280Hz cutoff at 48kHz
+  private static final double SAMPLE_RATE = 48000.0;
+  private static final double TWO_PI = 2.0 * Math.PI;
+  private static final double LFO1_INC = (TWO_PI * 3.2) / SAMPLE_RATE;
+  private static final double LFO2_INC = (TWO_PI * 7.8) / SAMPLE_RATE;
+
   private final Map<UUID, UnderwaterState> states = new ConcurrentHashMap<>();
+
+  // ##############################################################
+  // ---------------------- SERVICE METHODS -----------------------
+  // ##############################################################
 
   @Override
   public @NotNull String getId() {
@@ -30,21 +43,19 @@ public final class UnderwaterVoiceFilter implements VoiceFilter {
   }
 
   @Override
-  public short[] process(final @NotNull short[] samples, final @Nullable VPlayer player) {
+  public short[] process(final short @NonNull [] samples, final @Nullable VPlayer player) {
     final var output = new short[samples.length];
     final var uuid = player != null ? player.getUuid() : new UUID(0, 0);
-    final var state = this.states.computeIfAbsent(uuid, k -> new UnderwaterState());
+    final var state = this.states.computeIfAbsent(uuid, _ -> new UnderwaterState());
 
     for (int i = 0; i < samples.length; i++) {
-      // Primary slow water motion LFO (~3.2 Hz)
-      state.lfoPhase1 += (2.0 * Math.PI * 3.2 / 48000.0);
-      if (state.lfoPhase1 >= 2.0 * Math.PI)
-        state.lfoPhase1 -= 2.0 * Math.PI;
+      state.lfoPhase1 += LFO1_INC;
+      if (state.lfoPhase1 >= TWO_PI)
+        state.lfoPhase1 -= TWO_PI;
 
-      // Secondary fast bubbling turbulence LFO (~7.8 Hz)
-      state.lfoPhase2 += (2.0 * Math.PI * 7.8 / 48000.0);
-      if (state.lfoPhase2 >= 2.0 * Math.PI)
-        state.lfoPhase2 -= 2.0 * Math.PI;
+      state.lfoPhase2 += LFO2_INC;
+      if (state.lfoPhase2 >= TWO_PI)
+        state.lfoPhase2 -= TWO_PI;
 
       final var alphaMod = BASE_ALPHA * (0.85f + 0.30f * (float) Math.sin(state.lfoPhase1));
 
@@ -58,7 +69,7 @@ public final class UnderwaterVoiceFilter implements VoiceFilter {
       final var bubble = 0.65f + 0.25f * (float) Math.sin(state.lfoPhase1) + 0.15f * (float) Math.sin(state.lfoPhase2);
       final var out = state.p4 * bubble * 2.2f;
 
-      output[i] = (short) Math.max(Short.MIN_VALUE, Math.min(Short.MAX_VALUE, Math.round(out)));
+      output[i] = (short) Math.clamp(Math.round(out), Short.MIN_VALUE, Short.MAX_VALUE);
     }
 
     return output;
@@ -68,6 +79,10 @@ public final class UnderwaterVoiceFilter implements VoiceFilter {
   public void resetState(final @NotNull UUID playerUuid) {
     this.states.remove(playerUuid);
   }
+
+  // ###############################################################
+  // ----------------------- PRIVATE METHODS -----------------------
+  // ###############################################################
 
   private static final class UnderwaterState {
     float p1 = 0.0f;
@@ -79,5 +94,3 @@ public final class UnderwaterVoiceFilter implements VoiceFilter {
   }
 
 }
-
-

@@ -1,6 +1,5 @@
 package fr.dreamin.dreamvoice.core.wiretap.service;
 
-import de.maxhenkel.voicechat.api.VoicechatConnection;
 import de.maxhenkel.voicechat.api.VoicechatServerApi;
 import de.maxhenkel.voicechat.api.VolumeCategory;
 import de.maxhenkel.voicechat.api.audiochannel.StaticAudioChannel;
@@ -20,6 +19,7 @@ import fr.dreamin.dreamvoice.core.wiretap.storage.WiretapsPersistence;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerQuitEvent;
@@ -30,10 +30,29 @@ import java.io.File;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * Implementation of {@link VoiceWiretapService} managing spy microphones,
+ * mobile bug tracking, covert eavesdropping streams, and direct cassette recording.
+ */
 public final class VoiceWiretapServiceImpl implements VoiceWiretapService, Listener {
+
+  // ###############################################################
+  // ----------------------- STATIC FIELDS -------------------------
+  // ###############################################################
+
+  private static final long CLEANUP_INTERVAL_TICKS = 600L;
+  private static final long INACTIVITY_TIMEOUT_MS = 30000L;
+  private static final String CATEGORY_ID = "wiretap_vol";
+  private static final String CATEGORY_NAME = "Wiretap / Bug";
+  private static final String CATEGORY_DESC = "Volume for hidden wiretaps and listening bugs";
+
+  // ###############################################################
+  // --------------------- INSTANCE FIELDS -------------------------
+  // ###############################################################
 
   private final @NotNull DreamVoice plugin;
   private @NotNull VoicechatServerApi api;
@@ -45,22 +64,28 @@ public final class VoiceWiretapServiceImpl implements VoiceWiretapService, Liste
   private boolean recordingServiceMissingLogged = false;
   private boolean voiceServiceMissingLogged = false;
 
+  // ###############################################################
+  // --------------------- CONSTRUCTOR METHODS ---------------------
+  // ###############################################################
+
   public VoiceWiretapServiceImpl(final @NotNull DreamVoice plugin) {
     this.plugin = plugin;
     Bukkit.getPluginManager().registerEvents(this, plugin);
-
-    // Periodic GC cleaner for idle channels (every 30 seconds)
-    Bukkit.getScheduler().runTaskTimer(plugin, this::cleanupIdleChannels, 600L, 600L);
+    Bukkit.getScheduler().runTaskTimer(plugin, this::cleanupIdleChannels, CLEANUP_INTERVAL_TICKS, CLEANUP_INTERVAL_TICKS);
   }
+
+  // ###############################################################
+  // ------------------- PUBLIC SERVICE METHODS --------------------
+  // ###############################################################
 
   @Override
   public void init(final @NotNull VoicechatServerApi api) {
     this.api = api;
 
     this.volumeCategory = this.api.volumeCategoryBuilder()
-      .setId("wiretap_vol")
-      .setName("Wiretap / Bug")
-      .setDescription("Volume for hidden wiretaps and listening bugs")
+      .setId(CATEGORY_ID)
+      .setName(CATEGORY_NAME)
+      .setDescription(CATEGORY_DESC)
       .build();
 
     this.api.registerVolumeCategory(this.volumeCategory);
@@ -100,7 +125,6 @@ public final class VoiceWiretapServiceImpl implements VoiceWiretapService, Liste
       wt.setTargetEntity(null);
     }
   }
-
 
   @Override
   public void register(final @NotNull VoiceWiretap wiretap) {
@@ -203,10 +227,14 @@ public final class VoiceWiretapServiceImpl implements VoiceWiretapService, Liste
     WiretapsPersistence.load(this, new File(this.plugin.getDataFolder(), "data"));
   }
 
+  // ###############################################################
+  // ------------------- PRIVATE HELPER METHODS --------------------
+  // ###############################################################
+
   private void cleanupIdleChannels() {
     final var now = System.currentTimeMillis();
     this.lastChannelActivity.entrySet().removeIf(entry -> {
-      if (now - entry.getValue() > 30000L) {
+      if (now - entry.getValue() > INACTIVITY_TIMEOUT_MS) {
         this.channels.remove(entry.getKey());
         return true;
       }
@@ -214,8 +242,118 @@ public final class VoiceWiretapServiceImpl implements VoiceWiretapService, Liste
     });
   }
 
+  private void processSingleWiretapCapture(
+    final @NotNull VoiceWiretap wiretap,
+    final @NotNull Player senderPlayer,
+    final @NotNull UUID senderUuid,
+    final byte[] rawOpus,
+    final @NotNull VoiceService voiceService,
+    final @Nullable VoiceWallService wallService,
+    final @Nullable VoiceFilterService filterService
+  ) {
+    final var wtLoc = wiretap.getLocation();
+    final var wtWorld = wtLoc.getWorld();
+    if (wtWorld == null || !wtWorld.equals(senderPlayer.getWorld()))
+      return;
+
+    final var dist = senderPlayer.getLocation().distance(wtLoc);
+    if (dist > wiretap.getDistance())
+      return;
+
+    var totalDbLoss = 0.0;
+    if (wiretap.isApplyVoiceWall() && wallService != null && wallService.isEnable()) {
+      final var ray = VoiceRayCast.check(senderPlayer.getEyeLocation(), wtLoc);
+      if (ray.isBlocked())
+        totalDbLoss = ray.totalAttenuation();
+    }
+
+    if (totalDbLoss >= 99.0)
+      return;
+
+    final var distRatio = Math.min(1.0, dist / wiretap.getDistance());
+    final var distGain = (float) Math.max(0.05, 1.0 - (distRatio * 0.85));
+
+    try {
+      final var decoder = voiceService.getDecoder(senderUuid);
+      final var encoder = voiceService.getEncoder(senderUuid);
+      final var pcm = decoder.decode(rawOpus);
+      if (pcm == null || pcm.length == 0)
+        return;
+
+      var processed = pcm.clone();
+      final var filterId = wiretap.getFilterId();
+      if (filterId != null && filterService != null && !filterId.equalsIgnoreCase("none")) {
+        final var filter = filterService.getFilter(filterId);
+        if (filter != null)
+          processed = filter.process(processed, null);
+      } else if (filterService != null && filterService.hasActiveFilters(senderUuid))
+        processed = filterService.applyFilters(senderUuid, processed);
+
+      final var wallGain = (float) Math.pow(10.0, -totalDbLoss / 20.0);
+      final var combinedGain = wallGain * distGain;
+      for (int i = 0; i < processed.length; i++)
+        processed[i] = (short) Math.clamp(Math.round(processed[i] * combinedGain), Short.MIN_VALUE, Short.MAX_VALUE);
+
+      if (wallService != null && wallService.isAirDampingEnabled() && dist > 5.0) {
+        final var alpha = Math.max(0.10f, 1.0f - (float) (dist - 5.0) * 0.038f);
+        var smooth = (float) processed[0];
+        for (int i = 0; i < processed.length; i++) {
+          smooth = smooth + alpha * (processed[i] - smooth);
+          processed[i] = (short) Math.clamp(Math.round(smooth), Short.MIN_VALUE, Short.MAX_VALUE);
+        }
+      }
+
+      processed = AudioLimiter.process(processed);
+      final var finalOpus = encoder.encode(processed);
+
+      if (wiretap.isRecording() && wiretap.getActiveRecording() != null)
+        wiretap.getActiveRecording().addAudio(finalOpus);
+
+      broadcastWiretapToListeners(wiretap, senderUuid, finalOpus, wiretap.getListeners());
+
+    } catch (Exception e) {
+      this.plugin.getLogger().warning("Failed to process wiretap audio (wiretap=" + wiretap.getName() + ", sender=" + senderUuid + "): " + e.getMessage());
+    }
+  }
+
+  private void broadcastWiretapToListeners(
+    final @NotNull VoiceWiretap wiretap,
+    final @NotNull UUID senderUuid,
+    final byte[] opusData,
+    final @NotNull Set<UUID> listeners
+  ) {
+    if (listeners.isEmpty())
+      return;
+
+    final var now = System.currentTimeMillis();
+    for (final var listenerUuid : listeners) {
+      if (listenerUuid.equals(senderUuid))
+        continue;
+
+      final var conn = this.api.getConnectionOf(listenerUuid);
+      if (conn == null)
+        continue;
+
+      final var streamKey = wiretap.getUuid() + ":" + senderUuid + ":" + listenerUuid;
+      final var ch = this.channels.computeIfAbsent(streamKey, k -> {
+        final var sc = this.api.createStaticAudioChannel(UUID.randomUUID());
+        if (sc != null) {
+          sc.addTarget(conn);
+          if (this.volumeCategory != null)
+            sc.setCategory(this.volumeCategory.getId());
+        }
+        return sc;
+      });
+
+      if (ch != null) {
+        ch.send(opusData);
+        this.lastChannelActivity.put(streamKey, now);
+      }
+    }
+  }
+
   // ###############################################################
-  // ---------------------- LISTENER METHODS -----------------------
+  // ---------------------- EVENT LISTENERS ------------------------
   // ###############################################################
 
   @EventHandler
@@ -244,107 +382,8 @@ public final class VoiceWiretapServiceImpl implements VoiceWiretapService, Liste
       return;
     }
 
-    for (final var wiretap : this.wiretaps.values()) {
-      final var wtLoc = wiretap.getLocation();
-      final var wtWorld = wtLoc.getWorld();
-      if (wtWorld == null || !wtWorld.equals(senderPlayer.getWorld()))
-        continue;
-
-      final var dist = senderPlayer.getLocation().distance(wtLoc);
-      if (dist > wiretap.getDistance())
-        continue;
-
-      var totalDbLoss = 0.0;
-      if (wiretap.isApplyVoiceWall() && wallService != null && wallService.isEnable()) {
-        final var ray = VoiceRayCast.check(senderPlayer.getEyeLocation(), wtLoc);
-        if (ray.isBlocked())
-          totalDbLoss = ray.totalAttenuation();
-      }
-
-      if (totalDbLoss >= 99.0)
-        continue;
-
-      final var distRatio = Math.min(1.0, dist / wiretap.getDistance());
-      final var distGain = (float) Math.max(0.05, 1.0 - (distRatio * 0.85));
-
-      try {
-        final var decoder = voiceService.getDecoder(senderUuid);
-        final var encoder = voiceService.getEncoder(senderUuid);
-        final var pcm = decoder.decode(rawOpus);
-        if (pcm != null && pcm.length > 0) {
-          var processed = pcm.clone();
-
-          // Apply wiretap filter or speaker filter
-          final var filterId = wiretap.getFilterId();
-          if (filterId != null && filterService != null && !filterId.equalsIgnoreCase("none")) {
-            final var filter = filterService.getFilter(filterId);
-            if (filter != null)
-              processed = filter.process(processed, null);
-          } else if (filterService != null && filterService.hasActiveFilters(senderUuid)) {
-            processed = filterService.applyFilters(senderUuid, processed);
-          }
-
-          // Gain & attenuation
-          final var wallGain = (float) Math.pow(10.0, -totalDbLoss / 20.0);
-          final var combinedGain = wallGain * distGain;
-          for (int i = 0; i < processed.length; i++) {
-            processed[i] = (short) Math.max(Short.MIN_VALUE, Math.min(Short.MAX_VALUE, Math.round(processed[i] * combinedGain)));
-          }
-
-          // Air damping
-          if (wallService != null && wallService.isAirDampingEnabled() && dist > 5.0) {
-            final var alpha = Math.max(0.10f, 1.0f - (float) (dist - 5.0) * 0.038f);
-            var smooth = (float) processed[0];
-            for (int i = 0; i < processed.length; i++) {
-              smooth = smooth + alpha * (processed[i] - smooth);
-              processed[i] = (short) Math.max(Short.MIN_VALUE, Math.min(Short.MAX_VALUE, Math.round(smooth)));
-            }
-          }
-
-          // Soft limiter
-          processed = AudioLimiter.process(processed);
-
-          final var finalOpus = encoder.encode(processed);
-
-          // If recording, add frame
-          if (wiretap.isRecording() && wiretap.getActiveRecording() != null) {
-            wiretap.getActiveRecording().addAudio(finalOpus);
-          }
-
-          // Broadcast to live listeners
-          final var listeners = wiretap.getListeners();
-          if (!listeners.isEmpty()) {
-            final var now = System.currentTimeMillis();
-            for (final var listenerUuid : listeners) {
-              if (listenerUuid.equals(senderUuid))
-                continue;
-
-              final var conn = this.api.getConnectionOf(listenerUuid);
-              if (conn == null)
-                continue;
-
-              final var streamKey = wiretap.getUuid() + ":" + senderUuid + ":" + listenerUuid;
-              final var ch = this.channels.computeIfAbsent(streamKey, k -> {
-                final var sc = this.api.createStaticAudioChannel(UUID.randomUUID());
-                if (sc != null) {
-                  sc.addTarget(conn);
-                  if (this.volumeCategory != null)
-                    sc.setCategory(this.volumeCategory.getId());
-                }
-                return sc;
-              });
-
-              if (ch != null) {
-                ch.send(finalOpus);
-                this.lastChannelActivity.put(streamKey, now);
-              }
-            }
-          }
-        }
-      } catch (Exception exception) {
-        this.plugin.getLogger().warning("Failed to process wiretap voice packet (wiretap=" + wiretap.getName() + ", wiretapId=" + wiretap.getUuid() + ", sender=" + senderUuid + "): " + exception.getMessage());
-      }
-    }
+    for (final var wiretap : this.wiretaps.values())
+      processSingleWiretapCapture(wiretap, senderPlayer, senderUuid, rawOpus, voiceService, wallService, filterService);
   }
 
   @EventHandler

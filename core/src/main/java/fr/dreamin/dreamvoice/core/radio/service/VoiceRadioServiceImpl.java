@@ -19,14 +19,30 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
-
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * Implementation of {@link VoiceRadioService} managing walkie-talkie radio frequencies,
+ * automatic Roger Beep tone generation, DSP radio filtering, and multi-user packet routing.
+ */
 public final class VoiceRadioServiceImpl implements VoiceRadioService, Listener {
+
+  // ###############################################################
+  // ----------------------- STATIC FIELDS -------------------------
+  // ###############################################################
+
+  private static final long ROGER_BEEP_CHECK_TICKS = 2L;
+  private static final long CLEANUP_INTERVAL_TICKS = 600L;
+  private static final long INACTIVITY_TIMEOUT_MS = 30000L;
+  private static final long ROGER_BEEP_SILENCE_THRESHOLD_MS = 350L;
+
+  // ###############################################################
+  // --------------------- INSTANCE FIELDS -------------------------
+  // ###############################################################
 
   private final @NotNull DreamVoice plugin;
   private @NotNull VoicechatServerApi api;
@@ -34,32 +50,26 @@ public final class VoiceRadioServiceImpl implements VoiceRadioService, Listener 
   private final Map<String, RadioChannel> channels = new ConcurrentHashMap<>();
   private final Map<UUID, String> playerChannels = new ConcurrentHashMap<>();
 
-  // Channel audio broadcast cache
   private final Map<String, StaticAudioChannel> radioChannels = new ConcurrentHashMap<>();
   private final Map<String, Long> lastChannelActivity = new ConcurrentHashMap<>();
   private final Map<UUID, Long> lastSpeakingTimes = new ConcurrentHashMap<>();
   private boolean voiceServiceMissingLogged = false;
 
+  // ###############################################################
+  // --------------------- CONSTRUCTOR METHODS ---------------------
+  // ###############################################################
+
   public VoiceRadioServiceImpl(final @NotNull DreamVoice plugin) {
     this.plugin = plugin;
     Bukkit.getPluginManager().registerEvents(this, plugin);
 
-    // Watcher task for Roger Beep end-of-transmission
-    Bukkit.getScheduler().runTaskTimer(plugin, this::checkRogerBeeps, 2L, 2L);
-    Bukkit.getScheduler().runTaskTimer(plugin, this::cleanupIdleChannels, 600L, 600L);
+    Bukkit.getScheduler().runTaskTimer(plugin, this::checkRogerBeeps, ROGER_BEEP_CHECK_TICKS, ROGER_BEEP_CHECK_TICKS);
+    Bukkit.getScheduler().runTaskTimer(plugin, this::cleanupIdleChannels, CLEANUP_INTERVAL_TICKS, CLEANUP_INTERVAL_TICKS);
   }
 
-  private void cleanupIdleChannels() {
-    final var now = System.currentTimeMillis();
-    this.lastChannelActivity.entrySet().removeIf(entry -> {
-      if (now - entry.getValue() > 30000L) {
-        this.radioChannels.remove(entry.getKey());
-        return true;
-      }
-      return false;
-    });
-  }
-
+  // ###############################################################
+  // ------------------- PUBLIC SERVICE METHODS --------------------
+  // ###############################################################
 
   @Override
   public void init(final @NotNull VoicechatServerApi api) {
@@ -108,7 +118,6 @@ public final class VoiceRadioServiceImpl implements VoiceRadioService, Listener 
     }
   }
 
-
   @Override
   public void removeChannel(final @NotNull String name) {
     final var ch = this.channels.remove(name.toLowerCase());
@@ -128,6 +137,21 @@ public final class VoiceRadioServiceImpl implements VoiceRadioService, Listener 
     RadiosPersistence.load(this, new File(this.plugin.getDataFolder(), "data"));
   }
 
+  // ###############################################################
+  // ------------------- PRIVATE HELPER METHODS --------------------
+  // ###############################################################
+
+  private void cleanupIdleChannels() {
+    final var now = System.currentTimeMillis();
+    this.lastChannelActivity.entrySet().removeIf(entry -> {
+      if (now - entry.getValue() > INACTIVITY_TIMEOUT_MS) {
+        this.radioChannels.remove(entry.getKey());
+        return true;
+      }
+      return false;
+    });
+  }
+
   private void checkRogerBeeps() {
     final var now = System.currentTimeMillis();
     final var it = this.lastSpeakingTimes.entrySet().iterator();
@@ -137,12 +161,11 @@ public final class VoiceRadioServiceImpl implements VoiceRadioService, Listener 
       final var senderUuid = entry.getKey();
       final var lastTime = entry.getValue();
 
-      if (now - lastTime >= 350) {
+      if (now - lastTime >= ROGER_BEEP_SILENCE_THRESHOLD_MS) {
         it.remove();
         final var channel = getChannelOfPlayer(senderUuid);
-        if (channel != null && channel.isRogerBeep()) {
+        if (channel != null && channel.isRogerBeep())
           playRogerBeepToChannel(channel, senderUuid);
-        }
       }
     }
   }
@@ -175,7 +198,6 @@ public final class VoiceRadioServiceImpl implements VoiceRadioService, Listener 
           return sc;
         });
 
-
         if (staticChannel != null)
           staticChannel.send(opus);
       }
@@ -183,6 +205,40 @@ public final class VoiceRadioServiceImpl implements VoiceRadioService, Listener 
       this.plugin.getLogger().warning("Failed to send Roger beep for radio channel '" + channel.getName() + "' (sender=" + senderUuid + "): " + exception.getMessage());
     }
   }
+
+  private byte[] processRadioAudio(
+    final @NotNull UUID senderUuid,
+    final @NotNull RadioChannel channel,
+    final byte[] opusData,
+    final @NotNull VoiceService voiceService,
+    final @Nullable VoiceFilterService filterService
+  ) {
+    try {
+      final var decoder = voiceService.getDecoder(senderUuid);
+      final var encoder = voiceService.getEncoder(senderUuid);
+      final var pcm = decoder.decode(opusData);
+      if (pcm == null || pcm.length == 0)
+        return opusData;
+
+      var processed = pcm;
+      final var filterId = channel.getFilterId();
+      if (filterService != null && filterId != null && !filterId.equalsIgnoreCase("none")) {
+        final var filter = filterService.getFilter(filterId);
+        if (filter != null)
+          processed = filter.process(processed, null);
+      }
+
+      processed = AudioLimiter.process(processed);
+      return encoder.encode(processed);
+    } catch (Exception exception) {
+      this.plugin.getLogger().warning("Failed to process radio voice packet for channel '" + channel.getName() + "' (sender=" + senderUuid + "): " + exception.getMessage());
+      return opusData;
+    }
+  }
+
+  // ###############################################################
+  // ---------------------- EVENT LISTENERS ------------------------
+  // ###############################################################
 
   @EventHandler
   private void onMicrophone(final @NotNull MicrophonePacketEvent event) {
@@ -205,27 +261,9 @@ public final class VoiceRadioServiceImpl implements VoiceRadioService, Listener 
     final var filterService = DreamVoice.getService(VoiceFilterService.class);
     final var voiceService = DreamVoice.getService(VoiceService.class);
 
-    // Apply radio filter
-    if (voiceService != null) {
-      try {
-        final var decoder = voiceService.getDecoder(senderUuid);
-        final var encoder = voiceService.getEncoder(senderUuid);
-        final var pcm = decoder.decode(opusData);
-        if (pcm != null && pcm.length > 0) {
-          var processed = pcm;
-          if (filterService != null && channel.getFilterId() != null && !channel.getFilterId().equalsIgnoreCase("none")) {
-            final var filter = filterService.getFilter(channel.getFilterId());
-            if (filter != null)
-              processed = filter.process(processed, null);
-          }
-
-          processed = AudioLimiter.process(processed);
-          opusData = encoder.encode(processed);
-        }
-      } catch (Exception exception) {
-        this.plugin.getLogger().warning("Failed to process radio voice packet for channel '" + channel.getName() + "' (sender=" + senderUuid + "): " + exception.getMessage());
-      }
-    } else if (!this.voiceServiceMissingLogged) {
+    if (voiceService != null)
+      opusData = processRadioAudio(senderUuid, channel, opusData, voiceService, filterService);
+    else if (!this.voiceServiceMissingLogged) {
       this.voiceServiceMissingLogged = true;
       this.plugin.getLogger().warning("VoiceService is unavailable. Radio packets will be forwarded without processing.");
     }

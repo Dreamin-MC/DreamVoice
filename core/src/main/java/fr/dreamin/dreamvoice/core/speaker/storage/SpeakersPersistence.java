@@ -5,6 +5,7 @@ import fr.dreamin.dreamapi.api.config.Configurations;
 import fr.dreamin.dreamvoice.api.speaker.model.Speaker;
 import fr.dreamin.dreamvoice.api.speaker.model.SpeakerMode;
 import fr.dreamin.dreamvoice.api.speaker.service.VoiceSpeakerService;
+import fr.dreamin.dreamvoice.core.DreamVoice;
 import fr.dreamin.dreamvoice.core.storage.model.LocationData;
 import org.bukkit.Bukkit;
 import org.jetbrains.annotations.NotNull;
@@ -56,11 +57,11 @@ public final class SpeakersPersistence {
     try {
       Configurations.saveJson(file, dataList);
     } catch (Exception e) {
-      Bukkit.getLogger().severe("[DreamVoice] Error saving speakers: " + e.getMessage());
+      DreamVoice.getInstance().getLogger().severe("[DreamVoice] Error saving speakers: " + e.getMessage());
     }
   }
 
-  public static void load(final @NotNull VoiceSpeakerService service, final @NotNull File targetDir) {
+  public static void load(final @NotNull File targetDir) {
     final var file = new File(targetDir, "speakers.json");
     if (!file.exists())
       return;
@@ -100,7 +101,7 @@ public final class SpeakersPersistence {
         }
       }
     } catch (Exception e) {
-      Bukkit.getLogger().severe("[DreamVoice] Error loading speakers: " + e.getMessage());
+      DreamVoice.getInstance().getLogger().severe("[DreamVoice] Error loading speakers: " + e.getMessage());
     }
   }
 

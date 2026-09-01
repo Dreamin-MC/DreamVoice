@@ -6,6 +6,9 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.jetbrains.annotations.NotNull;
 
+/**
+ * Event fired when a player disconnects from Simple Voice Chat.
+ */
 @Getter
 @RequiredArgsConstructor
 public final class PlayerLeaveVoiceEvent extends ToolsEvent {

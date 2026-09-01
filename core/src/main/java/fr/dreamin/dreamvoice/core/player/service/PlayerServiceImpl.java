@@ -3,6 +3,7 @@ package fr.dreamin.dreamvoice.core.player.service;
 import fr.dreamin.dreamapi.api.annotations.Inject;
 import fr.dreamin.dreamapi.api.logger.DreamLogger;
 import fr.dreamin.dreamapi.api.services.DreamService;
+import fr.dreamin.dreamapi.plugin.DreamPlugin;
 import fr.dreamin.dreamvoice.api.player.model.PlayerManager;
 import fr.dreamin.dreamvoice.api.player.model.PlayerState;
 import fr.dreamin.dreamvoice.api.player.model.VPlayer;
@@ -29,10 +30,17 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Implementation of {@link PlayerService} managing voice player wrappers ({@link VPlayer}),
+ * state transitions, and dependency-injected attached managers.
+ */
 public final class PlayerServiceImpl implements PlayerService, Listener {
 
-  private final @NotNull DreamVoice plugin;
+  // ###############################################################
+  // --------------------- INSTANCE FIELDS -------------------------
+  // ###############################################################
 
+  private final @NotNull DreamVoice plugin;
   private final @NotNull Map<UUID, VPlayer> players = new HashMap<>();
 
   // ###############################################################
@@ -44,9 +52,9 @@ public final class PlayerServiceImpl implements PlayerService, Listener {
     Bukkit.getPluginManager().registerEvents(this, this.plugin);
   }
 
-  // ##############################################################
-  // ---------------------- SERVICE METHODS -----------------------
-  // ##############################################################
+  // ###############################################################
+  // ------------------- PUBLIC SERVICE METHODS --------------------
+  // ###############################################################
 
   @Override
   public Collection<VPlayer> getPlayers() {
@@ -74,7 +82,6 @@ public final class PlayerServiceImpl implements PlayerService, Listener {
     addManager(vPlayer, VoiceWallManager.class, VoiceFilterManager.class);
     this.players.putIfAbsent(vPlayer.getUuid(), vPlayer);
   }
-
 
   @Override
   public void removePlayer(final @NotNull VPlayer vPlayer) {
@@ -114,7 +121,6 @@ public final class PlayerServiceImpl implements PlayerService, Listener {
     try {
       final var ctor = resolveConstructor(clazz);
       final var args = resolveConstructorArgs(ctor, vPlayer);
-
       final var instance = ctor.newInstance(args);
 
       if (instance instanceof Listener listener)
@@ -132,8 +138,9 @@ public final class PlayerServiceImpl implements PlayerService, Listener {
     vPlayer.addManager(manager);
   }
 
+  @SafeVarargs
   @Override
-  public void addManager(final @NotNull VPlayer vPlayer, final @NonNull @NotNull Class<? extends PlayerManager>... classes) {
+  public final void addManager(final @NotNull VPlayer vPlayer, final @NonNull @NotNull Class<? extends PlayerManager>... classes) {
     for (final var clazz : classes)
       addManager(vPlayer, clazz);
   }
@@ -149,7 +156,7 @@ public final class PlayerServiceImpl implements PlayerService, Listener {
   }
 
   // ###############################################################
-  // ----------------------- PRIVATE METHODS -----------------------
+  // ------------------- PRIVATE HELPER METHODS --------------------
   // ###############################################################
 
   private Constructor<?> resolveConstructor(final @NotNull Class<?> clazz) {
@@ -191,7 +198,6 @@ public final class PlayerServiceImpl implements PlayerService, Listener {
       }
     }
 
-    // 4) Fallback: no-arg constructor
     try {
       final var c = clazz.getDeclaredConstructor();
       c.setAccessible(true);
@@ -208,7 +214,6 @@ public final class PlayerServiceImpl implements PlayerService, Listener {
     for (int i = 0; i < params.length; i++) {
       final var param = params[i];
 
-      // Inject Plugin
       if (Plugin.class.isAssignableFrom(param)) {
         args[i] = this.plugin;
         continue;
@@ -224,9 +229,8 @@ public final class PlayerServiceImpl implements PlayerService, Listener {
         continue;
       }
 
-      // Inject DreamService
       var resolved = false;
-      for (final var service : DreamVoice.getInstance().getServiceManager().getAllLoadedServices().values()) {
+      for (final var service : DreamPlugin.getServiceManager().getAllLoadedServices().values()) {
         if (param.isAssignableFrom(service.getClass())) {
           args[i] = service;
           resolved = true;
@@ -245,7 +249,7 @@ public final class PlayerServiceImpl implements PlayerService, Listener {
   }
 
   // ###############################################################
-  // ---------------------- LISTENER METHODS -----------------------
+  // ---------------------- EVENT LISTENERS ------------------------
   // ###############################################################
 
   @EventHandler(ignoreCancelled = true)
@@ -269,9 +273,7 @@ public final class PlayerServiceImpl implements PlayerService, Listener {
       }
 
       final var client = api.getConnectionOf(player.getUniqueId());
-
       final var vPlayer = new VPlayer(player, client);
-
       addPlayer(vPlayer);
     }, 10);
   }
@@ -286,4 +288,3 @@ public final class PlayerServiceImpl implements PlayerService, Listener {
   }
 
 }
-
