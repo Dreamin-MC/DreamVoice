@@ -27,11 +27,11 @@ jobs:
           distribution: 'temurin'
           cache: 'gradle'
 
-      - name: Extract versions and changelog
+      - name: Extract versions and validate changelog
         id: extract_version
         run: |
           TAG="${{ github.ref_name }}"
-          # Remove leading 'v' if present (e.g., v1.0.0 -> 1.0.0, 1.0.0 -> 1.0.0)
+          # Remove leading 'v' if present (e.g., v1.0.7 -> 1.0.7, 1.0.7 -> 1.0.7)
           CLEAN_VERSION="${TAG#v}"
           echo "VERSION=${CLEAN_VERSION}" >> $GITHUB_ENV
           echo "TAG=${TAG}" >> $GITHUB_ENV
@@ -43,21 +43,24 @@ jobs:
           echo "MC_VERSION=${MC_VER}" >> $GITHUB_ENV
           echo "VOICECHAT_VERSION=${VC_VER}" >> $GITHUB_ENV
           
-          # Check for changelog file in changelog/ directory
-          if [ -f "changelog/${CLEAN_VERSION}.md" ]; then
-            echo "Found changelog file: changelog/${CLEAN_VERSION}.md"
-            echo "CHANGELOG_FILE=changelog/${CLEAN_VERSION}.md" >> $GITHUB_ENV
-          elif [ -f "changelog/${TAG}.md" ]; then
-            echo "Found changelog file: changelog/${TAG}.md"
-            echo "CHANGELOG_FILE=changelog/${TAG}.md" >> $GITHUB_ENV
-          else
-            echo "No specific changelog file found for version ${CLEAN_VERSION}"
-            echo "CHANGELOG_FILE=" >> $GITHUB_ENV
-          fi
-
           echo "Detected Tag Version : ${CLEAN_VERSION}"
           echo "Extracted Minecraft MC : ${MC_VER}"
           echo "Extracted VoiceChat VC : ${VC_VER}"
+
+          # Strict Changelog Validation
+          if [ -f "changelog/${CLEAN_VERSION}.md" ]; then
+            CHANGELOG="changelog/${CLEAN_VERSION}.md"
+          elif [ -f "changelog/${TAG}.md" ]; then
+            CHANGELOG="changelog/${TAG}.md"
+          else
+            echo "::error::❌ Release aborted: No changelog found for version '${CLEAN_VERSION}'!"
+            echo "::error::Expected file: changelog/${CLEAN_VERSION}.md"
+            echo "::error::Please create the changelog file before pushing the tag."
+            exit 1
+          fi
+
+          echo "Found valid changelog: ${CHANGELOG}"
+          echo "CHANGELOG_FILE=${CHANGELOG}" >> $GITHUB_ENV
 
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
@@ -91,6 +94,20 @@ jobs:
             ${{ env.MC_VERSION }}
           dependencies: |
             simple-voice-chat@bukkit-${{ env.VOICECHAT_VERSION }}(required)
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.TAG }}
+          name: DreamVoice ${{ env.VERSION }}
+          body_path: ${{ env.CHANGELOG_FILE }}
+          draft: false
+          prerelease: false
+          files: |
+            core/build/libs/DreamVoice.jar
+            api/build/libs/dreamvoice-api-${{ env.VERSION }}.jar
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Update Modrinth Project Description
         env:
@@ -135,3 +152,15 @@ jobs:
           else
             echo "No changes in README.md to commit."
           fi
+
+      - name: Rollback / Delete remote tag on failure
+        if: failure() || cancelled()
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "Workflow failed or was cancelled. Deleting remote tag '${{ env.TAG }}' to prevent inconsistent release state..."
+          curl -s -X DELETE \
+            -H "Authorization: token ${GITHUB_TOKEN}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            "https://api.github.com/repos/${{ github.repository }}/git/refs/tags/${{ env.TAG }}" || true
+          echo "Remote tag '${{ env.TAG }}' deleted from GitHub."
