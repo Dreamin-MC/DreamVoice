@@ -8,10 +8,10 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/Java-25-orange.svg" alt="Java 25" />
-  <img src="https://img.shields.io/badge/Paper-1.21.4-blue.svg" alt="Paper 1.21.4" />
+  <img src="https://img.shields.io/badge/Paper-1.21.4-blue.svg" alt="Paper 26.1.2" />
   <img src="https://img.shields.io/badge/Simple%20Voice%20Chat-2.6.x-green.svg" alt="Simple Voice Chat" />
   <a href="https://modrinth.com/plugin/dreamvoice"><img src="https://img.shields.io/badge/Modrinth-Available-00AF5C?logo=modrinth&logoColor=white" alt="Modrinth" /></a>
-  <img src="https://img.shields.io/badge/License-Proprietary-red.svg" alt="License" />
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-GPL%20v3-blue.svg" alt="License: GPL v3" /></a>
 </p>
 
 
@@ -106,10 +106,6 @@ repositories {
     maven {
         name = "GitHubPackages"
         url = uri("https://maven.pkg.github.com/Dreamin-MC/DreamVoice")
-        credentials {
-            username = System.getenv("GITHUB_ACTOR") ?: project.findProperty("gpr.user") ?: ""
-            password = System.getenv("GITHUB_TOKEN") ?: project.findProperty("gpr.token") ?: ""
-        }
     }
 }
 
@@ -117,10 +113,6 @@ dependencies {
     compileOnly 'fr.dreamin:dreamvoice-api:1.0.4'
 }
 ```
-
-> [!TIP]
-> In your `~/.gradle/gradle.properties` (or project root), define `gpr.user=YourGitHubUsername` and `gpr.token=YourPersonalAccessToken` with `read:packages` permission.
-
 
 ---
 
@@ -171,6 +163,5 @@ inspectorPlayer.getInventory().addItem(cassette);
 ---
 
 ## 📄 License
-This project is **Proprietary & Confidential** - All rights reserved by **Dreamin’ Studios**.
-Unauthorized copying, modification, or distribution is strictly prohibited. See [LICENSE](LICENSE) for details.
+This project is licensed under the **GNU General Public License v3.0** (GPLv3) - see the [LICENSE](LICENSE) file for details.
 
