@@ -17,7 +17,7 @@ subprojects {
   apply plugin: "java-library"
 
   group = "fr.dreamin"
-  version = "1.0.0"
+  version = "1.0.1"
   description = "DreamVoice"
 
   repositories {
