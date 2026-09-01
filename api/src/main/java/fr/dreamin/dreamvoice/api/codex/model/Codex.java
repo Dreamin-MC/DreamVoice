@@ -56,34 +56,29 @@ public final class Codex {
       final var matUpper = materialName.toUpperCase();
 
       // 1. Direct block override
-      if (this.overrides != null && this.overrides.containsKey(matUpper)) {
+      if (this.overrides != null && this.overrides.containsKey(matUpper))
         return this.overrides.get(matUpper) * mult;
-      }
 
       // Legacy soundMaterials check
-      if (this.soundMaterials != null && this.soundMaterials.materialAttenuation != null && this.soundMaterials.materialAttenuation.containsKey(matUpper)) {
+      if (this.soundMaterials != null && this.soundMaterials.materialAttenuation != null && this.soundMaterials.materialAttenuation.containsKey(matUpper))
         return this.soundMaterials.materialAttenuation.get(matUpper) * mult;
-      }
 
       // 2. Smart automatic category matching
       final var catAttenuation = resolveCategoryAttenuation(matUpper);
-      if (catAttenuation != null) {
+      if (catAttenuation != null)
         return catAttenuation * mult;
-      }
 
       // 3. Default fallback
       return getDefaultAttenuationDb() * mult;
     }
 
     private @Nullable Double resolveCategoryAttenuation(final @NotNull String mat) {
-      if (this.categories == null) {
+      if (this.categories == null)
         return getDefaultCategoryValue(mat);
-      }
 
       final var catKey = determineCategoryKey(mat);
-      if (catKey != null && this.categories.containsKey(catKey)) {
+      if (catKey != null && this.categories.containsKey(catKey))
         return this.categories.get(catKey);
-      }
 
       return getDefaultCategoryValue(mat);
     }

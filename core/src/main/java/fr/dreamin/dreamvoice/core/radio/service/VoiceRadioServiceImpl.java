@@ -9,6 +9,7 @@ import fr.dreamin.dreamvoice.api.voice.event.MicrophonePacketEvent;
 import fr.dreamin.dreamvoice.api.voice.service.VoiceService;
 import fr.dreamin.dreamvoice.core.DreamVoice;
 import fr.dreamin.dreamvoice.core.utils.RawUtils;
+import fr.dreamin.dreamvoice.core.utils.audio.AudioLimiter;
 import org.bukkit.Bukkit;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -34,6 +35,7 @@ public final class VoiceRadioServiceImpl implements VoiceRadioService, Listener 
   private final Map<String, StaticAudioChannel> radioChannels = new ConcurrentHashMap<>();
   private final Map<String, Long> lastChannelActivity = new ConcurrentHashMap<>();
   private final Map<UUID, Long> lastSpeakingTimes = new ConcurrentHashMap<>();
+  private boolean voiceServiceMissingLogged = false;
 
   public VoiceRadioServiceImpl(final @NotNull DreamVoice plugin) {
     this.plugin = plugin;
@@ -98,9 +100,8 @@ public final class VoiceRadioServiceImpl implements VoiceRadioService, Listener 
     final var current = this.playerChannels.remove(playerUuid);
     if (current != null) {
       final var ch = this.channels.get(current);
-      if (ch != null) {
+      if (ch != null)
         ch.removeMember(playerUuid);
-      }
     }
   }
 
@@ -108,9 +109,8 @@ public final class VoiceRadioServiceImpl implements VoiceRadioService, Listener 
   @Override
   public void removeChannel(final @NotNull String name) {
     final var ch = this.channels.remove(name.toLowerCase());
-    if (ch != null) {
+    if (ch != null)
       ch.getMembers().forEach(this.playerChannels::remove);
-    }
   }
 
   private void checkRogerBeeps() {
@@ -164,7 +164,8 @@ public final class VoiceRadioServiceImpl implements VoiceRadioService, Listener 
         if (staticChannel != null)
           staticChannel.send(opus);
       }
-    } catch (Exception ignored) {
+    } catch (Exception exception) {
+      this.plugin.getLogger().warning("Failed to send Roger beep for radio channel '" + channel.getName() + "' (sender=" + senderUuid + "): " + exception.getMessage());
     }
   }
 
@@ -187,25 +188,31 @@ public final class VoiceRadioServiceImpl implements VoiceRadioService, Listener 
 
     var opusData = event.getPacket().getOpusEncodedData();
     final var filterService = DreamVoice.getService(VoiceFilterService.class);
+    final var voiceService = DreamVoice.getService(VoiceService.class);
 
     // Apply radio filter
-    try {
-      final var voiceService = DreamVoice.getService(VoiceService.class);
-      final var decoder = voiceService.getDecoder(senderUuid);
-      final var encoder = voiceService.getEncoder(senderUuid);
-      final var pcm = decoder.decode(opusData);
-      if (pcm != null && pcm.length > 0) {
-        var processed = pcm;
-        if (filterService != null && channel.getFilterId() != null && !channel.getFilterId().equalsIgnoreCase("none")) {
-          final var filter = filterService.getFilter(channel.getFilterId());
-          if (filter != null)
-            processed = filter.process(processed, null);
-        }
+    if (voiceService != null) {
+      try {
+        final var decoder = voiceService.getDecoder(senderUuid);
+        final var encoder = voiceService.getEncoder(senderUuid);
+        final var pcm = decoder.decode(opusData);
+        if (pcm != null && pcm.length > 0) {
+          var processed = pcm;
+          if (filterService != null && channel.getFilterId() != null && !channel.getFilterId().equalsIgnoreCase("none")) {
+            final var filter = filterService.getFilter(channel.getFilterId());
+            if (filter != null)
+              processed = filter.process(processed, null);
+          }
 
-        processed = fr.dreamin.dreamvoice.core.utils.audio.AudioLimiter.process(processed);
-        opusData = encoder.encode(processed);
+          processed = AudioLimiter.process(processed);
+          opusData = encoder.encode(processed);
+        }
+      } catch (Exception exception) {
+        this.plugin.getLogger().warning("Failed to process radio voice packet for channel '" + channel.getName() + "' (sender=" + senderUuid + "): " + exception.getMessage());
       }
-    } catch (Exception ignored) {
+    } else if (!this.voiceServiceMissingLogged) {
+      this.voiceServiceMissingLogged = true;
+      this.plugin.getLogger().warning("VoiceService is unavailable. Radio packets will be forwarded without processing.");
     }
 
     final var finalOpus = opusData;
@@ -245,5 +252,3 @@ public final class VoiceRadioServiceImpl implements VoiceRadioService, Listener 
   }
 
 }
-
-

@@ -16,8 +16,16 @@ import org.jetbrains.annotations.Nullable;
 
 public final class TransmitterCmd {
 
-  private final @NotNull VoiceTransmitterService transmissionService =
+  private final @Nullable VoiceTransmitterService transmissionService =
     DreamVoice.getService(VoiceTransmitterService.class);
+
+  private @Nullable VoiceTransmitterService requireTransmissionService(final @NotNull CommandSender sender) {
+    if (this.transmissionService == null) {
+      sender.sendMessage(Component.text("Transmitter service unavailable.", NamedTextColor.RED));
+      return null;
+    }
+    return this.transmissionService;
+  }
 
   // ------------------------------------------------
   // ENABLE
@@ -32,7 +40,11 @@ public final class TransmitterCmd {
       return;
     }
 
-    this.transmissionService.createTransmitter(player);
+    final var transmissionService = requireTransmissionService(sender);
+    if (transmissionService == null)
+      return;
+
+    transmissionService.createTransmitter(player);
 
     sender.sendMessage(
       Component.text("Transmitter enabled.", NamedTextColor.GREEN)
@@ -52,7 +64,11 @@ public final class TransmitterCmd {
       return;
     }
 
-    this.transmissionService.removeTransmitter(player);
+    final var transmissionService = requireTransmissionService(sender);
+    if (transmissionService == null)
+      return;
+
+    transmissionService.removeTransmitter(player);
 
     sender.sendMessage(
       Component.text("Transmitter disabled.", NamedTextColor.RED)
@@ -76,7 +92,11 @@ public final class TransmitterCmd {
       return;
     }
 
-    if (!this.transmissionService.isTransmitter(player)) {
+    final var transmissionService = requireTransmissionService(sender);
+    if (transmissionService == null)
+      return;
+
+    if (!transmissionService.isTransmitter(player)) {
       sender.sendMessage(Component.text("You are not a transmitter!", NamedTextColor.RED));
       return;
     }
@@ -87,14 +107,14 @@ public final class TransmitterCmd {
     }
 
     if (distance != null) {
-      this.transmissionService.addReceiver(player, target, distance);
+      transmissionService.addReceiver(player, target, distance);
       sender.sendMessage(
         Component.text("Added receiver: ", NamedTextColor.GREEN)
           .append(Component.text(target.getName(), NamedTextColor.AQUA))
           .append(Component.text(" (range: " + distance + ")", NamedTextColor.GRAY))
       );
     } else {
-      this.transmissionService.addReceiver(player, target);
+      transmissionService.addReceiver(player, target);
       sender.sendMessage(
         Component.text("Added receiver: ", NamedTextColor.GREEN)
           .append(Component.text(target.getName(), NamedTextColor.AQUA))
@@ -119,7 +139,11 @@ public final class TransmitterCmd {
       return;
     }
 
-    this.transmissionService.removeReceiver(player, target);
+    final var transmissionService = requireTransmissionService(sender);
+    if (transmissionService == null)
+      return;
+
+    transmissionService.removeReceiver(player, target);
 
     sender.sendMessage(
       Component.text("Removed receiver: ", NamedTextColor.YELLOW)
@@ -140,12 +164,16 @@ public final class TransmitterCmd {
       return;
     }
 
-    if (!this.transmissionService.isTransmitter(player)) {
+    final var transmissionService = requireTransmissionService(sender);
+    if (transmissionService == null)
+      return;
+
+    if (!transmissionService.isTransmitter(player)) {
       sender.sendMessage(Component.text("You are not a transmitter!", NamedTextColor.RED));
       return;
     }
 
-    final var receivers = this.transmissionService.getReceivers(player);
+    final var receivers = transmissionService.getReceivers(player);
 
     if (receivers.isEmpty()) {
       sender.sendMessage(Component.text("No receivers.", NamedTextColor.GRAY));
@@ -175,4 +203,4 @@ public final class TransmitterCmd {
   }
 
 }
-
+

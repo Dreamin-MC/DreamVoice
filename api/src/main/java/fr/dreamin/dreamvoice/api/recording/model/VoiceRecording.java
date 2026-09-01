@@ -84,12 +84,11 @@ public final class VoiceRecording {
     sliced.duration = Duration.ofMillis(durationMs);
 
     final var endOffsetMs = startOffsetMs + durationMs;
-    for (final var frame : this.audioFrames) {
+    for (final var frame : this.audioFrames)
       if (frame.timestampMs() >= startOffsetMs && frame.timestampMs() <= endOffsetMs) {
         final var newTimestamp = frame.timestampMs() - startOffsetMs;
         sliced.audioFrames.add(new TimedAudioFrame(newTimestamp, frame.data().clone()));
       }
-    }
 
     return sliced;
   }
@@ -105,7 +104,6 @@ public final class VoiceRecording {
   }
 
 }
-
 
 
 

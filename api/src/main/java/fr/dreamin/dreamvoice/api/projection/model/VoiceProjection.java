@@ -3,6 +3,7 @@ package fr.dreamin.dreamvoice.api.projection.model;
 import lombok.Getter;
 import lombok.Setter;
 import org.bukkit.Location;
+import org.bukkit.entity.Entity;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -16,7 +17,7 @@ public final class VoiceProjection {
   @Setter
   private @NotNull Location anchorLocation;
   @Setter
-  private @Nullable org.bukkit.entity.Entity anchorEntity;
+  private @Nullable Entity anchorEntity;
 
   @Setter
   private double distance = 16.0;
@@ -43,7 +44,7 @@ public final class VoiceProjection {
     this(UUID.randomUUID(), playerUuid, anchorLocation);
   }
 
-  public VoiceProjection(final @NotNull UUID playerUuid, final @NotNull org.bukkit.entity.Entity anchorEntity) {
+  public VoiceProjection(final @NotNull UUID playerUuid, final @NotNull Entity anchorEntity) {
     this(UUID.randomUUID(), playerUuid, anchorEntity.getLocation());
     this.anchorEntity = anchorEntity;
   }
@@ -55,11 +56,9 @@ public final class VoiceProjection {
   }
 
   public @NotNull Location getAnchorLocation() {
-    if (this.anchorEntity != null && this.anchorEntity.isValid()) {
+    if (this.anchorEntity != null && this.anchorEntity.isValid())
       return this.anchorEntity.getLocation();
-    }
     return this.anchorLocation;
   }
 
 }
-

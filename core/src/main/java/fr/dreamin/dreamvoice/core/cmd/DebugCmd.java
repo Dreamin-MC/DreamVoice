@@ -12,6 +12,7 @@ import fr.dreamin.dreamvoice.api.player.model.PlayerState;
 import fr.dreamin.dreamvoice.api.player.service.PlayerService;
 import fr.dreamin.dreamvoice.api.voice.model.VoiceSoundBuilder;
 import fr.dreamin.dreamvoice.api.voice.service.VoiceService;
+import fr.dreamin.dreamvoice.api.wall.service.VoiceWallService;
 import fr.dreamin.dreamvoice.core.DreamVoice;
 import fr.dreamin.dreamvoice.core.utils.RawUtils;
 import net.kyori.adventure.text.Component;
@@ -31,13 +32,29 @@ import java.util.stream.Collectors;
 
 public final class DebugCmd {
 
-  private final @NotNull VoiceService voiceService =
+  private final @Nullable VoiceService voiceService =
     DreamVoice.getService(VoiceService.class);
-  private final @NotNull PlayerService playerService =
+  private final @Nullable PlayerService playerService =
     DreamVoice.getService(PlayerService.class);
 
   private static final Executor AUDIO_EXEC =
     Executors.newFixedThreadPool(2);
+
+  private @Nullable VoiceService requireVoiceService(final @NotNull CommandSender sender) {
+    if (this.voiceService == null) {
+      sender.sendMessage(Component.text("[SVC] Service vocal indisponible.", NamedTextColor.RED));
+      return null;
+    }
+    return this.voiceService;
+  }
+
+  private @Nullable PlayerService requirePlayerService(final @NotNull CommandSender sender) {
+    if (this.playerService == null) {
+      sender.sendMessage(Component.text("[SVC] Service joueur indisponible.", NamedTextColor.RED));
+      return null;
+    }
+    return this.playerService;
+  }
 
   // ------------------------------------------------------------
   // Suggestions
@@ -96,10 +113,14 @@ public final class DebugCmd {
     if (!(sender instanceof Player))
       return;
 
+    final var voiceService = requireVoiceService(sender);
+    if (voiceService == null)
+      return;
+
     final var duration = ms == null ? 2000 : ms;
     final var raw = RawUtils.generateBeep(freq, duration);
 
-    this.voiceService.playSound(
+    voiceService.playSound(
       VoiceSoundBuilder.builder()
         .rawAudioData(raw)
         .onStopped(stopped(sender, "beep-global"))
@@ -118,13 +139,17 @@ public final class DebugCmd {
     if (!(sender instanceof Player player))
       return;
 
+    final var voiceService = requireVoiceService(sender);
+    if (voiceService == null)
+      return;
+
     final var duration = ms == null ? 2000 : ms;
     final var dist = distance == null ? 16f : distance;
 
     final var raw = RawUtils.generateBeep(freq, duration);
     final var loc = player.getLocation().clone().add(0, 1.6, 0);
 
-    this.voiceService.playSound(
+    voiceService.playSound(
       VoiceSoundBuilder.builder()
         .rawAudioData(raw)
         .location(loc)
@@ -147,6 +172,10 @@ public final class DebugCmd {
     if (!(sender instanceof Player))
       return;
 
+    final var voiceService = requireVoiceService(sender);
+    if (voiceService == null)
+      return;
+
     sender.sendMessage(
       Component.text("[SVC] Download + convert…", NamedTextColor.GRAY)
     );
@@ -162,7 +191,7 @@ public final class DebugCmd {
       .thenAccept(raw ->
         Bukkit.getScheduler().runTask(
           DreamVoice.getInstance(),
-          () -> this.voiceService.playSound(
+          () -> voiceService.playSound(
             VoiceSoundBuilder.builder()
               .rawAudioData(raw)
               .onStopped(stopped(sender, "url-global"))
@@ -193,6 +222,10 @@ public final class DebugCmd {
     if (!(sender instanceof Player player))
       return;
 
+    final var voiceService = requireVoiceService(sender);
+    if (voiceService == null)
+      return;
+
     final var dist = distance == null ? 16f : distance;
     final var loc = player.getLocation().clone().add(0, 1.6, 0);
 
@@ -211,7 +244,7 @@ public final class DebugCmd {
       .thenAccept(raw ->
         Bukkit.getScheduler().runTask(
           DreamVoice.getInstance(),
-          () -> this.voiceService.playSound(
+          () -> voiceService.playSound(
             VoiceSoundBuilder.builder()
               .rawAudioData(raw)
               .location(loc)
@@ -243,6 +276,10 @@ public final class DebugCmd {
     if (!(sender instanceof Player player))
       return;
 
+    final var playerService = requirePlayerService(sender);
+    if (playerService == null)
+      return;
+
     final var state = parseState(raw);
     if (state == null) {
       sender.sendMessage(
@@ -251,7 +288,7 @@ public final class DebugCmd {
       return;
     }
 
-    this.playerService.setState(state, player.getUniqueId());
+    playerService.setState(state, player.getUniqueId());
     sender.sendMessage(
       Component.text("[SVC] Etat vocal défini sur ", NamedTextColor.GREEN)
         .append(Component.text(state.name(), NamedTextColor.YELLOW))
@@ -265,6 +302,10 @@ public final class DebugCmd {
     @Argument("player") final @NotNull Player target,
     @Argument(value = "state", suggestions = "player_state") final @NotNull String raw
   ) {
+    final var playerService = requirePlayerService(sender);
+    if (playerService == null)
+      return;
+
     final var state = parseState(raw);
     if (state == null) {
       sender.sendMessage(
@@ -273,7 +314,7 @@ public final class DebugCmd {
       return;
     }
 
-    this.playerService.setState(state, target.getUniqueId());
+    playerService.setState(state, target.getUniqueId());
     sender.sendMessage(
       Component.text("[SVC] Etat de ", NamedTextColor.GREEN)
         .append(Component.text(target.getName(), NamedTextColor.YELLOW))
@@ -288,7 +329,11 @@ public final class DebugCmd {
     final @NotNull CommandSender sender,
     @Argument("player") final @NotNull Player target
   ) {
-    this.playerService.setState(PlayerState.ALIVE, target.getUniqueId());
+    final var playerService = requirePlayerService(sender);
+    if (playerService == null)
+      return;
+
+    playerService.setState(PlayerState.ALIVE, target.getUniqueId());
     sender.sendMessage(
       Component.text("[SVC] Etat vocal reset pour ", NamedTextColor.GREEN)
         .append(Component.text(target.getName(), NamedTextColor.YELLOW))
@@ -301,7 +346,11 @@ public final class DebugCmd {
     final @NotNull CommandSender sender,
     @Argument("player") final @NotNull Player target
   ) {
-    final var vPlayer = this.playerService.getPlayer(target);
+    final var playerService = requirePlayerService(sender);
+    if (playerService == null)
+      return;
+
+    final var vPlayer = playerService.getPlayer(target);
     final var state = vPlayer != null ? vPlayer.getState() : PlayerState.ALIVE;
 
     sender.sendMessage(
@@ -319,8 +368,14 @@ public final class DebugCmd {
   @CommandMethod("voice reload")
   @CommandPermission("dreamvoice.cmd.debug")
   private void reloadConfig(final @NotNull CommandSender sender) {
+    final var codexService = DreamVoice.getService(CodexService.class);
+    if (codexService == null) {
+      sender.sendMessage(Component.text("[SVC] Service de configuration indisponible.", NamedTextColor.RED));
+      return;
+    }
+
     try {
-      DreamVoice.getService(CodexService.class).load();
+      codexService.load();
       sender.sendMessage(
         Component.text("[SVC] Configuration rechargée avec succès !", NamedTextColor.GREEN)
       );
@@ -340,8 +395,10 @@ public final class DebugCmd {
   @CommandPermission("dreamvoice.cmd.debug")
   private void listFilters(final @NotNull CommandSender sender) {
     final var filterService = DreamVoice.getService(VoiceFilterService.class);
-    if (filterService == null)
+    if (filterService == null) {
+      sender.sendMessage(Component.text("[SVC] Service de filtres indisponible.", NamedTextColor.RED));
       return;
+    }
 
     final var filters = filterService.getAvailableFilters();
     sender.sendMessage(
@@ -367,8 +424,10 @@ public final class DebugCmd {
     @Argument(value = "filter", suggestions = "voice_filters") final @NotNull String filterId
   ) {
     final var filterService = DreamVoice.getService(VoiceFilterService.class);
-    if (filterService == null)
+    if (filterService == null) {
+      sender.sendMessage(Component.text("[SVC] Service de filtres indisponible.", NamedTextColor.RED));
       return;
+    }
 
     if (filterService.getFilter(filterId) == null) {
       sender.sendMessage(Component.text("[SVC] Filtre inconnu: " + filterId, NamedTextColor.RED));
@@ -392,8 +451,10 @@ public final class DebugCmd {
     @Argument(value = "filter", suggestions = "voice_filters") final @NotNull String filterId
   ) {
     final var filterService = DreamVoice.getService(VoiceFilterService.class);
-    if (filterService == null)
+    if (filterService == null) {
+      sender.sendMessage(Component.text("[SVC] Service de filtres indisponible.", NamedTextColor.RED));
       return;
+    }
 
     filterService.removeFilter(target.getUniqueId(), filterId);
     sender.sendMessage(
@@ -411,8 +472,10 @@ public final class DebugCmd {
     @Argument("player") final @NotNull Player target
   ) {
     final var filterService = DreamVoice.getService(VoiceFilterService.class);
-    if (filterService == null)
+    if (filterService == null) {
+      sender.sendMessage(Component.text("[SVC] Service de filtres indisponible.", NamedTextColor.RED));
       return;
+    }
 
     filterService.clearFilters(target.getUniqueId());
     sender.sendMessage(
@@ -429,8 +492,10 @@ public final class DebugCmd {
     @Argument("enabled") final boolean enabled
   ) {
     final var filterService = DreamVoice.getService(VoiceFilterService.class);
-    if (filterService == null)
+    if (filterService == null) {
+      sender.sendMessage(Component.text("[SVC] Service de filtres indisponible.", NamedTextColor.RED));
       return;
+    }
 
     filterService.setAutoEnvironmentEnabled(target.getUniqueId(), enabled);
     sender.sendMessage(
@@ -451,9 +516,11 @@ public final class DebugCmd {
     final @NotNull CommandSender sender,
     @Argument("enabled") final boolean enabled
   ) {
-    final var wallService = DreamVoice.getService(fr.dreamin.dreamvoice.api.wall.service.VoiceWallService.class);
-    if (wallService == null)
+    final var wallService = DreamVoice.getService(VoiceWallService.class);
+    if (wallService == null) {
+      sender.sendMessage(Component.text("[SVC] Service VoiceWall indisponible.", NamedTextColor.RED));
       return;
+    }
 
     wallService.setAirDampingEnabled(enabled);
     sender.sendMessage(
@@ -463,7 +530,5 @@ public final class DebugCmd {
   }
 
 }
-
-
 
 

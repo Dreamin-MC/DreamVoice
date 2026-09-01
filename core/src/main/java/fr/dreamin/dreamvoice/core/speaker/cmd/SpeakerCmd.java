@@ -26,8 +26,16 @@ import java.util.stream.Collectors;
 
 public final class SpeakerCmd {
 
-  private final @NotNull VoiceSpeakerService speakerService =
+  private final @Nullable VoiceSpeakerService speakerService =
     DreamVoice.getService(VoiceSpeakerService.class);
+
+  private @Nullable VoiceSpeakerService requireSpeakerService(final @NotNull CommandSender sender) {
+    if (this.speakerService == null) {
+      sender.sendMessage(Component.text("[SVC] Service haut-parleur indisponible.", NamedTextColor.RED));
+      return null;
+    }
+    return this.speakerService;
+  }
 
   // ------------------------------------------------------------
   // Suggestions
@@ -35,6 +43,9 @@ public final class SpeakerCmd {
 
   @Suggestions("speakers")
   public List<String> suggSpeakers(final @NotNull CommandContext<CommandSender> ctx, final @NotNull String in) {
+    if (this.speakerService == null)
+      return List.of();
+
     return this.speakerService.getSpeakers().stream()
       .map(Speaker::getName)
       .filter(name -> name.toLowerCase().startsWith(in.toLowerCase()))
@@ -76,7 +87,11 @@ public final class SpeakerCmd {
       return;
     }
 
-    if (this.speakerService.getSpeaker(name) != null) {
+    final var speakerService = requireSpeakerService(sender);
+    if (speakerService == null)
+      return;
+
+    if (speakerService.getSpeaker(name) != null) {
       player.sendMessage(Component.text("[SVC] Un haut-parleur avec ce nom existe déjà !", NamedTextColor.RED));
       return;
     }
@@ -103,13 +118,17 @@ public final class SpeakerCmd {
     final @NotNull CommandSender sender,
     @Argument(value = "speaker", suggestions = "speakers") final @NotNull String speakerName
   ) {
-    final var speaker = this.speakerService.getSpeaker(speakerName);
+    final var speakerService = requireSpeakerService(sender);
+    if (speakerService == null)
+      return;
+
+    final var speaker = speakerService.getSpeaker(speakerName);
     if (speaker == null) {
       sender.sendMessage(Component.text("[SVC] Haut-parleur introuvable: " + speakerName, NamedTextColor.RED));
       return;
     }
 
-    this.speakerService.unregister(speaker);
+    speakerService.unregister(speaker);
     sender.sendMessage(
       Component.text("[SVC] Haut-parleur '", NamedTextColor.YELLOW)
         .append(Component.text(speakerName, NamedTextColor.AQUA))
@@ -121,7 +140,11 @@ public final class SpeakerCmd {
   @CommandMethod("speaker list")
   @CommandPermission("dreamvoice.speaker.list")
   private void listSpeakers(final @NotNull CommandSender sender) {
-    final var speakers = this.speakerService.getSpeakers();
+    final var speakerService = requireSpeakerService(sender);
+    if (speakerService == null)
+      return;
+
+    final var speakers = speakerService.getSpeakers();
     if (speakers.isEmpty()) {
       sender.sendMessage(Component.text("[SVC] Aucun haut-parleur enregistré.", NamedTextColor.GRAY));
       return;
@@ -154,7 +177,11 @@ public final class SpeakerCmd {
     @Argument(value = "speaker", suggestions = "speakers") final @NotNull String speakerName,
     @Argument(value = "mode", suggestions = "speaker_modes") final @NotNull String modeRaw
   ) {
-    final var speaker = this.speakerService.getSpeaker(speakerName);
+    final var speakerService = requireSpeakerService(sender);
+    if (speakerService == null)
+      return;
+
+    final var speaker = speakerService.getSpeaker(speakerName);
     if (speaker == null) {
       sender.sendMessage(Component.text("[SVC] Haut-parleur introuvable: " + speakerName, NamedTextColor.RED));
       return;
@@ -179,7 +206,11 @@ public final class SpeakerCmd {
     @Argument(value = "speaker", suggestions = "speakers") final @NotNull String speakerName,
     @Argument("player") final @NotNull Player target
   ) {
-    final var speaker = this.speakerService.getSpeaker(speakerName);
+    final var speakerService = requireSpeakerService(sender);
+    if (speakerService == null)
+      return;
+
+    final var speaker = speakerService.getSpeaker(speakerName);
     if (speaker == null) {
       sender.sendMessage(Component.text("[SVC] Haut-parleur introuvable: " + speakerName, NamedTextColor.RED));
       return;
@@ -203,7 +234,11 @@ public final class SpeakerCmd {
     @Argument(value = "speaker", suggestions = "speakers") final @NotNull String speakerName,
     @Argument("player") final @NotNull Player target
   ) {
-    final var speaker = this.speakerService.getSpeaker(speakerName);
+    final var speakerService = requireSpeakerService(sender);
+    if (speakerService == null)
+      return;
+
+    final var speaker = speakerService.getSpeaker(speakerName);
     if (speaker == null) {
       sender.sendMessage(Component.text("[SVC] Haut-parleur introuvable: " + speakerName, NamedTextColor.RED));
       return;
@@ -227,15 +262,21 @@ public final class SpeakerCmd {
     @Argument(value = "speaker", suggestions = "speakers") final @NotNull String speakerName,
     @Argument(value = "recording", suggestions = "recordings") final @NotNull String recordingIdRaw
   ) {
-    final var speaker = this.speakerService.getSpeaker(speakerName);
+    final var speakerService = requireSpeakerService(sender);
+    if (speakerService == null)
+      return;
+
+    final var speaker = speakerService.getSpeaker(speakerName);
     if (speaker == null) {
       sender.sendMessage(Component.text("[SVC] Haut-parleur introuvable: " + speakerName, NamedTextColor.RED));
       return;
     }
 
     final var recService = DreamVoice.getService(VoiceRecordingService.class);
-    if (recService == null)
+    if (recService == null) {
+      sender.sendMessage(Component.text("[SVC] Service d'enregistrement indisponible.", NamedTextColor.RED));
       return;
+    }
 
     try {
       final var recUuid = UUID.fromString(recordingIdRaw);
@@ -245,7 +286,7 @@ public final class SpeakerCmd {
         return;
       }
 
-      this.speakerService.playRecording(speaker, recording);
+      speakerService.playRecording(speaker, recording);
       sender.sendMessage(
         Component.text("[SVC] Lecture de l'enregistrement sur le haut-parleur '", NamedTextColor.GREEN)
           .append(Component.text(speaker.getName(), NamedTextColor.AQUA))
@@ -265,14 +306,18 @@ public final class SpeakerCmd {
     @Argument("fileName") final @NotNull String fileName,
     @Argument("loop") final @Nullable Boolean loop
   ) {
-    final var speaker = this.speakerService.getSpeaker(speakerName);
+    final var speakerService = requireSpeakerService(sender);
+    if (speakerService == null)
+      return;
+
+    final var speaker = speakerService.getSpeaker(speakerName);
     if (speaker == null) {
       sender.sendMessage(Component.text("[SVC] Haut-parleur introuvable: " + speakerName, NamedTextColor.RED));
       return;
     }
 
     final var isLoop = loop != null && loop;
-    this.speakerService.playSoundFile(speaker, fileName, isLoop);
+    speakerService.playSoundFile(speaker, fileName, isLoop);
     sender.sendMessage(
       Component.text("[SVC] Lecture du fichier audio '", NamedTextColor.GREEN)
         .append(Component.text(fileName, NamedTextColor.YELLOW))
@@ -291,7 +336,11 @@ public final class SpeakerCmd {
     @Argument("url") final @NotNull String url,
     @Argument("loop") final @Nullable Boolean loop
   ) {
-    final var speaker = this.speakerService.getSpeaker(speakerName);
+    final var speakerService = requireSpeakerService(sender);
+    if (speakerService == null)
+      return;
+
+    final var speaker = speakerService.getSpeaker(speakerName);
     if (speaker == null) {
       sender.sendMessage(Component.text("[SVC] Haut-parleur introuvable: " + speakerName, NamedTextColor.RED));
       return;
@@ -299,7 +348,7 @@ public final class SpeakerCmd {
 
     final var isLoop = loop != null && loop;
     sender.sendMessage(Component.text("[SVC] Chargement du flux audio...", NamedTextColor.GRAY));
-    this.speakerService.playSoundUrl(speaker, url, isLoop);
+    speakerService.playSoundUrl(speaker, url, isLoop);
     sender.sendMessage(
       Component.text("[SVC] Diffusion de l'URL sur le haut-parleur '", NamedTextColor.GREEN)
         .append(Component.text(speaker.getName(), NamedTextColor.AQUA))
@@ -314,14 +363,17 @@ public final class SpeakerCmd {
     final @NotNull CommandSender sender,
     @Argument(value = "speaker", suggestions = "speakers") final @NotNull String speakerName
   ) {
+    final var speakerService = requireSpeakerService(sender);
+    if (speakerService == null)
+      return;
 
-    final var speaker = this.speakerService.getSpeaker(speakerName);
+    final var speaker = speakerService.getSpeaker(speakerName);
     if (speaker == null) {
       sender.sendMessage(Component.text("[SVC] Haut-parleur introuvable: " + speakerName, NamedTextColor.RED));
       return;
     }
 
-    this.speakerService.stopSound(speaker);
+    speakerService.stopSound(speaker);
     sender.sendMessage(
       Component.text("[SVC] Lecture audio arrêtée sur le haut-parleur '", NamedTextColor.YELLOW)
         .append(Component.text(speaker.getName(), NamedTextColor.AQUA))
@@ -330,6 +382,5 @@ public final class SpeakerCmd {
   }
 
 }
-
 
 

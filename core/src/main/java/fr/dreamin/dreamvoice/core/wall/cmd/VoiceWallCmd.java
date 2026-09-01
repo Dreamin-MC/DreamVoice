@@ -21,8 +21,16 @@ import java.util.List;
 
 public final class VoiceWallCmd {
 
-  private final @NotNull VoiceWallService wallService =
+  private final @Nullable VoiceWallService wallService =
     DreamVoice.getService(VoiceWallService.class);
+
+  private @Nullable VoiceWallService requireWallService(final @NotNull CommandSender sender) {
+    if (this.wallService == null) {
+      sender.sendMessage(Component.text("[VOICEWALL] Service VoiceWall indisponible.", NamedTextColor.RED));
+      return null;
+    }
+    return this.wallService;
+  }
 
   @Suggestions("wall_modes")
   public List<String> suggModes(final @NotNull CommandContext<CommandSender> ctx, final @NotNull String in) {
@@ -38,6 +46,10 @@ public final class VoiceWallCmd {
     final @NotNull CommandSender sender,
     @Argument(value = "mode", suggestions = "wall_modes") final @NotNull String modeStr
   ) {
+    final var wallService = requireWallService(sender);
+    if (wallService == null)
+      return;
+
     final VoiceWallMode mode;
     switch (modeStr.toLowerCase()) {
       case "strict", "strict_block" -> mode = VoiceWallMode.STRICT_BLOCK;
@@ -49,7 +61,7 @@ public final class VoiceWallCmd {
       }
     }
 
-    this.wallService.setMode(mode);
+    wallService.setMode(mode);
     sender.sendMessage(
       Component.text("[VOICEWALL] Mode d'occlusion des murs défini sur : ", NamedTextColor.GREEN)
         .append(Component.text(mode.name(), NamedTextColor.YELLOW))
@@ -61,11 +73,15 @@ public final class VoiceWallCmd {
   @CommandMethod("voicewall toggle")
   @CommandPermission("dreamvoice.wall.manage")
   private void toggle(final @NotNull CommandSender sender) {
-    final var newEnable = !this.wallService.isEnable();
-    this.wallService.setEnable(newEnable);
+    final var wallService = requireWallService(sender);
+    if (wallService == null)
+      return;
+
+    final var newEnable = !wallService.isEnable();
+    wallService.setEnable(newEnable);
     sender.sendMessage(
       Component.text("[VOICEWALL] Système d'occlusion des murs : ", NamedTextColor.GREEN)
-        .append(Component.text(newEnable ? "ACTIVÉ (Mode " + this.wallService.getMode() + ")" : "DÉSACTIVÉ", newEnable ? NamedTextColor.YELLOW : NamedTextColor.RED))
+        .append(Component.text(newEnable ? "ACTIVÉ (Mode " + wallService.getMode() + ")" : "DÉSACTIVÉ", newEnable ? NamedTextColor.YELLOW : NamedTextColor.RED))
     );
   }
 
@@ -76,7 +92,11 @@ public final class VoiceWallCmd {
     final @NotNull CommandSender sender,
     @Argument("enabled") final boolean enabled
   ) {
-    this.wallService.setAirDampingEnabled(enabled);
+    final var wallService = requireWallService(sender);
+    if (wallService == null)
+      return;
+
+    wallService.setAirDampingEnabled(enabled);
     sender.sendMessage(
       Component.text("[VOICEWALL] Amortissement de l'air : ", NamedTextColor.GREEN)
         .append(Component.text(enabled ? "ACTIVÉ" : "DÉSACTIVÉ", enabled ? NamedTextColor.YELLOW : NamedTextColor.RED))
@@ -90,13 +110,17 @@ public final class VoiceWallCmd {
     final @NotNull CommandSender sender,
     @Argument("player") final @Nullable Player targetPlayer
   ) {
+    final var wallService = requireWallService(sender);
+    if (wallService == null)
+      return;
+
     final var player = (targetPlayer != null) ? targetPlayer : (sender instanceof Player p ? p : null);
     if (player == null) {
       sender.sendMessage(Component.text("[VOICEWALL] Précisez un joueur pour activer le debug visuel !", NamedTextColor.RED));
       return;
     }
 
-    final var active = this.wallService.toggleDebugPlayer(player);
+    final var active = wallService.toggleDebugPlayer(player);
     sender.sendMessage(
       Component.text("[VOICEWALL] Debug visuel par particules pour ", NamedTextColor.GREEN)
         .append(Component.text(player.getName(), NamedTextColor.YELLOW))
@@ -109,13 +133,23 @@ public final class VoiceWallCmd {
   @CommandMethod("voicewall info")
   @CommandPermission("dreamvoice.wall.manage")
   private void showInfo(final @NotNull CommandSender sender) {
-    final var codex = DreamVoice.getService(CodexService.class).getConfig();
+    final var wallService = requireWallService(sender);
+    if (wallService == null)
+      return;
+
+    final var codexService = DreamVoice.getService(CodexService.class);
+    if (codexService == null) {
+      sender.sendMessage(Component.text("[VOICEWALL] Service de configuration indisponible.", NamedTextColor.RED));
+      return;
+    }
+
+    final var codex = codexService.getConfig();
     final var diff = codex.getVoiceWall() != null ? codex.getVoiceWall().getDiffractionConfig() : null;
 
     sender.sendMessage(Component.text("==== [VOICEWALL SETTINGS] ====", NamedTextColor.GOLD));
-    sender.sendMessage(Component.text("Actif: ", NamedTextColor.GRAY).append(Component.text(String.valueOf(this.wallService.isEnable()), this.wallService.isEnable() ? NamedTextColor.GREEN : NamedTextColor.RED)));
-    sender.sendMessage(Component.text("Mode actuel: ", NamedTextColor.GRAY).append(Component.text(this.wallService.getMode().name(), NamedTextColor.YELLOW)));
-    sender.sendMessage(Component.text("Amortissement Air: ", NamedTextColor.GRAY).append(Component.text(String.valueOf(this.wallService.isAirDampingEnabled()), NamedTextColor.AQUA)));
+    sender.sendMessage(Component.text("Actif: ", NamedTextColor.GRAY).append(Component.text(String.valueOf(wallService.isEnable()), wallService.isEnable() ? NamedTextColor.GREEN : NamedTextColor.RED)));
+    sender.sendMessage(Component.text("Mode actuel: ", NamedTextColor.GRAY).append(Component.text(wallService.getMode().name(), NamedTextColor.YELLOW)));
+    sender.sendMessage(Component.text("Amortissement Air: ", NamedTextColor.GRAY).append(Component.text(String.valueOf(wallService.isAirDampingEnabled()), NamedTextColor.AQUA)));
     sender.sendMessage(Component.text("Diffraction / Contournement: ", NamedTextColor.GRAY).append(Component.text(diff != null && diff.enabled() ? "OUI (Bypass=" + diff.maxBypassWidth() + "m, Path=" + diff.maxPathDistance() + "m)" : "NON", NamedTextColor.YELLOW)));
   }
 

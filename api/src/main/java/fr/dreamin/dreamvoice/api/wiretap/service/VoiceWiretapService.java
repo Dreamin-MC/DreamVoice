@@ -4,6 +4,7 @@ import de.maxhenkel.voicechat.api.VoicechatServerApi;
 import fr.dreamin.dreamvoice.api.recording.model.VoiceRecording;
 import fr.dreamin.dreamvoice.api.wiretap.model.VoiceWiretap;
 import org.bukkit.Location;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -19,9 +20,9 @@ public interface VoiceWiretapService {
 
   @NotNull VoiceWiretap createWiretap(final @NotNull String name, final @NotNull Location location);
 
-  @NotNull VoiceWiretap createWiretap(final @NotNull String name, final @NotNull org.bukkit.entity.Entity entity);
+  @NotNull VoiceWiretap createWiretap(final @NotNull String name, final @NotNull Entity entity);
 
-  void attachToEntity(final @NotNull String name, final @NotNull org.bukkit.entity.Entity entity);
+  void attachToEntity(final @NotNull String name, final @NotNull Entity entity);
 
   void detachFromEntity(final @NotNull String name);
 

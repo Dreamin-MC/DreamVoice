@@ -4,6 +4,7 @@ import fr.dreamin.dreamvoice.api.recording.model.VoiceRecording;
 import lombok.Getter;
 import lombok.Setter;
 import org.bukkit.Location;
+import org.bukkit.entity.Entity;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -22,7 +23,7 @@ public final class VoiceWiretap {
   @Setter
   private @NotNull Location location;
   @Setter
-  private @Nullable org.bukkit.entity.Entity targetEntity = null;
+  private @Nullable Entity targetEntity = null;
 
   @Setter
   private double distance = 12.0;
@@ -43,7 +44,7 @@ public final class VoiceWiretap {
     this(UUID.randomUUID(), name, location);
   }
 
-  public VoiceWiretap(final @NotNull String name, final @NotNull org.bukkit.entity.Entity targetEntity) {
+  public VoiceWiretap(final @NotNull String name, final @NotNull Entity targetEntity) {
     this(UUID.randomUUID(), name, targetEntity.getLocation());
     this.targetEntity = targetEntity;
   }
@@ -55,9 +56,8 @@ public final class VoiceWiretap {
   }
 
   public @NotNull Location getLocation() {
-    if (this.targetEntity != null && this.targetEntity.isValid()) {
+    if (this.targetEntity != null && this.targetEntity.isValid())
       return this.targetEntity.getLocation();
-    }
     return this.location;
   }
 

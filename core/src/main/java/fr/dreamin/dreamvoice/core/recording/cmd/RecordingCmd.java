@@ -23,7 +23,15 @@ import java.util.stream.Collectors;
 
 public final class RecordingCmd {
 
-  private final @NotNull VoiceRecordingService recordingService = DreamVoice.getService(VoiceRecordingService.class);
+  private final @Nullable VoiceRecordingService recordingService = DreamVoice.getService(VoiceRecordingService.class);
+
+  private @Nullable VoiceRecordingService requireRecordingService(final @NotNull CommandSender sender) {
+    if (this.recordingService == null) {
+      sender.sendMessage(Component.text("[SVC] Service d'enregistrement indisponible.", NamedTextColor.RED));
+      return null;
+    }
+    return this.recordingService;
+  }
 
   // ------------------------------------------------------------
   // Suggestions
@@ -31,6 +39,9 @@ public final class RecordingCmd {
 
   @Suggestions("recordings")
   public @NotNull List<String> suggestRecordings(final @NotNull CommandContext<CommandSender> ctx, final @NotNull String input) {
+    if (this.recordingService == null)
+      return List.of();
+
     return this.recordingService.getVoiceRecordings().stream()
       .map(rec -> rec.getUuid().toString().substring(0, 8))
       .filter(id -> id.startsWith(input.toLowerCase()))
@@ -51,7 +62,11 @@ public final class RecordingCmd {
       return;
     }
 
-    final var rec = this.recordingService.startRecording(player.getUniqueId());
+    final var recordingService = requireRecordingService(sender);
+    if (recordingService == null)
+      return;
+
+    final var rec = recordingService.startRecording(player.getUniqueId());
 
     sender.sendMessage(
 
@@ -78,9 +93,13 @@ public final class RecordingCmd {
   }
 
   private void stopById(final @NotNull CommandSender sender, final @NotNull String id) {
+    final var recordingService = requireRecordingService(sender);
+    if (recordingService == null)
+      return;
+
     try {
       final var uuid = parseRecordingId(id);
-      this.recordingService.stopRecording(uuid);
+      recordingService.stopRecording(uuid);
       sender.sendMessage(
         Component.text("Stopped: ", NamedTextColor.GREEN)
           .append(Component.text(id, NamedTextColor.YELLOW))
@@ -91,13 +110,17 @@ public final class RecordingCmd {
   }
 
   private void stopCurrent(final @NotNull CommandSender sender, final @NotNull Player player) {
-    this.recordingService.getVoiceRecordings().stream()
+    final var recordingService = requireRecordingService(sender);
+    if (recordingService == null)
+      return;
+
+    recordingService.getVoiceRecordings().stream()
       .filter(rec -> rec.getSpeakerUUID().equals(player.getUniqueId()))
       .filter(VoiceRecording::isRecording)
       .findFirst()
       .ifPresentOrElse(
         rec -> {
-          this.recordingService.stopRecording(rec.getUuid());
+          recordingService.stopRecording(rec.getUuid());
           sender.sendMessage(
             Component.text("Stopped current: ", NamedTextColor.GREEN)
               .append(Component.text(rec.getUuid().toString().substring(0, 8), NamedTextColor.YELLOW))
@@ -114,7 +137,11 @@ public final class RecordingCmd {
   @CommandPermission("dreamvoice.record.list")
   @CommandDescription("List recordings")
   private void listRecordings(final @NotNull CommandSender sender) {
-    final var recordings = this.recordingService.getVoiceRecordings();
+    final var recordingService = requireRecordingService(sender);
+    if (recordingService == null)
+      return;
+
+    final var recordings = recordingService.getVoiceRecordings();
 
     if (recordings.isEmpty()) {
       sender.sendMessage(Component.text("No recordings found", NamedTextColor.GRAY));
@@ -151,9 +178,13 @@ public final class RecordingCmd {
       return;
     }
 
+    final var recordingService = requireRecordingService(sender);
+    if (recordingService == null)
+      return;
+
     try {
       final var uuid = parseRecordingId(id);
-      final var rec = this.recordingService.getVoiceRecordings().stream()
+      final var rec = recordingService.getVoiceRecordings().stream()
         .filter(r -> r.getUuid().equals(uuid))
         .findFirst()
         .orElseThrow(() -> new IllegalArgumentException("Recording not found"));
@@ -164,14 +195,14 @@ public final class RecordingCmd {
       }
 
       final var player = target != null ? target : (Player) sender;
-      final var conn = this.recordingService.getAPI().getConnectionOf(player.getUniqueId());
+      final var conn = recordingService.getAPI().getConnectionOf(player.getUniqueId());
 
       if (conn == null) {
         sender.sendMessage(Component.text("Player not in voice chat!", NamedTextColor.RED));
         return;
       }
 
-      this.recordingService.playRecordingTo(conn, rec);
+      recordingService.playRecordingTo(conn, rec);
 
       sender.sendMessage(
         Component.text("Playing: ", NamedTextColor.GREEN)
@@ -198,14 +229,18 @@ public final class RecordingCmd {
     @Argument("player") final @NotNull Player target,
     @Argument(value = "id", suggestions = "recordings") final @NotNull String id
   ) {
+    final var recordingService = requireRecordingService(sender);
+    if (recordingService == null)
+      return;
+
     try {
       final var uuid = parseRecordingId(id);
-      final var rec = this.recordingService.getVoiceRecordings().stream()
+      final var rec = recordingService.getVoiceRecordings().stream()
         .filter(r -> r.getUuid().equals(uuid))
         .findFirst()
         .orElseThrow(() -> new IllegalArgumentException("Recording not found"));
 
-      final var item = this.recordingService.createCassette(rec);
+      final var item = recordingService.createCassette(rec);
       target.getInventory().addItem(item);
 
       sender.sendMessage(
@@ -226,10 +261,14 @@ public final class RecordingCmd {
     @Argument("player") final @NotNull Player target,
     @Argument("fileName") final @NotNull String fileName
   ) {
+    final var recordingService = requireRecordingService(sender);
+    if (recordingService == null)
+      return;
+
     sender.sendMessage(Component.text("Conversion du fichier audio en cours...", NamedTextColor.GRAY));
-    this.recordingService.createRecordingFromFile(fileName)
+    recordingService.createRecordingFromFile(fileName)
       .thenAccept(rec -> Bukkit.getScheduler().runTask(DreamVoice.getInstance(), () -> {
-        final var item = this.recordingService.createCassette(rec);
+        final var item = recordingService.createCassette(rec);
         target.getInventory().addItem(item);
         sender.sendMessage(
           Component.text("Cassette du fichier '", NamedTextColor.GREEN)
@@ -253,10 +292,14 @@ public final class RecordingCmd {
     @Argument("player") final @NotNull Player target,
     @Argument("url") final @NotNull String url
   ) {
+    final var recordingService = requireRecordingService(sender);
+    if (recordingService == null)
+      return;
+
     sender.sendMessage(Component.text("Téléchargement et conversion de l'URL audio...", NamedTextColor.GRAY));
-    this.recordingService.createRecordingFromUrl(url, null)
+    recordingService.createRecordingFromUrl(url, null)
       .thenAccept(rec -> Bukkit.getScheduler().runTask(DreamVoice.getInstance(), () -> {
-        final var item = this.recordingService.createCassette(rec);
+        final var item = recordingService.createCassette(rec);
         target.getInventory().addItem(item);
         sender.sendMessage(
           Component.text("Cassette de l'URL donnée à ", NamedTextColor.GREEN)
@@ -281,9 +324,13 @@ public final class RecordingCmd {
     @Argument("durationMs") final long durationMs,
     @Argument("give") final @Nullable Boolean give
   ) {
+    final var recordingService = requireRecordingService(sender);
+    if (recordingService == null)
+      return;
+
     try {
       final var uuid = parseRecordingId(id);
-      final var sliced = this.recordingService.sliceRecording(uuid, startMs, durationMs);
+      final var sliced = recordingService.sliceRecording(uuid, startMs, durationMs);
       if (sliced == null) {
         sender.sendMessage(Component.text("Enregistrement introuvable !", NamedTextColor.RED));
         return;
@@ -296,7 +343,7 @@ public final class RecordingCmd {
       );
 
       if (give != null && give && sender instanceof Player player) {
-        final var item = this.recordingService.createCassette(sliced);
+        final var item = recordingService.createCassette(sliced);
         player.getInventory().addItem(item);
         sender.sendMessage(Component.text("Cassette du segment ajoutée à votre inventaire !", NamedTextColor.GREEN));
       }
@@ -314,9 +361,13 @@ public final class RecordingCmd {
     @Argument("durationMs") final long durationMs,
     @Argument("give") final @Nullable Boolean give
   ) {
+    final var recordingService = requireRecordingService(sender);
+    if (recordingService == null)
+      return;
+
     try {
       final var uuid = parseRecordingId(id);
-      final var sliced = this.recordingService.sliceLastRecording(uuid, durationMs);
+      final var sliced = recordingService.sliceLastRecording(uuid, durationMs);
       if (sliced == null) {
         sender.sendMessage(Component.text("Enregistrement introuvable !", NamedTextColor.RED));
         return;
@@ -329,7 +380,7 @@ public final class RecordingCmd {
       );
 
       if (give != null && give && sender instanceof Player player) {
-        final var item = this.recordingService.createCassette(sliced);
+        final var item = recordingService.createCassette(sliced);
         player.getInventory().addItem(item);
         sender.sendMessage(Component.text("Cassette du segment ajoutée à votre inventaire !", NamedTextColor.GREEN));
       }
@@ -345,9 +396,13 @@ public final class RecordingCmd {
     final @NotNull CommandSender sender,
     @Argument(value = "id", suggestions = "recordings") final @NotNull String id
   ) {
+    final var recordingService = requireRecordingService(sender);
+    if (recordingService == null)
+      return;
+
     try {
       final var uuid = parseRecordingId(id);
-      this.recordingService.unregister(uuid);
+      recordingService.unregister(uuid);
       sender.sendMessage(
         Component.text("Deleted: ", NamedTextColor.GREEN)
           .append(Component.text(id, NamedTextColor.YELLOW))
@@ -364,8 +419,12 @@ public final class RecordingCmd {
   // ------------------------------------------------------------
 
   private @NotNull UUID parseRecordingId(final @NotNull String id) {
+    final var recordingService = this.recordingService;
+    if (recordingService == null)
+      throw new IllegalStateException("VoiceRecordingService is unavailable");
+
     if (id.length() == 8) {
-      return this.recordingService.getVoiceRecordings().stream()
+      return recordingService.getVoiceRecordings().stream()
         .map(VoiceRecording::getUuid)
         .filter(uuid -> uuid.toString().startsWith(id))
         .findFirst()
@@ -384,4 +443,3 @@ public final class RecordingCmd {
   }
 
 }
-

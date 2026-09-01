@@ -8,6 +8,7 @@ import lombok.Getter;
 import org.bukkit.Location;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Objects;
 import java.util.function.Predicate;
 
 @Builder
@@ -29,7 +30,8 @@ public final class VoiceSoundBuilder {
   // ###############################################################
 
   public void play() {
-    DreamAPI.getAPI().getService(VoiceService.class).playSound(this);
+    Objects.requireNonNull(DreamAPI.getAPI().getService(VoiceService.class), "VoiceService is unavailable")
+      .playSound(this);
   }
 
 }

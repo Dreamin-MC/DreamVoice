@@ -6,6 +6,8 @@ import cloud.commandframework.annotations.CommandMethod;
 import cloud.commandframework.annotations.CommandPermission;
 import cloud.commandframework.annotations.suggestions.Suggestions;
 import cloud.commandframework.context.CommandContext;
+import fr.dreamin.dreamvoice.api.filter.model.VoiceFilter;
+import fr.dreamin.dreamvoice.api.filter.service.VoiceFilterService;
 import fr.dreamin.dreamvoice.api.radio.model.RadioChannel;
 import fr.dreamin.dreamvoice.api.radio.service.VoiceRadioService;
 import fr.dreamin.dreamvoice.core.DreamVoice;
@@ -14,17 +16,30 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
 public final class RadioCmd {
 
-  private final @NotNull VoiceRadioService radioService =
+  private final @Nullable VoiceRadioService radioService =
     DreamVoice.getService(VoiceRadioService.class);
+
+  private @Nullable VoiceRadioService requireRadioService(final @NotNull CommandSender sender) {
+    if (this.radioService == null) {
+      sender.sendMessage(Component.text("[RADIO] Service radio indisponible.", NamedTextColor.RED));
+      return null;
+    }
+    return this.radioService;
+  }
 
   @Suggestions("radio_channels")
   public List<String> suggChannels(final @NotNull CommandContext<CommandSender> ctx, final @NotNull String in) {
+    if (this.radioService == null)
+      return List.of();
+
     return this.radioService.getChannels().stream()
       .map(RadioChannel::getName)
       .filter(name -> name.startsWith(in.toLowerCase()))
@@ -34,12 +49,12 @@ public final class RadioCmd {
 
   @Suggestions("voice_filters")
   public List<String> suggFilters(final @NotNull CommandContext<CommandSender> ctx, final @NotNull String in) {
-    final var filterService = DreamVoice.getService(fr.dreamin.dreamvoice.api.filter.service.VoiceFilterService.class);
-    final var list = new java.util.ArrayList<String>();
+    final var filterService = DreamVoice.getService(VoiceFilterService.class);
+    final var list = new ArrayList<String>();
     list.add("none");
     if (filterService != null) {
       filterService.getAvailableFilters().stream()
-        .map(fr.dreamin.dreamvoice.api.filter.model.VoiceFilter::getId)
+        .map(VoiceFilter::getId)
         .forEach(list::add);
     }
 
@@ -59,7 +74,11 @@ public final class RadioCmd {
     @Argument(value = "filter", suggestions = "voice_filters") final @org.jetbrains.annotations.Nullable String filterId,
     @Argument("rogerBeep") final @org.jetbrains.annotations.Nullable Boolean rogerBeep
   ) {
-    final var channel = this.radioService.getOrCreateChannel(channelName);
+    final var radioService = requireRadioService(sender);
+    if (radioService == null)
+      return;
+
+    final var channel = radioService.getOrCreateChannel(channelName);
     if (filterId != null)
       channel.setFilterId(filterId.toLowerCase());
     if (rogerBeep != null)
@@ -81,13 +100,17 @@ public final class RadioCmd {
     final @NotNull CommandSender sender,
     @Argument(value = "channel", suggestions = "radio_channels") final @NotNull String channelName
   ) {
-    final var ch = this.radioService.getChannel(channelName);
+    final var radioService = requireRadioService(sender);
+    if (radioService == null)
+      return;
+
+    final var ch = radioService.getChannel(channelName);
     if (ch == null) {
       sender.sendMessage(Component.text("[RADIO] Canal introuvable: " + channelName, NamedTextColor.RED));
       return;
     }
 
-    this.radioService.removeChannel(channelName);
+    radioService.removeChannel(channelName);
     sender.sendMessage(
       Component.text("[RADIO] Canal ", NamedTextColor.GREEN)
         .append(Component.text(channelName.toUpperCase(), NamedTextColor.YELLOW))
@@ -107,7 +130,11 @@ public final class RadioCmd {
       return;
     }
 
-    this.radioService.joinChannel(player.getUniqueId(), channelName);
+    final var radioService = requireRadioService(sender);
+    if (radioService == null)
+      return;
+
+    radioService.joinChannel(player.getUniqueId(), channelName);
     player.sendMessage(
       Component.text("[RADIO] Connecté à la fréquence ", NamedTextColor.GREEN)
         .append(Component.text(channelName.toUpperCase(), NamedTextColor.YELLOW))
@@ -125,13 +152,17 @@ public final class RadioCmd {
       return;
     }
 
-    final var current = this.radioService.getChannelOfPlayer(player.getUniqueId());
+    final var radioService = requireRadioService(sender);
+    if (radioService == null)
+      return;
+
+    final var current = radioService.getChannelOfPlayer(player.getUniqueId());
     if (current == null) {
       player.sendMessage(Component.text("[RADIO] Vous n'êtes connecté à aucune fréquence.", NamedTextColor.GRAY));
       return;
     }
 
-    this.radioService.leaveChannel(player.getUniqueId());
+    radioService.leaveChannel(player.getUniqueId());
     player.sendMessage(
       Component.text("[RADIO] Déconnecté de la fréquence ", NamedTextColor.YELLOW)
         .append(Component.text(current.getName().toUpperCase(), NamedTextColor.AQUA))
@@ -143,7 +174,11 @@ public final class RadioCmd {
   @CommandMethod("radio list")
   @CommandPermission("dreamvoice.radio.use")
   private void listRadio(final @NotNull CommandSender sender) {
-    final var channels = this.radioService.getChannels();
+    final var radioService = requireRadioService(sender);
+    if (radioService == null)
+      return;
+
+    final var channels = radioService.getChannels();
     if (channels.isEmpty()) {
       sender.sendMessage(Component.text("[RADIO] Aucune fréquence radio active actuellement.", NamedTextColor.GRAY));
       return;
@@ -174,7 +209,11 @@ public final class RadioCmd {
     @Argument(value = "channel", suggestions = "radio_channels") final @NotNull String channelName,
     @Argument("enabled") final boolean enabled
   ) {
-    final var ch = this.radioService.getChannel(channelName);
+    final var radioService = requireRadioService(sender);
+    if (radioService == null)
+      return;
+
+    final var ch = radioService.getChannel(channelName);
     if (ch == null) {
       sender.sendMessage(Component.text("[RADIO] Canal radio introuvable: " + channelName, NamedTextColor.RED));
       return;
@@ -197,8 +236,11 @@ public final class RadioCmd {
     @Argument(value = "channel", suggestions = "radio_channels") final @NotNull String channelName,
     @Argument(value = "filter", suggestions = "voice_filters") final @NotNull String filterId
   ) {
+    final var radioService = requireRadioService(sender);
+    if (radioService == null)
+      return;
 
-    final var ch = this.radioService.getChannel(channelName);
+    final var ch = radioService.getChannel(channelName);
     if (ch == null) {
       sender.sendMessage(Component.text("[RADIO] Canal radio introuvable: " + channelName, NamedTextColor.RED));
       return;

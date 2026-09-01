@@ -2,19 +2,26 @@ package fr.dreamin.dreamvoice.core.speaker.service;
 
 import de.maxhenkel.voicechat.api.VoicechatServerApi;
 import de.maxhenkel.voicechat.api.VolumeCategory;
+import de.maxhenkel.voicechat.api.audiochannel.StaticAudioChannel;
 import fr.dreamin.dreamvoice.api.filter.service.VoiceFilterService;
 import fr.dreamin.dreamvoice.api.recording.model.VoiceRecording;
 import fr.dreamin.dreamvoice.api.speaker.model.Speaker;
 import fr.dreamin.dreamvoice.api.speaker.service.VoiceSpeakerService;
 import fr.dreamin.dreamvoice.api.voice.event.MicrophonePacketEvent;
 import fr.dreamin.dreamvoice.api.voice.service.VoiceService;
+import fr.dreamin.dreamvoice.api.wall.service.VoiceWallService;
 import fr.dreamin.dreamvoice.core.DreamVoice;
+import fr.dreamin.dreamvoice.core.utils.RawUtils;
+import fr.dreamin.dreamvoice.core.utils.audio.AudioLimiter;
+import fr.dreamin.dreamvoice.core.utils.raycast.VoiceRayCast;
 import org.bukkit.Bukkit;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Map;
@@ -28,6 +35,7 @@ public final class VoiceSpeakerServiceImpl implements VoiceSpeakerService, Liste
   private @NotNull VoicechatServerApi api;
 
   private VolumeCategory volumeCategory;
+  private boolean voiceServiceMissingLogged = false;
 
   private final @NotNull Map<UUID, Speaker> speakers = new ConcurrentHashMap<>();
 
@@ -208,20 +216,19 @@ public final class VoiceSpeakerServiceImpl implements VoiceSpeakerService, Liste
   public void playSoundFile(final @NotNull Speaker speaker, final @NotNull String fileName, final boolean loop) {
     CompletableFuture.runAsync(() -> {
       try {
-        final var soundDir = new java.io.File(this.plugin.getDataFolder(), "sounds");
+        final var soundDir = new File(this.plugin.getDataFolder(), "sounds");
         if (!soundDir.exists())
           soundDir.mkdirs();
 
-        final var soundFile = new java.io.File(soundDir, fileName);
+        final var soundFile = new File(soundDir, fileName);
         if (!soundFile.exists()) {
           this.plugin.getLogger().warning("Sound file not found: " + soundFile.getAbsolutePath());
           return;
         }
 
-        final var pcm = fr.dreamin.dreamvoice.core.utils.RawUtils.fileToShorts48Hz(soundFile);
-        if (pcm.length > 0) {
+        final var pcm = RawUtils.fileToShorts48Hz(soundFile);
+        if (pcm.length > 0)
           Bukkit.getScheduler().runTask(this.plugin, () -> playSound(speaker, pcm, loop));
-        }
       } catch (Exception e) {
         this.plugin.getLogger().severe("Error loading sound file: " + e.getMessage());
       }
@@ -232,10 +239,9 @@ public final class VoiceSpeakerServiceImpl implements VoiceSpeakerService, Liste
   public void playSoundUrl(final @NotNull Speaker speaker, final @NotNull String url, final boolean loop) {
     CompletableFuture.runAsync(() -> {
       try {
-        final var pcm = fr.dreamin.dreamvoice.core.utils.RawUtils.urlToShorts48Hz(url);
-        if (pcm.length > 0) {
+        final var pcm = RawUtils.urlToShorts48Hz(url);
+        if (pcm.length > 0)
           Bukkit.getScheduler().runTask(this.plugin, () -> playSound(speaker, pcm, loop));
-        }
       } catch (Exception e) {
         this.plugin.getLogger().severe("Error streaming sound from URL: " + e.getMessage());
       }
@@ -248,7 +254,7 @@ public final class VoiceSpeakerServiceImpl implements VoiceSpeakerService, Liste
   }
 
 
-  private final Map<String, de.maxhenkel.voicechat.api.audiochannel.StaticAudioChannel> listenerChannels = new ConcurrentHashMap<>();
+  private final Map<String, StaticAudioChannel> listenerChannels = new ConcurrentHashMap<>();
   private final Map<String, Long> lastChannelActivity = new ConcurrentHashMap<>();
 
   // ###############################################################
@@ -269,7 +275,7 @@ public final class VoiceSpeakerServiceImpl implements VoiceSpeakerService, Liste
     if (matchingSpeakers.isEmpty())
       return;
 
-    final var wallService = DreamVoice.getService(fr.dreamin.dreamvoice.api.wall.service.VoiceWallService.class);
+    final var wallService = DreamVoice.getService(VoiceWallService.class);
     final var filterService = DreamVoice.getService(VoiceFilterService.class);
     final var voiceService = DreamVoice.getService(VoiceService.class);
     final var hasFilters = filterService != null && filterService.hasActiveFilters(senderUuid);
@@ -284,6 +290,14 @@ public final class VoiceSpeakerServiceImpl implements VoiceSpeakerService, Liste
         else
           speaker.getSpeakerChannel().send(event.getPacket());
       });
+      return;
+    }
+
+    if (voiceService == null) {
+      if (!this.voiceServiceMissingLogged) {
+        this.voiceServiceMissingLogged = true;
+        this.plugin.getLogger().warning("VoiceService is unavailable. Speaker audio processing is skipped.");
+      }
       return;
     }
 
@@ -318,7 +332,7 @@ public final class VoiceSpeakerServiceImpl implements VoiceSpeakerService, Liste
 
           var totalDbLoss = 0.0;
           if (isWallEnabled) {
-            final var ray = fr.dreamin.dreamvoice.core.utils.raycast.VoiceRayCast.check(spkLoc, listener);
+            final var ray = VoiceRayCast.check(spkLoc, listener);
             if (ray.isBlocked())
               totalDbLoss = ray.totalAttenuation();
           }
@@ -349,7 +363,7 @@ public final class VoiceSpeakerServiceImpl implements VoiceSpeakerService, Liste
           }
 
           // Soft limiter
-          processedPcm = fr.dreamin.dreamvoice.core.utils.audio.AudioLimiter.process(processedPcm);
+          processedPcm = AudioLimiter.process(processedPcm);
 
           final var listenerOpus = encoder.encode(processedPcm);
           final var streamKey = speaker.getUuid().toString() + ":" + senderUuid + ":" + listener.getUniqueId();
@@ -374,17 +388,12 @@ public final class VoiceSpeakerServiceImpl implements VoiceSpeakerService, Liste
   }
 
   @EventHandler
-  private void onPlayerQuit(final @NotNull org.bukkit.event.player.PlayerQuitEvent event) {
+  private void onPlayerQuit(final @NotNull PlayerQuitEvent event) {
     final var uidStr = event.getPlayer().getUniqueId().toString();
     this.listenerChannels.keySet().removeIf(k -> k.contains(uidStr));
     this.lastChannelActivity.keySet().removeIf(k -> k.contains(uidStr));
   }
 
 }
-
-
-
-
-
 
 

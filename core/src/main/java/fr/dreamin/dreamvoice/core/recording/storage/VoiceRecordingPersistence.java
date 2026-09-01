@@ -1,5 +1,6 @@
 package fr.dreamin.dreamvoice.core.recording.storage;
 
+import fr.dreamin.dreamvoice.api.recording.model.TimedAudioFrame;
 import fr.dreamin.dreamvoice.api.recording.model.VoiceRecording;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -89,7 +90,7 @@ public final class VoiceRecordingPersistence {
         final var len = dis.readInt();
         final var data = new byte[len];
         dis.readFully(data);
-        recording.getAudioFrames().add(new fr.dreamin.dreamvoice.api.recording.model.TimedAudioFrame(ts, data));
+        recording.getAudioFrames().add(new TimedAudioFrame(ts, data));
       }
 
 

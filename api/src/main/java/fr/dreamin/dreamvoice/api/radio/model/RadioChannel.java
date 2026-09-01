@@ -3,6 +3,7 @@ package fr.dreamin.dreamvoice.api.radio.model;
 import lombok.Getter;
 import lombok.Setter;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Collections;
 import java.util.Set;
@@ -17,7 +18,7 @@ public final class RadioChannel {
   @Setter
   private boolean rogerBeep = true;
   @Setter
-  private @org.jetbrains.annotations.Nullable String filterId = "radio";
+  private @Nullable String filterId = "radio";
 
 
   public RadioChannel(final @NotNull String name) {

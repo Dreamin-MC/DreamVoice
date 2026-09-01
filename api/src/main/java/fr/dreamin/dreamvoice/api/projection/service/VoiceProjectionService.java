@@ -3,6 +3,7 @@ package fr.dreamin.dreamvoice.api.projection.service;
 import de.maxhenkel.voicechat.api.VoicechatServerApi;
 import fr.dreamin.dreamvoice.api.projection.model.VoiceProjection;
 import org.bukkit.Location;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -22,9 +23,9 @@ public interface VoiceProjectionService {
     return createProjection(player.getUniqueId(), anchorLocation);
   }
 
-  @NotNull VoiceProjection createProjection(final @NotNull UUID playerUuid, final @NotNull org.bukkit.entity.Entity anchorEntity);
+  @NotNull VoiceProjection createProjection(final @NotNull UUID playerUuid, final @NotNull Entity anchorEntity);
 
-  default @NotNull VoiceProjection createProjection(final @NotNull Player player, final @NotNull org.bukkit.entity.Entity anchorEntity) {
+  default @NotNull VoiceProjection createProjection(final @NotNull Player player, final @NotNull Entity anchorEntity) {
     return createProjection(player.getUniqueId(), anchorEntity);
   }
 

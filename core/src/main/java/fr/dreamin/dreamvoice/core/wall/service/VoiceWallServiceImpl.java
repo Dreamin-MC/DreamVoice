@@ -2,25 +2,35 @@ package fr.dreamin.dreamvoice.core.wall.service;
 
 import de.maxhenkel.voicechat.api.VoicechatConnection;
 import de.maxhenkel.voicechat.api.VoicechatServerApi;
+import de.maxhenkel.voicechat.api.events.EntitySoundPacketEvent;
 import fr.dreamin.dreamapi.core.time.Tick;
 import fr.dreamin.dreamvoice.api.codex.service.CodexService;
 import fr.dreamin.dreamvoice.api.filter.service.VoiceFilterService;
 import fr.dreamin.dreamvoice.api.player.model.VPlayer;
 import fr.dreamin.dreamvoice.api.player.service.PlayerService;
-import fr.dreamin.dreamvoice.api.voice.event.EntitySoundPacketEvent;
+import fr.dreamin.dreamvoice.api.wall.model.VoiceWallMode;
 import fr.dreamin.dreamvoice.api.voice.service.VoiceService;
 import fr.dreamin.dreamvoice.api.wall.service.VoiceWallService;
 import fr.dreamin.dreamvoice.core.DreamVoice;
 import fr.dreamin.dreamvoice.core.player.manager.VoiceWallManager;
 import fr.dreamin.dreamvoice.core.utils.raycast.VoiceRayCast;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
+import org.bukkit.Color;
+import org.bukkit.Location;
+import org.bukkit.Particle;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 public final class VoiceWallServiceImpl extends Tick implements VoiceWallService, Listener {
@@ -30,9 +40,9 @@ public final class VoiceWallServiceImpl extends Tick implements VoiceWallService
   private final @NotNull PlayerService playerService;
 
   private boolean enable = false, enableStats, debug = false;
-  private @NotNull fr.dreamin.dreamvoice.api.wall.model.VoiceWallMode mode = fr.dreamin.dreamvoice.api.wall.model.VoiceWallMode.REALISTIC;
+  private @NotNull VoiceWallMode mode = VoiceWallMode.REALISTIC;
 
-  private final @NotNull java.util.Set<java.util.UUID> debugPlayers = java.util.concurrent.ConcurrentHashMap.newKeySet();
+  private final @NotNull Set<UUID> debugPlayers = ConcurrentHashMap.newKeySet();
 
   private double
     wallBypassWidth = 2.0,
@@ -43,6 +53,8 @@ public final class VoiceWallServiceImpl extends Tick implements VoiceWallService
 
   private final @NotNull Map<String, CachedLineOfSight> lineOfSightCache = new ConcurrentHashMap<>();
   private final @NotNull Map<String, Long> lastProcessedPairs = new ConcurrentHashMap<>();
+  private boolean codexServiceMissingLogged = false;
+  private boolean voiceServiceMissingLogged = false;
 
   // ###############################################################
   // --------------------- CONSTRUCTOR METHODS ---------------------
@@ -97,21 +109,21 @@ public final class VoiceWallServiceImpl extends Tick implements VoiceWallService
   public void setEnable(final boolean value) {
     this.enable = value;
     if (!value) {
-      this.mode = fr.dreamin.dreamvoice.api.wall.model.VoiceWallMode.OFF;
-    } else if (this.mode == fr.dreamin.dreamvoice.api.wall.model.VoiceWallMode.OFF) {
-      this.mode = fr.dreamin.dreamvoice.api.wall.model.VoiceWallMode.REALISTIC;
+      this.mode = VoiceWallMode.OFF;
+    } else if (this.mode == VoiceWallMode.OFF) {
+      this.mode = VoiceWallMode.REALISTIC;
     }
   }
 
   @Override
-  public @NotNull fr.dreamin.dreamvoice.api.wall.model.VoiceWallMode getMode() {
+  public @NotNull VoiceWallMode getMode() {
     return this.mode;
   }
 
   @Override
-  public void setMode(final @NotNull fr.dreamin.dreamvoice.api.wall.model.VoiceWallMode mode) {
+  public void setMode(final @NotNull VoiceWallMode mode) {
     this.mode = mode;
-    this.enable = (mode != fr.dreamin.dreamvoice.api.wall.model.VoiceWallMode.OFF);
+    this.enable = (mode != VoiceWallMode.OFF);
     this.lineOfSightCache.clear();
   }
 
@@ -126,7 +138,7 @@ public final class VoiceWallServiceImpl extends Tick implements VoiceWallService
   }
 
   @Override
-  public boolean toggleDebugPlayer(final @NotNull org.bukkit.entity.Player player) {
+  public boolean toggleDebugPlayer(final @NotNull Player player) {
     final var uid = player.getUniqueId();
     if (this.debugPlayers.contains(uid)) {
       this.debugPlayers.remove(uid);
@@ -138,12 +150,12 @@ public final class VoiceWallServiceImpl extends Tick implements VoiceWallService
   }
 
   @Override
-  public boolean hasDebugPlayer(final @NotNull java.util.UUID playerUuid) {
+  public boolean hasDebugPlayer(final @NotNull UUID playerUuid) {
     return this.debugPlayers.contains(playerUuid);
   }
 
   @Override
-  public void setDebugPlayer(final @NotNull java.util.UUID playerUuid, final boolean enabled) {
+  public void setDebugPlayer(final @NotNull UUID playerUuid, final boolean enabled) {
     if (enabled)
       this.debugPlayers.add(playerUuid);
     else
@@ -218,7 +230,16 @@ public final class VoiceWallServiceImpl extends Tick implements VoiceWallService
       return;
     }
 
-    final var maxVoiceDistance = DreamVoice.getService(CodexService.class).getConfig().getDistance();
+    final var codexService = DreamVoice.getService(CodexService.class);
+    if (codexService == null) {
+      if (!this.codexServiceMissingLogged) {
+        this.codexServiceMissingLogged = true;
+        this.plugin.getLogger().warning("CodexService is unavailable. VoiceWall pair processing is skipped.");
+      }
+      return;
+    }
+
+    final var maxVoiceDistance = codexService.getConfig().getDistance();
     final var distance = pa.getLocation().distance(pb.getLocation());
     if (distance > maxVoiceDistance) {
       blockBoth(vPlayer, otherVPlayer, 0.0, VoiceWallManager.WallBlockReason.DISTANCE);
@@ -233,7 +254,7 @@ public final class VoiceWallServiceImpl extends Tick implements VoiceWallService
     if (los.lineOfSight())
       return;
 
-    final var attenuation = (this.mode == fr.dreamin.dreamvoice.api.wall.model.VoiceWallMode.STRICT_BLOCK) ? 100.0 : los.totalAttenuation();
+    final var attenuation = (this.mode == VoiceWallMode.STRICT_BLOCK) ? 100.0 : los.totalAttenuation();
     blockBoth(vPlayer, otherVPlayer, attenuation, VoiceWallManager.WallBlockReason.WALL);
   }
 
@@ -318,7 +339,7 @@ public final class VoiceWallServiceImpl extends Tick implements VoiceWallService
 
   @Override
   public void processEntitySoundPacket(
-    final @NotNull de.maxhenkel.voicechat.api.events.EntitySoundPacketEvent event,
+    final @NotNull EntitySoundPacketEvent event,
     final @NotNull VPlayer vSender,
     final @NotNull VPlayer vReceiver,
     final @NotNull VoicechatConnection receiverConn
@@ -357,9 +378,18 @@ public final class VoiceWallServiceImpl extends Tick implements VoiceWallService
       if (opusDta == null || opusDta.length == 0)
         return;
 
+      final var voiceService = DreamVoice.getService(VoiceService.class);
+      if (voiceService == null) {
+        if (!this.voiceServiceMissingLogged) {
+          this.voiceServiceMissingLogged = true;
+          this.plugin.getLogger().warning("VoiceService is unavailable. VoiceWall packet processing is skipped.");
+        }
+        return;
+      }
+
       final var receiverUUID = receiverConn.getPlayer().getUuid();
-      final var decoder = DreamVoice.getService(VoiceService.class).getDecoder(receiverUUID);
-      final var encoder = DreamVoice.getService(VoiceService.class).getEncoder(receiverUUID);
+      final var decoder = voiceService.getDecoder(receiverUUID);
+      final var encoder = voiceService.getEncoder(receiverUUID);
 
       if (decoder == null || encoder == null)
         return;
@@ -429,7 +459,7 @@ public final class VoiceWallServiceImpl extends Tick implements VoiceWallService
       }
 
       // Find closest other player
-      var closestPlayer = (org.bukkit.entity.Player) null;
+      var closestPlayer = (Player) null;
       var closestDist = Double.MAX_VALUE;
 
       for (final var target : Bukkit.getOnlinePlayers()) {
@@ -448,29 +478,29 @@ public final class VoiceWallServiceImpl extends Tick implements VoiceWallService
 
       final var result = VoiceRayCast.check(viewer, closestPlayer);
 
-      final org.bukkit.Color color;
-      final net.kyori.adventure.text.Component statusText;
+      final Color color;
+      final Component statusText;
 
       switch (result.type()) {
         case DIRECT -> {
-          color = org.bukkit.Color.fromRGB(40, 255, 40);
-          statusText = net.kyori.adventure.text.Component.text("DIRECT (Air Libre)", net.kyori.adventure.text.format.NamedTextColor.GREEN);
+          color = Color.fromRGB(40, 255, 40);
+          statusText = Component.text("DIRECT (Air Libre)", NamedTextColor.GREEN);
         }
         case DIFFRACTED -> {
-          color = org.bukkit.Color.fromRGB(255, 180, 0);
-          statusText = net.kyori.adventure.text.Component.text("CONTOURNÉ (Porte/Angle)", net.kyori.adventure.text.format.NamedTextColor.GOLD);
+          color = Color.fromRGB(255, 180, 0);
+          statusText = Component.text("CONTOURNÉ (Porte/Angle)", NamedTextColor.GOLD);
         }
         case WALL_ATTENUATED -> {
-          color = org.bukkit.Color.fromRGB(255, 60, 60);
-          statusText = net.kyori.adventure.text.Component.text("ATTÉNUÉ (Mur)", net.kyori.adventure.text.format.NamedTextColor.RED);
+          color = Color.fromRGB(255, 60, 60);
+          statusText = Component.text("ATTÉNUÉ (Mur)", NamedTextColor.RED);
         }
         case WALL_BLOCKED -> {
-          color = org.bukkit.Color.fromRGB(180, 0, 0);
-          statusText = net.kyori.adventure.text.Component.text("BLOQUÉ (Coupé 100%)", net.kyori.adventure.text.format.NamedTextColor.DARK_RED);
+          color = Color.fromRGB(180, 0, 0);
+          statusText = Component.text("BLOQUÉ (Coupé 100%)", NamedTextColor.DARK_RED);
         }
         default -> {
-          color = org.bukkit.Color.fromRGB(200, 200, 200);
-          statusText = net.kyori.adventure.text.Component.text("INCONNU", net.kyori.adventure.text.format.NamedTextColor.GRAY);
+          color = Color.fromRGB(200, 200, 200);
+          statusText = Component.text("INCONNU", NamedTextColor.GRAY);
         }
       }
 
@@ -479,25 +509,25 @@ public final class VoiceWallServiceImpl extends Tick implements VoiceWallService
 
       // Send Action Bar feedback
       viewer.sendActionBar(
-        net.kyori.adventure.text.Component.text("[VoiceWall Debug] ", net.kyori.adventure.text.format.NamedTextColor.GRAY)
-          .append(net.kyori.adventure.text.Component.text("Cible: ", net.kyori.adventure.text.format.NamedTextColor.DARK_GRAY))
-          .append(net.kyori.adventure.text.Component.text(closestPlayer.getName(), net.kyori.adventure.text.format.NamedTextColor.AQUA))
-          .append(net.kyori.adventure.text.Component.text(" | ", net.kyori.adventure.text.format.NamedTextColor.DARK_GRAY))
+        Component.text("[VoiceWall Debug] ", NamedTextColor.GRAY)
+          .append(Component.text("Cible: ", NamedTextColor.DARK_GRAY))
+          .append(Component.text(closestPlayer.getName(), NamedTextColor.AQUA))
+          .append(Component.text(" | ", NamedTextColor.DARK_GRAY))
           .append(statusText)
-          .append(net.kyori.adventure.text.Component.text(String.format(" (-%.1f dB, %.1fm)", result.totalAttenuation(), closestDist), net.kyori.adventure.text.format.NamedTextColor.YELLOW))
+          .append(Component.text(String.format(" (-%.1f dB, %.1fm)", result.totalAttenuation(), closestDist), NamedTextColor.YELLOW))
       );
     }
   }
 
   private void spawnParticleTrail(
-    final @NotNull org.bukkit.entity.Player viewer,
-    final @NotNull java.util.List<org.bukkit.Location> waypoints,
-    final @NotNull org.bukkit.Color color
+    final @NotNull Player viewer,
+    final @NotNull List<Location> waypoints,
+    final @NotNull Color color
   ) {
     if (waypoints.size() < 2)
       return;
 
-    final var dust = new org.bukkit.Particle.DustOptions(color, 1.2f);
+    final var dust = new Particle.DustOptions(color, 1.2f);
 
     for (int i = 0; i < waypoints.size() - 1; i++) {
       final var start = waypoints.get(i);
@@ -512,9 +542,9 @@ public final class VoiceWallServiceImpl extends Tick implements VoiceWallService
       final var steps = (int) Math.ceil(length / step);
       final var inc = diff.clone().multiply(1.0 / steps);
 
-      var current = start.clone();
+      final var current = start.clone();
       for (int s = 0; s <= steps; s++) {
-        viewer.spawnParticle(org.bukkit.Particle.DUST, current.getX(), current.getY(), current.getZ(), 1, 0.0, 0.0, 0.0, 0.0, dust);
+        viewer.spawnParticle(Particle.DUST, current.getX(), current.getY(), current.getZ(), 1, 0.0, 0.0, 0.0, 0.0, dust);
         current.add(inc);
       }
     }
@@ -537,5 +567,3 @@ public final class VoiceWallServiceImpl extends Tick implements VoiceWallService
   }
 
 }
-
-

@@ -27,8 +27,16 @@ import java.util.stream.Collectors;
 
 public final class ProjectionCmd {
 
-  private final @NotNull VoiceProjectionService projectionService =
+  private final @Nullable VoiceProjectionService projectionService =
     DreamVoice.getService(VoiceProjectionService.class);
+
+  private @Nullable VoiceProjectionService requireProjectionService(final @NotNull CommandSender sender) {
+    if (this.projectionService == null) {
+      sender.sendMessage(Component.text("[PROJECTION] Service projection indisponible.", NamedTextColor.RED));
+      return null;
+    }
+    return this.projectionService;
+  }
 
   @Suggestions("voice_filters")
   public List<String> suggFilters(final @NotNull CommandContext<CommandSender> ctx, final @NotNull String in) {
@@ -53,11 +61,15 @@ public final class ProjectionCmd {
     final @NotNull CommandSender sender,
     @Argument("target") final @Nullable Player targetArg
   ) {
+    final var projectionService = requireProjectionService(sender);
+    if (projectionService == null)
+      return;
+
     final var target = resolvePlayer(sender, targetArg);
     if (target == null) return;
 
     final var loc = target.getLocation();
-    final var proj = this.projectionService.createProjection(target, loc);
+    final var proj = projectionService.createProjection(target, loc);
 
     sender.sendMessage(
       Component.text("[PROJECTION] Ancre vocale créée pour ", NamedTextColor.GREEN)
@@ -73,15 +85,19 @@ public final class ProjectionCmd {
     final @NotNull CommandSender sender,
     @Argument("target") final @Nullable Player targetArg
   ) {
+    final var projectionService = requireProjectionService(sender);
+    if (projectionService == null)
+      return;
+
     final var target = resolvePlayer(sender, targetArg);
     if (target == null) return;
 
-    if (!this.projectionService.hasProjection(target)) {
+    if (!projectionService.hasProjection(target)) {
       sender.sendMessage(Component.text("[PROJECTION] Aucune ancre active pour ce joueur.", NamedTextColor.GRAY));
       return;
     }
 
-    this.projectionService.removeProjection(target);
+    projectionService.removeProjection(target);
     sender.sendMessage(
       Component.text("[PROJECTION] Ancre vocale supprimée pour ", NamedTextColor.GREEN)
         .append(Component.text(target.getName(), NamedTextColor.YELLOW))
@@ -96,10 +112,14 @@ public final class ProjectionCmd {
     final @NotNull CommandSender sender,
     @Argument("target") final @Nullable Player targetArg
   ) {
+    final var projectionService = requireProjectionService(sender);
+    if (projectionService == null)
+      return;
+
     final var target = resolvePlayer(sender, targetArg);
     if (target == null) return;
 
-    final var proj = this.projectionService.getProjection(target);
+    final var proj = projectionService.getProjection(target);
     if (proj == null) {
       sender.sendMessage(Component.text("[PROJECTION] Aucune ancre active pour " + target.getName(), NamedTextColor.RED));
       return;
@@ -134,10 +154,14 @@ public final class ProjectionCmd {
     final @NotNull CommandSender sender,
     @Argument("target") final @Nullable Player targetArg
   ) {
+    final var projectionService = requireProjectionService(sender);
+    if (projectionService == null)
+      return;
+
     final var target = resolvePlayer(sender, targetArg);
     if (target == null) return;
 
-    final var proj = this.projectionService.getProjection(target);
+    final var proj = projectionService.getProjection(target);
     if (proj == null) {
       sender.sendMessage(Component.text("[PROJECTION] Aucune ancre active pour " + target.getName(), NamedTextColor.RED));
       return;
@@ -160,7 +184,11 @@ public final class ProjectionCmd {
     @Argument("target") final @NotNull Player target,
     @Argument("distance") final double distance
   ) {
-    final var proj = this.projectionService.getProjection(target);
+    final var projectionService = requireProjectionService(sender);
+    if (projectionService == null)
+      return;
+
+    final var proj = projectionService.getProjection(target);
     if (proj == null) {
       sender.sendMessage(Component.text("[PROJECTION] Aucune ancre active pour " + target.getName(), NamedTextColor.RED));
       return;
@@ -183,7 +211,11 @@ public final class ProjectionCmd {
     @Argument("target") final @NotNull Player target,
     @Argument(value = "filter", suggestions = "voice_filters") final @NotNull String filterId
   ) {
-    final var proj = this.projectionService.getProjection(target);
+    final var projectionService = requireProjectionService(sender);
+    if (projectionService == null)
+      return;
+
+    final var proj = projectionService.getProjection(target);
     if (proj == null) {
       sender.sendMessage(Component.text("[PROJECTION] Aucune ancre active pour " + target.getName(), NamedTextColor.RED));
       return;
@@ -206,8 +238,15 @@ public final class ProjectionCmd {
     @Argument("target") final @NotNull Player target,
     @Argument("enabled") final boolean enabled
   ) {
-    final var proj = this.projectionService.getProjection(target);
-    if (proj == null) return;
+    final var projectionService = requireProjectionService(sender);
+    if (projectionService == null)
+      return;
+
+    final var proj = projectionService.getProjection(target);
+    if (proj == null) {
+      sender.sendMessage(Component.text("[PROJECTION] Aucune ancre active pour " + target.getName(), NamedTextColor.RED));
+      return;
+    }
     proj.setEmitVoiceAtAnchor(enabled);
     sender.sendMessage(Component.text("[PROJECTION] Émission voix à l'ancre : " + (enabled ? "ON" : "OFF"), NamedTextColor.YELLOW));
   }
@@ -220,8 +259,15 @@ public final class ProjectionCmd {
     @Argument("target") final @NotNull Player target,
     @Argument("enabled") final boolean enabled
   ) {
-    final var proj = this.projectionService.getProjection(target);
-    if (proj == null) return;
+    final var projectionService = requireProjectionService(sender);
+    if (projectionService == null)
+      return;
+
+    final var proj = projectionService.getProjection(target);
+    if (proj == null) {
+      sender.sendMessage(Component.text("[PROJECTION] Aucune ancre active pour " + target.getName(), NamedTextColor.RED));
+      return;
+    }
     proj.setEmitVoiceAtPlayer(enabled);
     sender.sendMessage(Component.text("[PROJECTION] Émission voix à la caméra : " + (enabled ? "ON" : "OFF"), NamedTextColor.YELLOW));
   }
@@ -234,8 +280,15 @@ public final class ProjectionCmd {
     @Argument("target") final @NotNull Player target,
     @Argument("enabled") final boolean enabled
   ) {
-    final var proj = this.projectionService.getProjection(target);
-    if (proj == null) return;
+    final var projectionService = requireProjectionService(sender);
+    if (projectionService == null)
+      return;
+
+    final var proj = projectionService.getProjection(target);
+    if (proj == null) {
+      sender.sendMessage(Component.text("[PROJECTION] Aucune ancre active pour " + target.getName(), NamedTextColor.RED));
+      return;
+    }
     proj.setHearAnchorEnvironment(enabled);
     sender.sendMessage(Component.text("[PROJECTION] Écoute autour de l'ancre : " + (enabled ? "ON" : "OFF"), NamedTextColor.YELLOW));
   }
@@ -248,8 +301,15 @@ public final class ProjectionCmd {
     @Argument("target") final @NotNull Player target,
     @Argument("enabled") final boolean enabled
   ) {
-    final var proj = this.projectionService.getProjection(target);
-    if (proj == null) return;
+    final var projectionService = requireProjectionService(sender);
+    if (projectionService == null)
+      return;
+
+    final var proj = projectionService.getProjection(target);
+    if (proj == null) {
+      sender.sendMessage(Component.text("[PROJECTION] Aucune ancre active pour " + target.getName(), NamedTextColor.RED));
+      return;
+    }
     proj.setHearPlayerEnvironment(enabled);
     sender.sendMessage(Component.text("[PROJECTION] Écoute autour de la caméra : " + (enabled ? "ON" : "OFF"), NamedTextColor.YELLOW));
   }
@@ -262,8 +322,15 @@ public final class ProjectionCmd {
     @Argument("target") final @NotNull Player target,
     @Argument("enabled") final boolean enabled
   ) {
-    final var proj = this.projectionService.getProjection(target);
-    if (proj == null) return;
+    final var projectionService = requireProjectionService(sender);
+    if (projectionService == null)
+      return;
+
+    final var proj = projectionService.getProjection(target);
+    if (proj == null) {
+      sender.sendMessage(Component.text("[PROJECTION] Aucune ancre active pour " + target.getName(), NamedTextColor.RED));
+      return;
+    }
     proj.setApplyVoiceWall(enabled);
     sender.sendMessage(Component.text("[PROJECTION] VoiceWall pour l'ancre : " + (enabled ? "ON" : "OFF"), NamedTextColor.YELLOW));
   }
@@ -275,10 +342,14 @@ public final class ProjectionCmd {
     final @NotNull CommandSender sender,
     @Argument("target") final @Nullable Player targetArg
   ) {
+    final var projectionService = requireProjectionService(sender);
+    if (projectionService == null)
+      return;
+
     final var target = resolvePlayer(sender, targetArg);
     if (target == null) return;
 
-    final var proj = this.projectionService.getProjection(target);
+    final var proj = projectionService.getProjection(target);
     if (proj == null) {
       sender.sendMessage(Component.text("[PROJECTION] Aucune ancre active pour " + target.getName(), NamedTextColor.GRAY));
       return;
@@ -302,7 +373,11 @@ public final class ProjectionCmd {
   @CommandMethod("projection list")
   @CommandPermission("dreamvoice.projection.use")
   private void listProjections(final @NotNull CommandSender sender) {
-    final var projections = this.projectionService.getProjections();
+    final var projectionService = requireProjectionService(sender);
+    if (projectionService == null)
+      return;
+
+    final var projections = projectionService.getProjections();
     if (projections.isEmpty()) {
       sender.sendMessage(Component.text("[PROJECTION] Aucune ancre vocale active.", NamedTextColor.GRAY));
       return;
