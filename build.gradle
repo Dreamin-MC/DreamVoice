@@ -17,7 +17,7 @@ subprojects {
   apply plugin: "java-library"
 
   group = "fr.dreamin"
-  version = rootProject.findProperty("version") && rootProject.findProperty("version") != "unspecified" ? rootProject.findProperty("version") : "1.0.2"
+  version = rootProject.findProperty("version") && rootProject.findProperty("version") != "unspecified" ? rootProject.findProperty("version") : "1.0.4"
   description = "DreamVoice"
 
   repositories {

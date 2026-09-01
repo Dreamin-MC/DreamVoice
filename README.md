@@ -10,6 +10,7 @@
   <img src="https://img.shields.io/badge/Java-25-orange.svg" alt="Java 25" />
   <img src="https://img.shields.io/badge/Paper-1.21.4-blue.svg" alt="Paper 1.21.4" />
   <img src="https://img.shields.io/badge/Simple%20Voice%20Chat-2.6.x-green.svg" alt="Simple Voice Chat" />
+  <a href="https://modrinth.com/plugin/dreamvoice"><img src="https://img.shields.io/badge/Modrinth-Available-00AF5C?logo=modrinth&logoColor=white" alt="Modrinth" /></a>
   <img src="https://img.shields.io/badge/License-Proprietary-red.svg" alt="License" />
 </p>
 
@@ -91,9 +92,14 @@ Explore the comprehensive module guides in the [`docs/`](docs/) directory:
 * **Paper / Purpur 1.21.4+**
 * **Simple Voice Chat 2.6.x+**
 
-### Gradle Dependency (GitHub Packages)
+### 📦 Download & Installation
 
-Add the GitHub Packages repository and credentials to your `build.gradle` / `settings.gradle`:
+* **Server Plugin**: Download the latest release from **[Modrinth](https://modrinth.com/plugin/dreamvoice)** or [GitHub Releases](https://github.com/Dreamin-MC/DreamVoice/releases) and drop `DreamVoice.jar` into your server's `plugins/` folder.
+* **Requirements**: Ensure **Paper 1.21.4+** and **[Simple Voice Chat 2.6.x+](https://modrinth.com/plugin/simple-voice-chat)** are installed on the server.
+
+### 🛠️ Developer API Dependency (GitHub Packages)
+
+Add the GitHub Packages repository to your `build.gradle`:
 
 ```groovy
 repositories {
@@ -108,7 +114,7 @@ repositories {
 }
 
 dependencies {
-    compileOnly 'fr.dreamin:dreamvoice-api:1.0.0'
+    compileOnly 'fr.dreamin:dreamvoice-api:1.0.4'
 }
 ```
 
