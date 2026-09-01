@@ -61,10 +61,11 @@ jobs:
           version: ${{ env.VERSION }}
           version-type: release
           loaders: |
+            spigot
             paper
             purpur
           game-versions: |
-            1.21.4
+            26.1.2
           dependencies: |
             voicechat(required)
 
