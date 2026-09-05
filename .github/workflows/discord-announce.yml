@@ -119,7 +119,7 @@ jobs:
                           {
                               "type": 10,  # Text Display (Header & Meta)
                               "content": (
-                                  f"# 🚀 DreamVoice `v{clean_version}`\n"
+                                  f"# 🚀 `v{clean_version}`\n"
                                   f"> *Acoustic Soundproofing, Diffraction & 3D Spatial Audio for Minecraft*\n\n"
                                   f"🎮 **Minecraft :** `{mc_ver}`   •   🔊 **VoiceChat :** `{vc_ver}`   •   ☕ **Java :** `{java_ver}`"
                               )
