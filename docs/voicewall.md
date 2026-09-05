@@ -29,7 +29,7 @@ The service provides 3 distinct operating modes via the `VoiceWallMode` enum:
 
 ## 🎛️ Simplified Material Configuration
 
-No need to configure 800+ Minecraft block IDs one by one! The configuration file `codex.yml` utilizes **smart automatic categories** based on material names and tags, while still allowing granular overrides for specific blocks:
+No need to configure 800+ Minecraft block IDs one by one! The configuration file `config.json` utilizes **smart automatic categories** based on material names and tags, while still allowing granular overrides for specific blocks:
 
 ```yaml
 voiceWall:

@@ -1,22 +1,35 @@
 {
-  "distance": 10.0,
+  "distance": 16.0,
   "voiceWall": {
-    "enabled": false,
-    "soundMaterials": {
-      "defaultAttenuation": 0.0,
-      "materialAttenuation": {
-        "AIR": 0.0,
-        "WATER": -5.0,
-        "GLASS": -15.0,
-        "GLASS_PANE": -15.0,
-        "OAK_LEAVES": -10.0,
-        "OAK_DOOR": -40.0,
-        "OAK_PLANKS": -30.0,
-        "STONE": -30.0,
-        "COBBLESTONE": -20.0,
-        "IRON_BLOCK": -45.0,
-        "BEDROCK": -60.0
-      }
+    "enabled": true,
+    "mode": "REALISTIC",
+    "airDamping": true,
+    "globalMultiplier": 1.0,
+    "defaultAttenuation": 15.0,
+    "categories": {
+      "glass": 6.0,
+      "wood": 10.0,
+      "foliage": 3.0,
+      "earth": 8.0,
+      "wool": 18.0,
+      "water": 20.0,
+      "stone": 25.0,
+      "metal": 35.0
+    },
+    "overrides": {
+      "BEDROCK": 100.0,
+      "BARRIER": 100.0,
+      "IRON_DOOR": 30.0,
+      "IRON_TRAPDOOR": 25.0,
+      "OAK_DOOR": 10.0
+    },
+    "diffraction": {
+      "enabled": true,
+      "maxBypassWidth": 2.5,
+      "maxBypassHeight": 2.5,
+      "maxPathDistance": 14.0,
+      "diffractionLossDb": 4.0,
+      "lossPerMeter": 1.2
     }
   }
 }

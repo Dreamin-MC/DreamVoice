@@ -1,8 +1,10 @@
 package fr.dreamin.dreamvoice.api.codex.model;
 
 import fr.dreamin.dreamvoice.api.wall.model.VoiceWallMode;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -12,10 +14,12 @@ import java.util.Map;
  * Root configuration container for DreamVoice settings and VoiceWall acoustic properties.
  */
 @Getter
+@Setter
 @NoArgsConstructor
+@AllArgsConstructor
 public final class Codex {
 
-  private final double distance = 16.0;
+  private double distance = 16.0;
   private VoiceWall voiceWall;
 
   /**
