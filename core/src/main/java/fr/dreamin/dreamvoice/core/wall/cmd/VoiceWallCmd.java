@@ -25,20 +25,9 @@ public final class VoiceWallCmd {
   private final @Nullable VoiceWallService wallService =
     DreamVoice.getService(VoiceWallService.class);
 
-  private @Nullable VoiceWallService requireWallService(final @NotNull CommandSender sender) {
-    if (this.wallService == null) {
-      sender.sendMessage(Component.text("[VOICEWALL] VoiceWall service unavailable.", NamedTextColor.RED));
-      return null;
-    }
-    return this.wallService;
-  }
-
-  @Suggestions("wall_modes")
-  public List<String> suggModes(final @NotNull CommandContext<CommandSender> ctx, final @NotNull String in) {
-    return Stream.of("strict", "realistic", "off")
-      .filter(s -> s.startsWith(in.toLowerCase()))
-      .toList();
-  }
+  // ###############################################################
+  // ----------------------- COMMANDS METHODS ----------------------
+  // ###############################################################
 
   @CommandDescription("Change VoiceWall occlusion mode")
   @CommandMethod("voicewall mode <mode>")
@@ -153,5 +142,25 @@ public final class VoiceWallCmd {
     sender.sendMessage(Component.text("Air Damping: ", NamedTextColor.GRAY).append(Component.text(String.valueOf(wallService.isAirDampingEnabled()), NamedTextColor.AQUA)));
     sender.sendMessage(Component.text("Diffraction / Bypass: ", NamedTextColor.GRAY).append(Component.text(diff != null && diff.enabled() ? "YES (Bypass=" + diff.maxBypassWidth() + "m, Path=" + diff.maxPathDistance() + "m)" : "NO", NamedTextColor.YELLOW)));
   }
+
+  @Suggestions("wall_modes")
+  public List<String> suggModes(final @NotNull CommandContext<CommandSender> ctx, final @NotNull String in) {
+    return Stream.of("strict", "realistic", "off")
+      .filter(s -> s.startsWith(in.toLowerCase()))
+      .toList();
+  }
+
+  // ###############################################################
+  // ----------------------- PRIVATE METHODS -----------------------
+  // ###############################################################
+
+  private @Nullable VoiceWallService requireWallService(final @NotNull CommandSender sender) {
+    if (this.wallService == null) {
+      sender.sendMessage(Component.text("[VOICEWALL] VoiceWall service unavailable.", NamedTextColor.RED));
+      return null;
+    }
+    return this.wallService;
+  }
+
 
 }

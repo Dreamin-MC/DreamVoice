@@ -2,7 +2,8 @@ package fr.dreamin.dreamvoice.core.speaker.service;
 
 import de.maxhenkel.voicechat.api.VoicechatServerApi;
 import de.maxhenkel.voicechat.api.VolumeCategory;
-import de.maxhenkel.voicechat.api.audiochannel.StaticAudioChannel;
+import de.maxhenkel.voicechat.api.audiochannel.LocationalAudioChannel;
+import de.maxhenkel.voicechat.api.opus.OpusEncoder;
 import fr.dreamin.dreamvoice.api.filter.service.VoiceFilterService;
 import fr.dreamin.dreamvoice.api.recording.model.VoiceRecording;
 import fr.dreamin.dreamvoice.api.speaker.model.Speaker;
@@ -24,6 +25,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -55,7 +57,8 @@ public final class VoiceSpeakerServiceImpl implements VoiceSpeakerService, Liste
   private boolean voiceServiceMissingLogged = false;
 
   private final @NotNull Map<UUID, Speaker> speakers = new ConcurrentHashMap<>();
-  private final @NotNull Map<String, StaticAudioChannel> listenerChannels = new ConcurrentHashMap<>();
+  private final @NotNull Map<String, LocationalAudioChannel> listenerChannels = new ConcurrentHashMap<>();
+  private final @NotNull Map<String, OpusEncoder> streamEncoders = new ConcurrentHashMap<>();
   private final @NotNull Map<String, Long> lastChannelActivity = new ConcurrentHashMap<>();
 
   // ###############################################################
@@ -285,6 +288,12 @@ public final class VoiceSpeakerServiceImpl implements VoiceSpeakerService, Liste
     this.lastChannelActivity.entrySet().removeIf(entry -> {
       if (now - entry.getValue() > INACTIVITY_TIMEOUT_MS) {
         this.listenerChannels.remove(entry.getKey());
+        final var enc = this.streamEncoders.remove(entry.getKey());
+        if (enc != null && !enc.isClosed()) {
+          try {
+            enc.close();
+          } catch (Throwable ignored) {}
+        }
         return true;
       }
       return false;
@@ -309,7 +318,6 @@ public final class VoiceSpeakerServiceImpl implements VoiceSpeakerService, Liste
     final boolean isWallEnabled,
     final float maxDist,
     final double dist,
-    final @NotNull de.maxhenkel.voicechat.api.opus.OpusEncoder encoder,
     final long now
   ) {
     final var listenerConn = this.api.getConnectionOf(listener.getUniqueId());
@@ -319,24 +327,23 @@ public final class VoiceSpeakerServiceImpl implements VoiceSpeakerService, Liste
     var totalDbLoss = 0.0;
     if (isWallEnabled) {
       final var ray = VoiceRayCast.check(speaker.getLocation(), listener);
-      if (ray.isBlocked())
+      if (!ray.lineOfSight())
         totalDbLoss = ray.totalAttenuation();
     }
 
     if (totalDbLoss >= 99.0)
       return;
 
-    final var distRatio = Math.min(1.0, dist / maxDist);
-    final var distGain = (float) Math.max(0.05, 1.0 - (distRatio * 0.85));
-    final var wallGain = (float) Math.pow(10.0, -totalDbLoss / 20.0);
-    final var totalGain = wallGain * distGain;
+    final var wallGain = totalDbLoss > 0.0 ? (float) Math.pow(10.0, -totalDbLoss / 20.0) : 1.0f;
 
     var processedPcm = pcm.clone();
     if (hasFilters && filterService != null)
       processedPcm = filterService.applyFilters(senderUuid, processedPcm);
 
-    for (int i = 0; i < processedPcm.length; i++)
-      processedPcm[i] = (short) Math.clamp(Math.round(processedPcm[i] * totalGain), Short.MIN_VALUE, Short.MAX_VALUE);
+    if (wallGain < 1.0f) {
+      for (int i = 0; i < processedPcm.length; i++)
+        processedPcm[i] = (short) Math.clamp(Math.round(processedPcm[i] * wallGain), Short.MIN_VALUE, Short.MAX_VALUE);
+    }
 
     if (wallService != null && wallService.isAirDampingEnabled() && dist > 5.0) {
       final var alpha = Math.max(0.10f, 1.0f - (float) (dist - 5.0) * 0.038f);
@@ -349,19 +356,36 @@ public final class VoiceSpeakerServiceImpl implements VoiceSpeakerService, Liste
 
     processedPcm = AudioLimiter.process(processedPcm);
 
-    final var listenerOpus = encoder.encode(processedPcm);
     final var streamKey = speaker.getUuid() + ":" + senderUuid + ":" + listener.getUniqueId();
-    final var ch = this.listenerChannels.computeIfAbsent(streamKey, _ -> {
-      final var sc = this.api.createStaticAudioChannel(UUID.randomUUID());
-      if (sc != null) {
-        sc.addTarget(listenerConn);
+
+    var encoder = this.streamEncoders.get(streamKey);
+    if (encoder == null || encoder.isClosed()) {
+      encoder = this.api.createEncoder();
+      this.streamEncoders.put(streamKey, encoder);
+    }
+
+    final var listenerOpus = encoder.encode(processedPcm);
+
+    var ch = this.listenerChannels.get(streamKey);
+    if (ch == null || ch.isClosed()) {
+      final var spkLoc = speaker.getLocation();
+      final var sLevel = this.api.fromServerLevel(spkLoc.getWorld());
+      final var pos = this.api.createPosition(spkLoc.getX(), spkLoc.getY(), spkLoc.getZ());
+      final var channelUuid = UUID.nameUUIDFromBytes(streamKey.getBytes(StandardCharsets.UTF_8));
+      ch = this.api.createLocationalAudioChannel(channelUuid, sLevel, pos);
+      if (ch != null) {
+        final var targetUuid = listener.getUniqueId();
+        ch.setFilter(sp -> sp.getUuid().equals(targetUuid));
+        ch.setDistance(maxDist);
         if (this.volumeCategory != null)
-          sc.setCategory(this.volumeCategory.getId());
+          ch.setCategory(this.volumeCategory.getId());
+        this.listenerChannels.put(streamKey, ch);
       }
-      return sc;
-    });
+    }
 
     if (ch != null) {
+      final var spkLoc = speaker.getLocation();
+      ch.updateLocation(this.api.createPosition(spkLoc.getX(), spkLoc.getY(), spkLoc.getZ()));
       ch.send(listenerOpus);
       this.lastChannelActivity.put(streamKey, now);
     }
@@ -406,7 +430,6 @@ public final class VoiceSpeakerServiceImpl implements VoiceSpeakerService, Liste
 
     try {
       final var decoder = voiceService.getDecoder(senderUuid);
-      final var encoder = voiceService.getEncoder(senderUuid);
       final var pcm = decoder.decode(event.getPacket().getOpusEncodedData());
       if (pcm == null || pcm.length == 0)
         return;
@@ -429,7 +452,7 @@ public final class VoiceSpeakerServiceImpl implements VoiceSpeakerService, Liste
           if (dist > maxDist)
             continue;
 
-          processSingleListenerStream(speaker, senderUuid, listener, pcm, wallService, filterService, hasFilters, isWallEnabled, maxDist, dist, encoder, now);
+          processSingleListenerStream(speaker, senderUuid, listener, pcm, wallService, filterService, hasFilters, isWallEnabled, maxDist, dist, now);
         }
       }
     } catch (Exception e) {
@@ -442,6 +465,17 @@ public final class VoiceSpeakerServiceImpl implements VoiceSpeakerService, Liste
     final var uidStr = event.getPlayer().getUniqueId().toString();
     this.listenerChannels.keySet().removeIf(k -> k.contains(uidStr));
     this.lastChannelActivity.keySet().removeIf(k -> k.contains(uidStr));
+    this.streamEncoders.entrySet().removeIf(e -> {
+      if (e.getKey().contains(uidStr)) {
+        if (!e.getValue().isClosed()) {
+          try {
+            e.getValue().close();
+          } catch (Throwable ignored) {}
+        }
+        return true;
+      }
+      return false;
+    });
   }
 
 }

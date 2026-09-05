@@ -53,9 +53,11 @@ public final class Codex {
      * @return the resolved {@link VoiceWallMode}
      */
     public @NotNull VoiceWallMode getEffectiveMode() {
-      if (this.mode != null)
+      if (!this.enabled)
+        return VoiceWallMode.OFF;
+      if (this.mode != null && this.mode != VoiceWallMode.OFF)
         return this.mode;
-      return this.enabled ? VoiceWallMode.REALISTIC : VoiceWallMode.OFF;
+      return VoiceWallMode.REALISTIC;
     }
 
     /**

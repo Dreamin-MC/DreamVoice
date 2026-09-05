@@ -10,15 +10,18 @@ import fr.dreamin.dreamvoice.api.recording.service.VoiceRecordingService;
 import fr.dreamin.dreamvoice.api.voice.event.MicrophonePacketEvent;
 import fr.dreamin.dreamvoice.api.voice.service.VoiceService;
 import fr.dreamin.dreamvoice.core.DreamVoice;
+import de.maxhenkel.voicechat.api.opus.OpusEncoder;
 import fr.dreamin.dreamvoice.core.recording.item.CassetteItem;
 import fr.dreamin.dreamvoice.core.recording.storage.VoiceRecordingPersistence;
 import fr.dreamin.dreamvoice.core.utils.RawUtils;
+import fr.dreamin.dreamvoice.core.utils.audio.AudioLimiter;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -35,6 +38,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Implementation of {@link VoiceRecordingService} managing live voice recording capture,
@@ -61,6 +65,7 @@ public final class VoiceRecordingServiceImpl implements VoiceRecordingService, L
   private VolumeCategory volumeCategory;
 
   private final @NotNull Map<UUID, VoiceRecording> voiceRecordings = new HashMap<>();
+  private final @NotNull Map<UUID, OpusEncoder> recordingEncoders = new ConcurrentHashMap<>();
   private boolean voiceServiceMissingLogged = false;
 
   // ###############################################################
@@ -315,9 +320,8 @@ public final class VoiceRecordingServiceImpl implements VoiceRecordingService, L
     var totalSamples = 0;
     var currentStreamTimeMs = 0L;
 
+    final var decoder = this.api.createDecoder();
     try {
-      final var decoder = this.api.createDecoder();
-
       for (final var frame : frames) {
         if (frame.data().length == 0)
           continue;
@@ -344,6 +348,12 @@ public final class VoiceRecordingServiceImpl implements VoiceRecordingService, L
     } catch (Exception e) {
       this.plugin.getLogger().severe("Error decoding Opus frames: " + e.getMessage());
       return null;
+    } finally {
+      if (!decoder.isClosed()) {
+        try {
+          decoder.close();
+        } catch (Throwable ignored) {}
+      }
     }
 
     if (totalSamples == 0)
@@ -422,10 +432,11 @@ public final class VoiceRecordingServiceImpl implements VoiceRecordingService, L
         }
       } else try {
         final var decoder = voiceService.getDecoder(speakerUUID);
-        final var encoder = voiceService.getEncoder(speakerUUID);
+        final var encoder = this.recordingEncoders.computeIfAbsent(speakerUUID, _ -> this.api.createEncoder());
         final var pcm = decoder.decode(opusData);
         if (pcm != null && pcm.length > 0) {
-          final var filteredPcm = filterService.applyFilters(speakerUUID, pcm);
+          var filteredPcm = filterService.applyFilters(speakerUUID, pcm);
+          filteredPcm = AudioLimiter.process(filteredPcm);
           opusData = encoder.encode(filteredPcm);
         }
       } catch (Exception e) {
@@ -435,6 +446,16 @@ public final class VoiceRecordingServiceImpl implements VoiceRecordingService, L
 
     final var finalOpusData = opusData;
     activeRecordings.forEach(rec -> rec.addAudio(finalOpusData));
+  }
+
+  @EventHandler
+  private void onPlayerQuit(final @NotNull PlayerQuitEvent event) {
+    final var enc = this.recordingEncoders.remove(event.getPlayer().getUniqueId());
+    if (enc != null && !enc.isClosed()) {
+      try {
+        enc.close();
+      } catch (Throwable ignored) {}
+    }
   }
 
 }

@@ -2,6 +2,7 @@ package fr.dreamin.dreamvoice.core.radio.service;
 
 import de.maxhenkel.voicechat.api.VoicechatServerApi;
 import de.maxhenkel.voicechat.api.audiochannel.StaticAudioChannel;
+import de.maxhenkel.voicechat.api.opus.OpusEncoder;
 import fr.dreamin.dreamvoice.api.filter.service.VoiceFilterService;
 import fr.dreamin.dreamvoice.api.radio.model.RadioChannel;
 import fr.dreamin.dreamvoice.api.radio.service.VoiceRadioService;
@@ -19,6 +20,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
+import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
@@ -53,6 +55,7 @@ public final class VoiceRadioServiceImpl implements VoiceRadioService, Listener 
   private final Map<String, StaticAudioChannel> radioChannels = new ConcurrentHashMap<>();
   private final Map<String, Long> lastChannelActivity = new ConcurrentHashMap<>();
   private final Map<UUID, Long> lastSpeakingTimes = new ConcurrentHashMap<>();
+  private final Map<UUID, OpusEncoder> radioEncoders = new ConcurrentHashMap<>();
   private boolean voiceServiceMissingLogged = false;
 
   // ###############################################################
@@ -150,6 +153,19 @@ public final class VoiceRadioServiceImpl implements VoiceRadioService, Listener 
       }
       return false;
     });
+    this.radioEncoders.entrySet().removeIf(entry -> {
+      final var lastTime = this.lastSpeakingTimes.get(entry.getKey());
+      if (lastTime == null || now - lastTime > INACTIVITY_TIMEOUT_MS) {
+        final var enc = entry.getValue();
+        if (enc != null && !enc.isClosed()) {
+          try {
+            enc.close();
+          } catch (Throwable ignored) {}
+        }
+        return true;
+      }
+      return false;
+    });
   }
 
   private void checkRogerBeeps() {
@@ -181,6 +197,11 @@ public final class VoiceRadioServiceImpl implements VoiceRadioService, Listener 
       final var pcm = RawUtils.bytesToShorts(combined);
       final var encoder = this.api.createEncoder();
       final var opus = encoder.encode(pcm);
+      if (!encoder.isClosed()) {
+        try {
+          encoder.close();
+        } catch (Throwable ignored) {}
+      }
 
       for (final var memberUuid : channel.getMembers()) {
         if (memberUuid.equals(senderUuid))
@@ -192,7 +213,8 @@ public final class VoiceRadioServiceImpl implements VoiceRadioService, Listener 
 
         final var streamKey = senderUuid + ":" + memberUuid;
         final var staticChannel = this.radioChannels.computeIfAbsent(streamKey, k -> {
-          final var sc = this.api.createStaticAudioChannel(UUID.randomUUID());
+          final var channelId = UUID.nameUUIDFromBytes(streamKey.getBytes(StandardCharsets.UTF_8));
+          final var sc = this.api.createStaticAudioChannel(channelId);
           if (sc != null)
             sc.addTarget(conn);
           return sc;
@@ -215,7 +237,7 @@ public final class VoiceRadioServiceImpl implements VoiceRadioService, Listener 
   ) {
     try {
       final var decoder = voiceService.getDecoder(senderUuid);
-      final var encoder = voiceService.getEncoder(senderUuid);
+      final var encoder = this.radioEncoders.computeIfAbsent(senderUuid, _ -> this.api.createEncoder());
       final var pcm = decoder.decode(opusData);
       if (pcm == null || pcm.length == 0)
         return opusData;
@@ -281,7 +303,8 @@ public final class VoiceRadioServiceImpl implements VoiceRadioService, Listener 
 
       final var streamKey = senderUuid + ":" + memberUuid;
       final var staticChannel = this.radioChannels.computeIfAbsent(streamKey, k -> {
-        final var sc = this.api.createStaticAudioChannel(UUID.randomUUID());
+        final var channelId = UUID.nameUUIDFromBytes(streamKey.getBytes(StandardCharsets.UTF_8));
+        final var sc = this.api.createStaticAudioChannel(channelId);
         if (sc != null)
           sc.addTarget(conn);
         return sc;
@@ -302,6 +325,12 @@ public final class VoiceRadioServiceImpl implements VoiceRadioService, Listener 
     this.radioChannels.keySet().removeIf(k -> k.contains(uidStr));
     this.lastChannelActivity.keySet().removeIf(k -> k.contains(uidStr));
     this.lastSpeakingTimes.remove(uuid);
+    final var enc = this.radioEncoders.remove(uuid);
+    if (enc != null && !enc.isClosed()) {
+      try {
+        enc.close();
+      } catch (Throwable ignored) {}
+    }
   }
 
 }

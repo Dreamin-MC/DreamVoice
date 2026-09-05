@@ -3,6 +3,7 @@ package fr.dreamin.dreamvoice.core.wiretap.service;
 import de.maxhenkel.voicechat.api.VoicechatServerApi;
 import de.maxhenkel.voicechat.api.VolumeCategory;
 import de.maxhenkel.voicechat.api.audiochannel.StaticAudioChannel;
+import de.maxhenkel.voicechat.api.opus.OpusEncoder;
 import fr.dreamin.dreamvoice.api.filter.service.VoiceFilterService;
 import fr.dreamin.dreamvoice.api.recording.model.VoiceRecording;
 import fr.dreamin.dreamvoice.api.recording.service.VoiceRecordingService;
@@ -27,6 +28,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
+import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
@@ -61,6 +63,8 @@ public final class VoiceWiretapServiceImpl implements VoiceWiretapService, Liste
   private final @NotNull Map<String, VoiceWiretap> wiretaps = new ConcurrentHashMap<>();
   private final @NotNull Map<String, StaticAudioChannel> channels = new ConcurrentHashMap<>();
   private final @NotNull Map<String, Long> lastChannelActivity = new ConcurrentHashMap<>();
+  private final @NotNull Map<String, OpusEncoder> streamEncoders = new ConcurrentHashMap<>();
+  private final @NotNull Map<String, Long> lastEncoderActivity = new ConcurrentHashMap<>();
   private boolean recordingServiceMissingLogged = false;
   private boolean voiceServiceMissingLogged = false;
 
@@ -139,6 +143,18 @@ public final class VoiceWiretapServiceImpl implements VoiceWiretapService, Liste
       final var idStr = wt.getUuid().toString();
       this.channels.keySet().removeIf(k -> k.contains(idStr));
       this.lastChannelActivity.keySet().removeIf(k -> k.contains(idStr));
+      this.lastEncoderActivity.keySet().removeIf(k -> k.contains(idStr));
+      this.streamEncoders.entrySet().removeIf(e -> {
+        if (e.getKey().contains(idStr)) {
+          if (!e.getValue().isClosed()) {
+            try {
+              e.getValue().close();
+            } catch (Throwable ignored) {}
+          }
+          return true;
+        }
+        return false;
+      });
     }
   }
 
@@ -185,6 +201,18 @@ public final class VoiceWiretapServiceImpl implements VoiceWiretapService, Liste
     final var idStr = playerUuid.toString();
     this.channels.keySet().removeIf(k -> k.contains(idStr));
     this.lastChannelActivity.keySet().removeIf(k -> k.contains(idStr));
+    this.lastEncoderActivity.keySet().removeIf(k -> k.contains(idStr));
+    this.streamEncoders.entrySet().removeIf(e -> {
+      if (e.getKey().contains(idStr)) {
+        if (!e.getValue().isClosed()) {
+          try {
+            e.getValue().close();
+          } catch (Throwable ignored) {}
+        }
+        return true;
+      }
+      return false;
+    });
   }
 
   @Override
@@ -240,6 +268,18 @@ public final class VoiceWiretapServiceImpl implements VoiceWiretapService, Liste
       }
       return false;
     });
+    this.lastEncoderActivity.entrySet().removeIf(entry -> {
+      if (now - entry.getValue() > INACTIVITY_TIMEOUT_MS) {
+        final var enc = this.streamEncoders.remove(entry.getKey());
+        if (enc != null && !enc.isClosed()) {
+          try {
+            enc.close();
+          } catch (Throwable ignored) {}
+        }
+        return true;
+      }
+      return false;
+    });
   }
 
   private void processSingleWiretapCapture(
@@ -274,8 +314,11 @@ public final class VoiceWiretapServiceImpl implements VoiceWiretapService, Liste
     final var distGain = (float) Math.max(0.05, 1.0 - (distRatio * 0.85));
 
     try {
+      final var encoderKey = wiretap.getUuid() + ":" + senderUuid;
       final var decoder = voiceService.getDecoder(senderUuid);
-      final var encoder = voiceService.getEncoder(senderUuid);
+      final var encoder = this.streamEncoders.computeIfAbsent(encoderKey, _ -> this.api.createEncoder());
+      this.lastEncoderActivity.put(encoderKey, System.currentTimeMillis());
+
       final var pcm = decoder.decode(rawOpus);
       if (pcm == null || pcm.length == 0)
         return;
@@ -336,7 +379,8 @@ public final class VoiceWiretapServiceImpl implements VoiceWiretapService, Liste
 
       final var streamKey = wiretap.getUuid() + ":" + senderUuid + ":" + listenerUuid;
       final var ch = this.channels.computeIfAbsent(streamKey, k -> {
-        final var sc = this.api.createStaticAudioChannel(UUID.randomUUID());
+        final var channelId = UUID.nameUUIDFromBytes(streamKey.getBytes(StandardCharsets.UTF_8));
+        final var sc = this.api.createStaticAudioChannel(channelId);
         if (sc != null) {
           sc.addTarget(conn);
           if (this.volumeCategory != null)

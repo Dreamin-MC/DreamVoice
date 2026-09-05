@@ -6,7 +6,6 @@ import fr.dreamin.dreamvoice.api.codex.service.CodexService;
 import fr.dreamin.dreamvoice.api.wall.service.VoiceWallService;
 import fr.dreamin.dreamvoice.core.DreamVoice;
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import org.jetbrains.annotations.NotNull;
 import org.jspecify.annotations.NonNull;
 
@@ -14,7 +13,6 @@ import org.jspecify.annotations.NonNull;
  * Implementation of {@link CodexService} managing DreamVoice config loading and synchronization.
  */
 @Getter
-@RequiredArgsConstructor
 public final class CodexServiceImpl implements CodexService {
 
   // ###############################################################
@@ -22,6 +20,7 @@ public final class CodexServiceImpl implements CodexService {
   // ###############################################################
 
   private final @NotNull DreamVoice plugin;
+  private final @NotNull VoiceWallService voiceWallService;
   private @NotNull Codex codex;
 
   // ###############################################################
@@ -30,13 +29,8 @@ public final class CodexServiceImpl implements CodexService {
 
   public CodexServiceImpl(final @NotNull DreamVoice plugin, final @NotNull VoiceWallService voiceWallService) {
     this.plugin = plugin;
+    this.voiceWallService = voiceWallService;
     load();
-
-    if (this.codex.getVoiceWall() != null) {
-      voiceWallService.setMode(this.codex.getVoiceWall().getEffectiveMode());
-      if (this.codex.getVoiceWall().airDamping() != null)
-        voiceWallService.setAirDampingEnabled(this.codex.getVoiceWall().airDamping());
-    }
   }
 
   // ###############################################################
@@ -45,9 +39,19 @@ public final class CodexServiceImpl implements CodexService {
 
   @Override
   public void load() {
-    this.plugin.getLogger().info("Loading configuration...");
-    this.codex = Configurations.loadConfig(this.plugin, Codex.class);
-    this.plugin.getLogger().info("Configuration loaded successfully.");
+    this.plugin.getLogger().info("Loading configuration (config.json)...");
+    final var loaded = Configurations.loadConfig(this.plugin, Codex.class);
+    this.codex = loaded != null ? loaded : new Codex();
+
+    if (this.codex.getVoiceWall() != null) {
+      final var vw = this.codex.getVoiceWall();
+      this.voiceWallService.setEnable(vw.enabled());
+      this.voiceWallService.setMode(vw.getEffectiveMode());
+      if (vw.airDamping() != null)
+        this.voiceWallService.setAirDampingEnabled(vw.airDamping());
+    }
+
+    this.plugin.getLogger().info("Configuration loaded successfully (mode=" + this.voiceWallService.getMode() + ", active=" + this.voiceWallService.isEnable() + ").");
   }
 
   @Override

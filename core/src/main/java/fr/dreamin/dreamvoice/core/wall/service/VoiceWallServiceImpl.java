@@ -3,6 +3,8 @@ package fr.dreamin.dreamvoice.core.wall.service;
 import de.maxhenkel.voicechat.api.VoicechatConnection;
 import de.maxhenkel.voicechat.api.VoicechatServerApi;
 import de.maxhenkel.voicechat.api.events.EntitySoundPacketEvent;
+import de.maxhenkel.voicechat.api.opus.OpusDecoder;
+import de.maxhenkel.voicechat.api.opus.OpusEncoder;
 import fr.dreamin.dreamapi.core.time.Tick;
 import fr.dreamin.dreamvoice.api.codex.service.CodexService;
 import fr.dreamin.dreamvoice.api.filter.service.VoiceFilterService;
@@ -13,6 +15,7 @@ import fr.dreamin.dreamvoice.api.wall.model.VoiceWallMode;
 import fr.dreamin.dreamvoice.api.wall.service.VoiceWallService;
 import fr.dreamin.dreamvoice.core.DreamVoice;
 import fr.dreamin.dreamvoice.core.player.manager.VoiceWallManager;
+import fr.dreamin.dreamvoice.core.utils.audio.AudioLimiter;
 import fr.dreamin.dreamvoice.core.utils.raycast.VoiceRayCast;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -49,6 +52,7 @@ public final class VoiceWallServiceImpl extends Tick implements VoiceWallService
   private static final int DEFAULT_CHECK_INTERVAL = 2; // ticks (10 times/sec)
   private static final int DEBUG_RENDER_INTERVAL = 4; // ticks
   private static final double MAX_DEBUG_DISTANCE = 32.0;
+  private static final long STREAM_INACTIVITY_TIMEOUT_MS = 30000L;
 
   private static final Color COLOR_DIRECT = Color.fromRGB(40, 255, 40);
   private static final Color COLOR_DIFFRACTED = Color.fromRGB(255, 180, 0);
@@ -65,13 +69,15 @@ public final class VoiceWallServiceImpl extends Tick implements VoiceWallService
   private final @NotNull PlayerService playerService;
 
   private boolean enable = false;
-  private boolean enableStats = false;
   private boolean debug = false;
   private boolean airDamping = true;
   private @NotNull VoiceWallMode mode = VoiceWallMode.REALISTIC;
 
   private final @NotNull Set<UUID> debugPlayers = ConcurrentHashMap.newKeySet();
   private final @NotNull Map<String, CachedLineOfSight> lineOfSightCache = new ConcurrentHashMap<>();
+  private final @NotNull Map<String, OpusDecoder> streamDecoders = new ConcurrentHashMap<>();
+  private final @NotNull Map<String, OpusEncoder> streamEncoders = new ConcurrentHashMap<>();
+  private final @NotNull Map<String, Long> lastStreamActivity = new ConcurrentHashMap<>();
 
   private boolean codexServiceMissingLogged = false;
   private boolean voiceServiceMissingLogged = false;
@@ -219,20 +225,14 @@ public final class VoiceWallServiceImpl extends Tick implements VoiceWallService
 
       final var packet = event.getPacket();
       final var opusData = packet.getOpusEncodedData();
-      if (opusData == null || opusData.length == 0)
+      if (opusData == null || opusData.length == 0 || this.api == null)
         return;
-
-      final var voiceService = DreamVoice.getService(VoiceService.class);
-      if (voiceService == null) {
-        logVoiceServiceMissingOnce();
-        return;
-      }
 
       final var receiverUUID = receiverConn.getPlayer().getUuid();
-      final var decoder = voiceService.getDecoder(receiverUUID);
-      final var encoder = voiceService.getEncoder(receiverUUID);
-      if (decoder == null || encoder == null)
-        return;
+      final var streamKey = senderUuid + ":" + receiverUUID;
+      final var decoder = this.streamDecoders.computeIfAbsent(streamKey, _ -> this.api.createDecoder());
+      final var encoder = this.streamEncoders.computeIfAbsent(streamKey, _ -> this.api.createEncoder());
+      this.lastStreamActivity.put(streamKey, System.currentTimeMillis());
 
       var pcm = decoder.decode(opusData);
       if (pcm == null || pcm.length == 0)
@@ -284,13 +284,15 @@ public final class VoiceWallServiceImpl extends Tick implements VoiceWallService
       pcm = filterService.applyFilters(senderUuid, pcm);
 
     if (hasAttenuation) {
-      final var gain = (float) Math.pow(10.0, totalDbLoss / 20.0);
+      final var gain = (float) Math.pow(10.0, -totalDbLoss / 20.0);
       for (int i = 0; i < pcm.length; i++)
-        pcm[i] = (short) (pcm[i] * gain);
+        pcm[i] = (short) Math.clamp(Math.round(pcm[i] * gain), Short.MIN_VALUE, Short.MAX_VALUE);
     }
 
     if (hasAirDamping)
       applyAirDamping(pcm, distance);
+
+    pcm = AudioLimiter.process(pcm);
 
     return pcm;
   }
@@ -399,7 +401,7 @@ public final class VoiceWallServiceImpl extends Tick implements VoiceWallService
   private CachedLineOfSight getLineOfSightCached(final @NotNull VPlayer vPlayer, final @NotNull VPlayer otherVPlayer, final @NotNull String cacheKey) {
     final var cached = this.lineOfSightCache.get(cacheKey);
     if (cached != null && !cached.isExpired(getActualTick(), 600)) {
-      if (this.enableStats) {
+      if (this.enable) {
         vPlayer.consumeManager(VoiceWallManager.class, VoiceWallManager::incrementCacheHits);
         otherVPlayer.consumeManager(VoiceWallManager.class, VoiceWallManager::incrementCacheHits);
       }
@@ -413,7 +415,7 @@ public final class VoiceWallServiceImpl extends Tick implements VoiceWallService
     final var computed = new CachedLineOfSight(result.lineOfSight(), result.totalAttenuation(), getActualTick());
     this.lineOfSightCache.put(cacheKey, computed);
 
-    if (this.enableStats) {
+    if (this.enable) {
       vPlayer.consumeManager(VoiceWallManager.class, VoiceWallManager::incrementRaycastCount);
       otherVPlayer.consumeManager(VoiceWallManager.class, VoiceWallManager::incrementRaycastCount);
     }
@@ -449,6 +451,27 @@ public final class VoiceWallServiceImpl extends Tick implements VoiceWallService
 
   private void cleanupCache() {
     this.lineOfSightCache.entrySet().removeIf(entry -> entry.getValue().isExpired(getActualTick(), 1200));
+
+    final var now = System.currentTimeMillis();
+    this.lastStreamActivity.entrySet().removeIf(entry -> {
+      if (now - entry.getValue() > STREAM_INACTIVITY_TIMEOUT_MS) {
+        final var key = entry.getKey();
+        final var dec = this.streamDecoders.remove(key);
+        if (dec != null && !dec.isClosed()) {
+          try {
+            dec.close();
+          } catch (Throwable ignored) {}
+        }
+        final var enc = this.streamEncoders.remove(key);
+        if (enc != null && !enc.isClosed()) {
+          try {
+            enc.close();
+          } catch (Throwable ignored) {}
+        }
+        return true;
+      }
+      return false;
+    });
   }
 
   private void renderVisualDebug() {
@@ -551,10 +574,36 @@ public final class VoiceWallServiceImpl extends Tick implements VoiceWallService
 
   @EventHandler
   private void onPlayerQuit(final @NotNull PlayerQuitEvent event) {
-    this.debugPlayers.remove(event.getPlayer().getUniqueId());
+    final var uuid = event.getPlayer().getUniqueId();
+    this.debugPlayers.remove(uuid);
     final var vPlayer = this.playerService.getPlayer(event.getPlayer());
     if (vPlayer != null)
       invalidateCacheForPlayer(vPlayer);
+
+    final var uidStr = uuid.toString();
+    this.lastStreamActivity.keySet().removeIf(k -> k.contains(uidStr));
+    this.streamDecoders.entrySet().removeIf(e -> {
+      if (e.getKey().contains(uidStr)) {
+        if (!e.getValue().isClosed()) {
+          try {
+            e.getValue().close();
+          } catch (Throwable ignored) {}
+        }
+        return true;
+      }
+      return false;
+    });
+    this.streamEncoders.entrySet().removeIf(e -> {
+      if (e.getKey().contains(uidStr)) {
+        if (!e.getValue().isClosed()) {
+          try {
+            e.getValue().close();
+          } catch (Throwable ignored) {}
+        }
+        return true;
+      }
+      return false;
+    });
   }
 
   // ###############################################################

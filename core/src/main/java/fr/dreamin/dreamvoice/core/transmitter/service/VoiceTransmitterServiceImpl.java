@@ -3,6 +3,7 @@ package fr.dreamin.dreamvoice.core.transmitter.service;
 import de.maxhenkel.voicechat.api.VoicechatServerApi;
 import de.maxhenkel.voicechat.api.VolumeCategory;
 import de.maxhenkel.voicechat.api.audiochannel.StaticAudioChannel;
+import de.maxhenkel.voicechat.api.opus.OpusEncoder;
 import fr.dreamin.dreamvoice.api.filter.service.VoiceFilterService;
 import fr.dreamin.dreamvoice.api.transmitter.model.ReceiverConfig;
 import fr.dreamin.dreamvoice.api.transmitter.service.VoiceTransmitterService;
@@ -20,6 +21,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jspecify.annotations.NonNull;
 
 import java.io.File;
+import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
@@ -54,6 +56,8 @@ public final class VoiceTransmitterServiceImpl implements VoiceTransmitterServic
   private final Map<UUID, Map<UUID, ReceiverConfig>> transmitters = new ConcurrentHashMap<>();
   private final Map<String, StaticAudioChannel> receiverChannels = new ConcurrentHashMap<>();
   private final Map<String, Long> lastChannelActivity = new ConcurrentHashMap<>();
+  private final Map<UUID, OpusEncoder> transmitterEncoders = new ConcurrentHashMap<>();
+  private final Map<UUID, Long> lastTransmitterActivity = new ConcurrentHashMap<>();
 
   // ###############################################################
   // --------------------- CONSTRUCTOR METHODS ---------------------
@@ -246,6 +250,18 @@ public final class VoiceTransmitterServiceImpl implements VoiceTransmitterServic
       }
       return false;
     });
+    this.lastTransmitterActivity.entrySet().removeIf(entry -> {
+      if (now - entry.getValue() > INACTIVITY_TIMEOUT_MS) {
+        final var enc = this.transmitterEncoders.remove(entry.getKey());
+        if (enc != null && !enc.isClosed()) {
+          try {
+            enc.close();
+          } catch (Throwable ignored) {}
+        }
+        return true;
+      }
+      return false;
+    });
   }
 
   private byte[] filterTransmitterAudio(
@@ -264,8 +280,9 @@ public final class VoiceTransmitterServiceImpl implements VoiceTransmitterServic
 
     try {
       final var decoder = voiceService.getDecoder(senderUuid);
-      final var encoder = voiceService.getEncoder(senderUuid);
-      if (decoder != null && encoder != null) {
+      final var encoder = this.transmitterEncoders.computeIfAbsent(senderUuid, _ -> this.api.createEncoder());
+      this.lastTransmitterActivity.put(senderUuid, System.currentTimeMillis());
+      if (decoder != null) {
         final var pcm = decoder.decode(opusData);
         if (pcm != null && pcm.length > 0) {
           var filteredPcm = filterService.applyFilters(senderUuid, pcm);
@@ -328,7 +345,8 @@ public final class VoiceTransmitterServiceImpl implements VoiceTransmitterServic
 
       final var streamKey = senderUuid + ":" + config.getUuid();
       final var staticChannel = this.receiverChannels.computeIfAbsent(streamKey, k -> {
-        final var sc = this.api.createStaticAudioChannel(UUID.randomUUID());
+        final var channelId = UUID.nameUUIDFromBytes(streamKey.getBytes(StandardCharsets.UTF_8));
+        final var sc = this.api.createStaticAudioChannel(channelId);
         if (sc != null) {
           sc.addTarget(receiverConnection);
           if (this.volumeCategory != null)
@@ -351,6 +369,13 @@ public final class VoiceTransmitterServiceImpl implements VoiceTransmitterServic
     final var uidStr = uuid.toString();
     this.receiverChannels.keySet().removeIf(k -> k.contains(uidStr));
     this.lastChannelActivity.keySet().removeIf(k -> k.contains(uidStr));
+    this.lastTransmitterActivity.remove(uuid);
+    final var enc = this.transmitterEncoders.remove(uuid);
+    if (enc != null && !enc.isClosed()) {
+      try {
+        enc.close();
+      } catch (Throwable ignored) {}
+    }
     removeReceiverFromAll(uuid);
   }
 
