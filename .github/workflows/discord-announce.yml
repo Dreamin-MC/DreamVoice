@@ -85,7 +85,8 @@ jobs:
               changelog_text = re.sub(r'^#\s+Changelog[^\n]*\n+', '', changelog_text, flags=re.IGNORECASE)
 
           # Discord limits: cumulative displayable text in V2 components must not exceed 4000 chars.
-          max_changelog_len = 3500
+          # Compact release announcement limit (~1500 chars)
+          max_changelog_len = 1500
           if len(changelog_text) > max_changelog_len:
               changelog_text = changelog_text[:max_changelog_len] + f"\n\n*... [Read full changelog on GitHub]({release_url})*"
 
