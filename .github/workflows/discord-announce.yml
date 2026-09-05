@@ -1,0 +1,250 @@
+name: Discord Release Announcement
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to announce (e.g. 1.1.0)'
+        required: true
+        type: string
+      color:
+        description: 'Hex color (e.g. #9e6bff)'
+        required: false
+        default: '#9e6bff'
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  notify:
+    name: Send Discord Release Announcement
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Send Discord Notification
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK || secrets.DISCORD_WEBHOOK_URL || secrets.DISCORD_RELEASE_WEBHOOK }}
+          VERSION_INPUT: ${{ inputs.version }}
+          COLOR_INPUT: ${{ inputs.color }}
+          REPO: ${{ github.repository }}
+          SERVER_URL: ${{ github.server_url }}
+        run: |
+          if [ -z "$DISCORD_WEBHOOK" ]; then
+            echo "::error::No Discord webhook secret found (DISCORD_WEBHOOK / DISCORD_WEBHOOK_URL). Cannot send announcement."
+            exit 1
+          fi
+
+          python3 - << 'EOF'
+          import os
+          import re
+          import json
+          import urllib.request
+          import urllib.error
+
+          webhook_url = (os.environ.get("DISCORD_WEBHOOK") or "").strip()
+          raw_version = (os.environ.get("VERSION_INPUT") or "").strip()
+          clean_version = raw_version.lstrip("v")
+          tag = f"v{clean_version}" if raw_version.startswith("v") else clean_version
+          custom_color = (os.environ.get("COLOR_INPUT") or "#9e6bff").strip()
+
+          repo = os.environ.get("REPO", "Dreamin-MC/DreamVoice")
+          server_url = os.environ.get("SERVER_URL", "https://github.com")
+
+          # Extract versions from build.gradle if available
+          mc_ver = "1.21.4"
+          vc_ver = "2.6.x"
+          java_ver = "25"
+
+          if os.path.isfile("build.gradle"):
+              with open("build.gradle", "r", encoding="utf-8") as f:
+                  bg_content = f.read()
+                  mc_match = re.search(r'def\s+mcVersion\s*=\s*"([^"]+)"', bg_content)
+                  if mc_match:
+                      mc_ver = mc_match.group(1)
+                  vc_match = re.search(r'def\s+voiceChatVersion\s*=\s*"([^"]+)"', bg_content)
+                  if vc_match:
+                      vc_ver = vc_match.group(1)
+                  java_match = re.search(r'languageVersion\s*=\s*JavaLanguageVersion\.of\(([0-9]+)\)', bg_content)
+                  if java_match:
+                      java_ver = java_match.group(1)
+
+          release_url = f"{server_url}/{repo}/releases/tag/{tag}"
+          modrinth_url = "https://modrinth.com/plugin/dreamvoice"
+          javadoc_url = "https://dreamin-mc.github.io/DreamVoice/"
+
+          changelog_file = f"changelog/{clean_version}.md"
+          changelog_text = ""
+          if os.path.isfile(changelog_file):
+              with open(changelog_file, "r", encoding="utf-8") as f:
+                  changelog_text = f.read().strip()
+              # Remove duplicate top-level title
+              changelog_text = re.sub(r'^#\s+Changelog[^\n]*\n+', '', changelog_text, flags=re.IGNORECASE)
+
+          # Discord limits: cumulative displayable text in V2 components must not exceed 4000 chars.
+          max_changelog_len = 3500
+          if len(changelog_text) > max_changelog_len:
+              changelog_text = changelog_text[:max_changelog_len] + f"\n\n*... [Read full changelog on GitHub]({release_url})*"
+
+          # Discord webhooks require '?with_components=true' query parameter to render buttons
+          sep = "&" if "?" in webhook_url else "?"
+          target_url = webhook_url if "with_components=" in webhook_url else f"{webhook_url}{sep}with_components=true"
+
+          def parse_color(val):
+              if isinstance(val, int):
+                  return val
+              if isinstance(val, str):
+                  clean = val.lstrip('#').lower()
+                  if clean.startswith('0x'):
+                      clean = clean[2:]
+                  try:
+                      return int(clean, 16)
+                  except ValueError:
+                      return 0x9e6bff
+              return 0x9e6bff
+
+          brand_color = parse_color(custom_color)
+
+          # 1. Modern system: Discord Components V2 (Container, TextDisplay, Separators, Buttons)
+          v2_payload = {
+              "flags": 32768,  # IS_COMPONENTS_V2
+              "components": [
+                  {
+                      "type": 17,  # Container
+                      "accent_color": brand_color,
+                      "components": [
+                          {
+                              "type": 10,  # Text Display (Header & Meta)
+                              "content": (
+                                  f"# 🚀 DreamVoice `v{clean_version}`\n"
+                                  f"> *Acoustic Soundproofing, Diffraction & 3D Spatial Audio for Minecraft*\n\n"
+                                  f"🎮 **Minecraft :** `{mc_ver}`   •   🔊 **VoiceChat :** `{vc_ver}`   •   ☕ **Java :** `{java_ver}`"
+                              )
+                          },
+                          {
+                              "type": 14,  # Separator
+                              "spacing": 1,
+                              "divider": True
+                          },
+                          {
+                              "type": 10,  # Text Display (Changelog)
+                              "content": changelog_text or "No changelog provided."
+                          },
+                          {
+                              "type": 14,  # Separator
+                              "spacing": 1,
+                              "divider": True
+                          },
+                          {
+                              "type": 1,  # Action Row
+                              "components": [
+                                  {
+                                      "type": 2,
+                                      "style": 5,
+                                      "label": "Modrinth",
+                                      "url": modrinth_url,
+                                      "emoji": {"name": "📦"}
+                                  },
+                                  {
+                                      "type": 2,
+                                      "style": 5,
+                                      "label": "GitHub Release",
+                                      "url": release_url,
+                                      "emoji": {"name": "🐙"}
+                                  },
+                                  {
+                                      "type": 2,
+                                      "style": 5,
+                                      "label": "JavaDoc API",
+                                      "url": javadoc_url,
+                                      "emoji": {"name": "📖"}
+                                  }
+                              ]
+                          }
+                      ]
+                  }
+              ]
+          }
+
+          # 2. Classic fallback (Embed + ActionRow)
+          classic_payload = {
+              "content": f"🚀 **DreamVoice `{clean_version}` has just been released!**",
+              "embeds": [
+                  {
+                      "title": f"🎙️ DreamVoice v{clean_version}",
+                      "url": release_url,
+                      "color": brand_color,
+                      "description": changelog_text or "No changelog provided.",
+                      "fields": [
+                          {"name": "🎮 Minecraft", "value": f"`{mc_ver}`", "inline": True},
+                          {"name": "🔊 VoiceChat", "value": f"`{vc_ver}`", "inline": True},
+                          {"name": "☕ Java", "value": f"`{java_ver}`", "inline": True},
+                      ],
+                      "footer": {
+                          "text": "Dreamin' Studios • DreamVoice"
+                      }
+                  }
+              ],
+              "components": [
+                  {
+                      "type": 1,
+                      "components": [
+                          {
+                              "type": 2,
+                              "style": 5,
+                              "label": "Modrinth",
+                              "url": modrinth_url,
+                              "emoji": {"name": "📦"}
+                          },
+                          {
+                              "type": 2,
+                              "style": 5,
+                              "label": "GitHub Release",
+                              "url": release_url,
+                              "emoji": {"name": "🐙"}
+                          },
+                          {
+                              "type": 2,
+                              "style": 5,
+                              "label": "JavaDoc API",
+                              "url": javadoc_url,
+                              "emoji": {"name": "📖"}
+                          }
+                      ]
+                  }
+              ]
+          }
+
+          def send_payload(url, data_dict):
+              req = urllib.request.Request(
+                  url,
+                  data=json.dumps(data_dict).encode("utf-8"),
+                  headers={
+                      "Content-Type": "application/json",
+                      "User-Agent": "DreamVoice-Release-Bot"
+                  },
+                  method="POST"
+              )
+              with urllib.request.urlopen(req) as resp:
+                  return resp.status
+
+          try:
+              print(f"Sending Components V2 notification to Discord for v{clean_version}...")
+              status = send_payload(target_url, v2_payload)
+              print(f"Discord announcement sent successfully with Components V2! HTTP {status}")
+          except urllib.error.HTTPError as e:
+              err_body = e.read().decode("utf-8", errors="ignore")
+              print(f"Components V2 failed (HTTP {e.code} - {err_body}), attempting classic fallback...")
+              try:
+                  status = send_payload(target_url, classic_payload)
+                  print(f"Classic embed notification sent successfully! HTTP {status}")
+              except Exception as fallback_err:
+                  print(f"Classic fallback also failed: {fallback_err}")
+                  raise fallback_err
+          except Exception as e:
+              print(f"Failed to send Discord notification: {e}")
+              raise e
+          EOF

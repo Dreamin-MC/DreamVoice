@@ -53,4 +53,5 @@ Desktop.ini
 *.tmp
 *.bak
 *.swp
-*.swo
+*.swo
+test-*.js
