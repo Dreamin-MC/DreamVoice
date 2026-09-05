@@ -37,9 +37,12 @@ import fr.dreamin.dreamvoice.core.wiretap.cmd.WiretapCmd;
 import fr.dreamin.dreamvoice.core.wiretap.service.VoiceWiretapServiceImpl;
 import lombok.Getter;
 import org.bukkit.Bukkit;
+import fr.dreamin.dreamapi.api.LoadMode;
+import fr.dreamin.dreamapi.api.annotations.EnableServices;
 import org.bukkit.event.Listener;
 import org.bukkit.plugin.ServicePriority;
 
+@EnableServices(mode = LoadMode.NONE)
 @Getter
 public final class DreamVoice extends DreamPlugin implements Listener {
 

@@ -17,7 +17,7 @@ subprojects {
   apply plugin: "java-library"
 
   group = "fr.dreamin"
-  version = rootProject.findProperty("version") && rootProject.findProperty("version") != "unspecified" ? rootProject.findProperty("version") : "1.0.8"
+  version = rootProject.findProperty("version") && rootProject.findProperty("version") != "unspecified" ? rootProject.findProperty("version") : "1.0.9"
   description = "DreamVoice"
 
   repositories {
@@ -36,7 +36,7 @@ subprojects {
   def paperVersion = mcVersion + ".build.+"
   def lombokVersion = "1.18.44"
   def cloudCommandFrameworkVersion = "1.8.4"
-  def dreamApiVersion = "0.5.1"
+  def dreamApiVersion = "0.5.3"
   def luckPermsVersion = "5.4"
   def voiceChatVersion = "2.6.20"
   def jacksonVersion = "2.19.1"

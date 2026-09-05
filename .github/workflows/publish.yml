@@ -36,16 +36,20 @@ jobs:
           echo "VERSION=${CLEAN_VERSION}" >> $GITHUB_ENV
           echo "TAG=${TAG}" >> $GITHUB_ENV
           
-          # Extract mcVersion and voiceChatVersion directly from build.gradle
+          # Extract mcVersion, voiceChatVersion and Java languageVersion directly from build.gradle
           MC_VER=$(sed -nE 's/.*def mcVersion\s*=\s*"([^"]+)".*/\1/p' build.gradle)
           VC_VER=$(sed -nE 's/.*def voiceChatVersion\s*=\s*"([^"]+)".*/\1/p' build.gradle)
+          JAVA_VER=$(sed -nE 's/.*languageVersion\s*=\s*JavaLanguageVersion\.of\(([0-9]+)\).*/\1/p' build.gradle | head -n 1)
+          JAVA_VER=${JAVA_VER:-25}
           
           echo "MC_VERSION=${MC_VER}" >> $GITHUB_ENV
           echo "VOICECHAT_VERSION=${VC_VER}" >> $GITHUB_ENV
+          echo "JAVA_VERSION=${JAVA_VER}" >> $GITHUB_ENV
           
           echo "Detected Tag Version : ${CLEAN_VERSION}"
           echo "Extracted Minecraft MC : ${MC_VER}"
           echo "Extracted VoiceChat VC : ${VC_VER}"
+          echo "Extracted Java Version : ${JAVA_VER}"
 
           # Strict Changelog Validation
           if [ -f "changelog/${CLEAN_VERSION}.md" ]; then
@@ -119,8 +123,12 @@ jobs:
             CURRENT_BODY=$(curl -s -H "Authorization: ${MODRINTH_TOKEN}" "https://api.modrinth.com/v2/project/${PROJECT_ID}" | jq -r '.body // empty')
             
             if [ -n "$CURRENT_BODY" ]; then
-              # Replace the dependency version in the Modrinth body
-              UPDATED_BODY=$(printf '%s\n' "$CURRENT_BODY" | sed -E "s/(compileOnly ['\"]fr\.dreamin:dreamvoice-api:)[^'\"]+(['\"])/\1${{ env.VERSION }}\2/")
+              # Replace the dependency versions and badges in the Modrinth body
+              UPDATED_BODY=$(printf '%s\n' "$CURRENT_BODY" \
+                | sed -E "s/(compileOnly ['\"]fr\.dreamin:dreamvoice-api:)[^'\"]+(['\"])/\1${{ env.VERSION }}\2/" \
+                | sed -E "s/(compileOnly ['\"]com\.github\.Dreamin-MC\.DreamVoice:api:)[^'\"]+(['\"])/\1${{ env.VERSION }}\2/" \
+                | sed -E "s/(<version>)[^<]+(<\/version>)/\1${{ env.VERSION }}\2/" \
+                | sed -E "s/(Modrinth-)[0-9]+\.[0-9]+\.[0-9]+/\1${{ env.VERSION }}/")
               
               # Send PATCH to update Modrinth project body
               PAYLOAD=$(jq -n --arg b "$UPDATED_BODY" '{body: $b}')
@@ -135,22 +143,31 @@ jobs:
             fi
           fi
 
-      - name: Update README.md and push to main
+      - name: Update version files and push to main
         run: |
           git fetch origin main
           git checkout main
           
-          # Replace version in the README.md dependency block
+          # 1. Replace versions in README.md
           sed -i -E "s/(compileOnly ['\"]fr\.dreamin:dreamvoice-api:)[^'\"]+(['\"])/\1${{ env.VERSION }}\2/" README.md
+          sed -i -E "s/(compileOnly ['\"]com\.github\.Dreamin-MC\.DreamVoice:api:)[^'\"]+(['\"])/\1${{ env.VERSION }}\2/" README.md
+          sed -i -E "s/(<version>)[^<]+(<\/version>)/\1${{ env.VERSION }}\2/" README.md
+          sed -i -E "s/(Modrinth-)[0-9]+\.[0-9]+\.[0-9]+/\1${{ env.VERSION }}/" README.md
           
-          if ! git diff --quiet README.md; then
+          # 2. Update gradle.properties
+          sed -i -E "s/^(version\s*=\s*).*/\1${{ env.VERSION }}/" gradle.properties
+          
+          # 3. Update build.gradle default fallback version
+          sed -i -E "s/(\? rootProject\.findProperty\(\"version\"\) : \")[^\"]+(\")/\1${{ env.VERSION }}\2/" build.gradle
+
+          if ! git diff --quiet README.md gradle.properties build.gradle; then
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add README.md
-            git commit -m "chore(docs): update README dependency version to ${{ env.VERSION }} [skip ci]"
+            git add README.md gradle.properties build.gradle
+            git commit -m "chore(release): bump version to ${{ env.VERSION }} [skip ci]"
             git push origin main
           else
-            echo "No changes in README.md to commit."
+            echo "No version changes in README.md, gradle.properties, or build.gradle to commit."
           fi
 
       - name: Send Discord Release Notification
@@ -162,6 +179,7 @@ jobs:
           CHANGELOG_FILE: ${{ env.CHANGELOG_FILE }}
           MC_VERSION: ${{ env.MC_VERSION }}
           VOICECHAT_VERSION: ${{ env.VOICECHAT_VERSION }}
+          JAVA_VERSION: ${{ env.JAVA_VERSION }}
           REPO: ${{ github.repository }}
           SERVER_URL: ${{ github.server_url }}
         run: |
@@ -181,6 +199,7 @@ jobs:
           changelog_file = os.environ.get("CHANGELOG_FILE", "")
           mc_ver = os.environ.get("MC_VERSION", "1.21.4")
           vc_ver = os.environ.get("VOICECHAT_VERSION", "2.6.x")
+          java_ver = os.environ.get("JAVA_VERSION", "25")
           repo = os.environ.get("REPO", "Dreamin-MC/DreamVoice")
           server_url = os.environ.get("SERVER_URL", "https://github.com")
 
@@ -207,7 +226,7 @@ jobs:
                       "fields": [
                           {"name": "🎮 Minecraft", "value": f"`{mc_ver}`", "inline": True},
                           {"name": "🔊 VoiceChat", "value": f"`{vc_ver}`", "inline": True},
-                          {"name": "☕ Java", "value": "`25`", "inline": True}
+                          {"name": "☕ Java", "value": f"`{java_ver}`", "inline": True}
                       ],
                       "footer": {
                           "text": "Dreamin' Studios • DreamVoice"

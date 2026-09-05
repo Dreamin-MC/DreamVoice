@@ -10,7 +10,8 @@
   <img src="https://img.shields.io/badge/Java-25-orange.svg" alt="Java 25" />
   <img src="https://img.shields.io/badge/Paper-1.21.4-blue.svg" alt="Paper 1.21.4" />
   <img src="https://img.shields.io/badge/Simple%20Voice%20Chat-2.6.x-green.svg" alt="Simple Voice Chat" />
-  <a href="https://modrinth.com/plugin/dreamvoice"><img src="https://img.shields.io/badge/Modrinth-1.0.8-00AF5C?logo=modrinth&logoColor=white" alt="Modrinth" /></a>
+  <a href="https://jitpack.io/#Dreamin-MC/DreamVoice"><img src="https://jitpack.io/v/Dreamin-MC/DreamVoice.svg" alt="JitPack" /></a>
+  <a href="https://modrinth.com/plugin/dreamvoice"><img src="https://img.shields.io/badge/Modrinth-1.0.9-00AF5C?logo=modrinth&logoColor=white" alt="Modrinth" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-GPL%20v3-blue.svg" alt="License: GPL v3" /></a>
 </p>
 
@@ -121,32 +122,74 @@ Explore the comprehensive module guides in the [`docs/`](docs/) directory:
 
 ### Prerequisites
 * **Java 25+**
-* **Paper / Purpur 1.21.4+**
+* **Paper / Purpur 26.1.2+**
 * **Simple Voice Chat 2.6.x+**
 
 ### 📦 Download & Installation
 
-1. Make sure your server runs **Paper 1.21.4+** and **[Simple Voice Chat 2.6.x+](https://modrinth.com/plugin/simple-voice-chat)**.
+1. Make sure your server runs **Paper 26.1.2+** and **[Simple Voice Chat 2.6.x+](https://modrinth.com/plugin/simple-voice-chat)**.
 2. Download the latest release from **[Modrinth](https://modrinth.com/plugin/dreamvoice)** or [GitHub Releases](https://github.com/Dreamin-MC/DreamVoice/releases).
 3. Drop `DreamVoice.jar` into your server's `plugins/` directory.
 4. Restart your server!
 
 ---
 
-## 💻 Developer API Dependency (GitHub Packages)
+## 💻 Developer API Dependency
+
+### 📦 Gradle (JitPack)
 
 ```groovy
 repositories {
-    maven {
-        name = "GitHubPackages"
-        url = uri("https://maven.pkg.github.com/Dreamin-MC/DreamVoice")
-    }
+  mavenCentral()
+  maven { url = 'https://jitpack.io' }
 }
 
 dependencies {
-    compileOnly 'fr.dreamin:dreamvoice-api:1.0.8'
+  compileOnly 'com.github.Dreamin-MC.DreamVoice:api:1.0.9'
 }
 ```
+
+### 📦 Maven (JitPack)
+
+```xml
+<repositories>
+  <repository>
+    <id>jitpack.io</id>
+    <url>https://jitpack.io</url>
+  </repository>
+</repositories>
+
+<dependencies>
+  <dependency>
+    <groupId>com.github.Dreamin-MC.DreamVoice</groupId>
+    <artifactId>api</artifactId>
+    <version>1.0.9</version>
+    <scope>provided</scope>
+  </dependency>
+</dependencies>
+```
+
+<details>
+<summary><b>Alternative: GitHub Packages</b></summary>
+
+```groovy
+repositories {
+  maven {
+    name = "GitHubPackages"
+    url = uri("https://maven.pkg.github.com/Dreamin-MC/DreamVoice")
+    credentials {
+      username = System.getenv("GITHUB_ACTOR") ?: project.findProperty("gpr.user") ?: ""
+      password = System.getenv("GITHUB_TOKEN") ?: project.findProperty("gpr.token") ?: ""
+    }
+  }
+}
+
+dependencies {
+  compileOnly 'fr.dreamin:dreamvoice-api:1.0.9'
+}
+```
+
+</details>
 
 ---
 
