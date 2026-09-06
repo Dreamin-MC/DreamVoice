@@ -175,12 +175,13 @@ jobs:
           WIKI_AUTH_TOKEN: ${{ secrets.WIKI_TOKEN || secrets.GH_PAT || secrets.GH_TOKEN || secrets.PAT || secrets.GITHUB_TOKEN }}
         run: |
           if [ -z "${WIKI_AUTH_TOKEN}" ]; then
-            echo "::warning::No token found for wiki update. Please add a secret WIKI_TOKEN (Personal Access Token with repo scope). Skipping."
+            echo "::warning::No authentication token provided for wiki synchronization. Skipping."
             exit 0
           fi
 
           echo "Cloning GitHub Wiki..."
-          if git clone "https://x-access-token:${WIKI_AUTH_TOKEN}@github.com/${{ github.repository }}.wiki.git" wiki; then
+          git config --global http.https://github.com/.extraheader "AUTHORIZATION: basic $(printf "x-access-token:%s" "${WIKI_AUTH_TOKEN}" | base64 | tr -d '\n')"
+          if git clone "https://github.com/${{ github.repository }}.wiki.git" wiki; then
             cd wiki
             
             # 1. Update Home.md (Minecraft, Simple Voice Chat, Java, and Plugin versions)
@@ -213,7 +214,7 @@ jobs:
             fi
             cd ..
           else
-            echo "::warning::Could not clone GitHub Wiki. Note: The default GITHUB_TOKEN cannot push to GitHub Wikis by design. Please add a secret named 'WIKI_TOKEN' with a Personal Access Token (repo scope)."
+            echo "::warning::Could not clone GitHub Wiki repository."
           fi
 
       - name: Rollback / Delete remote tag on failure
