@@ -23,6 +23,7 @@ public final class VoiceRecording {
   private @Nullable Duration duration;
 
   private final @NotNull List<TimedAudioFrame> audioFrames = new ArrayList<>();
+  private transient volatile short[] cachedPcm = null;
 
   // ###############################################################
   // --------------------- CONSTRUCTOR METHODS ---------------------
@@ -43,6 +44,7 @@ public final class VoiceRecording {
     this.startTime = Instant.now();
     this.duration = null;
     this.audioFrames.clear();
+    this.cachedPcm = null;
   }
 
   /**
@@ -83,6 +85,7 @@ public final class VoiceRecording {
 
     final var offsetMs = Math.max(0, System.currentTimeMillis() - this.startTime.toEpochMilli());
     this.audioFrames.add(new TimedAudioFrame(offsetMs, opusData.clone()));
+    this.cachedPcm = null;
   }
 
   /**
@@ -158,6 +161,31 @@ public final class VoiceRecording {
     final var totalMs = (long) (getDurationSeconds() * 1000L);
     final var startMs = Math.max(0L, totalMs - durationMs);
     return slice(startMs, durationMs);
+  }
+
+  /**
+   * Retrieves the cached decoded PCM audio samples, if available.
+   *
+   * @return cached PCM samples, or {@code null} if not yet decoded or invalidated
+   */
+  public @Nullable short[] getCachedPcm() {
+    return this.cachedPcm;
+  }
+
+  /**
+   * Caches decoded PCM audio samples for subsequent playback.
+   *
+   * @param cachedPcm decoded 16-bit 48kHz PCM samples
+   */
+  public void setCachedPcm(final short @Nullable [] cachedPcm) {
+    this.cachedPcm = cachedPcm;
+  }
+
+  /**
+   * Clears the cached decoded PCM samples.
+   */
+  public void clearCachedPcm() {
+    this.cachedPcm = null;
   }
 
 }

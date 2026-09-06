@@ -6,6 +6,8 @@ import de.maxhenkel.voicechat.api.ServerPlayer;
 import de.maxhenkel.voicechat.api.audiochannel.AudioPlayer;
 import de.maxhenkel.voicechat.api.audiochannel.LocationalAudioChannel;
 import fr.dreamin.dreamapi.api.DreamAPI;
+import fr.dreamin.dreamvoice.api.speaker.event.SpeakerLinkPlayerEvent;
+import fr.dreamin.dreamvoice.api.speaker.event.SpeakerUnlinkPlayerEvent;
 import fr.dreamin.dreamvoice.api.speaker.service.VoiceSpeakerService;
 import lombok.Getter;
 import lombok.Setter;
@@ -137,6 +139,9 @@ public final class Speaker {
    * @param playerUuid the player UUID
    */
   public void linkSpeaker(final @NotNull UUID playerUuid) {
+    final var event = new SpeakerLinkPlayerEvent(this, playerUuid);
+    if (!event.callEvent())
+      return;
     this.allowedSpeakers.add(playerUuid);
   }
 
@@ -146,7 +151,8 @@ public final class Speaker {
    * @param playerUuid the player UUID
    */
   public void unlinkSpeaker(final @NotNull UUID playerUuid) {
-    this.allowedSpeakers.remove(playerUuid);
+    if (this.allowedSpeakers.remove(playerUuid))
+      new SpeakerUnlinkPlayerEvent(this, playerUuid).callEvent();
   }
 
   /**

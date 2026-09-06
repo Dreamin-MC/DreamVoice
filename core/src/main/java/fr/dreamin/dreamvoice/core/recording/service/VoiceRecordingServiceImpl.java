@@ -6,12 +6,17 @@ import de.maxhenkel.voicechat.api.VolumeCategory;
 import fr.dreamin.dreamvoice.api.filter.service.VoiceFilterService;
 import fr.dreamin.dreamvoice.api.recording.model.TimedAudioFrame;
 import fr.dreamin.dreamvoice.api.recording.model.VoiceRecording;
+import fr.dreamin.dreamvoice.api.recording.event.CassetteCreateEvent;
+import fr.dreamin.dreamvoice.api.recording.event.CassettePlayEvent;
+import fr.dreamin.dreamvoice.api.recording.event.VoiceRecordingStartEvent;
+import fr.dreamin.dreamvoice.api.recording.event.VoiceRecordingStopEvent;
 import fr.dreamin.dreamvoice.api.recording.service.VoiceRecordingService;
 import fr.dreamin.dreamvoice.api.voice.event.MicrophonePacketEvent;
 import fr.dreamin.dreamvoice.api.voice.service.VoiceService;
 import fr.dreamin.dreamvoice.core.DreamVoice;
 import de.maxhenkel.voicechat.api.opus.OpusEncoder;
 import fr.dreamin.dreamvoice.core.recording.item.CassetteItem;
+import fr.dreamin.dreamvoice.core.recording.player.OpusAudioPlayer;
 import fr.dreamin.dreamvoice.core.recording.storage.VoiceRecordingPersistence;
 import fr.dreamin.dreamvoice.core.utils.RawUtils;
 import fr.dreamin.dreamvoice.core.utils.audio.AudioLimiter;
@@ -30,9 +35,7 @@ import org.jspecify.annotations.NonNull;
 import java.io.File;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -64,7 +67,7 @@ public final class VoiceRecordingServiceImpl implements VoiceRecordingService, L
   private @NotNull VoicechatServerApi api;
   private VolumeCategory volumeCategory;
 
-  private final @NotNull Map<UUID, VoiceRecording> voiceRecordings = new HashMap<>();
+  private final @NotNull Map<UUID, VoiceRecording> voiceRecordings = new ConcurrentHashMap<>();
   private final @NotNull Map<UUID, OpusEncoder> recordingEncoders = new ConcurrentHashMap<>();
   private boolean voiceServiceMissingLogged = false;
 
@@ -139,7 +142,12 @@ public final class VoiceRecordingServiceImpl implements VoiceRecordingService, L
 
   @Override
   public void playRecordingTo(final @NotNull VoicechatConnection connection, final @NotNull VoiceRecording recording) {
-    if (!recording.isFinished() && !recording.isRecording())
+    playRecordingTo(List.of(connection), recording);
+  }
+
+  @Override
+  public void playRecordingTo(final @NotNull Collection<VoicechatConnection> connections, final @NotNull VoiceRecording recording) {
+    if (connections.isEmpty() || (!recording.isFinished() && !recording.isRecording()))
       return;
 
     final var frames = recording.getAudioFrames();
@@ -154,25 +162,23 @@ public final class VoiceRecordingServiceImpl implements VoiceRecordingService, L
       return;
     }
 
-    channel.addTarget(connection);
+    for (final var connection : connections) {
+      channel.addTarget(connection);
+    }
+
     if (this.volumeCategory != null)
       channel.setCategory(this.volumeCategory.getId());
 
-    final var fullPcm = decodeRecordingFrames(frames);
-    if (fullPcm == null || fullPcm.length == 0)
-      return;
-
-    try {
-      final var encoder = this.api.createEncoder();
-      final var player = this.api.createAudioPlayer(channel, encoder, fullPcm);
-      player.startPlaying();
-    } catch (Exception e) {
-      this.plugin.getLogger().severe("Error creating AudioPlayer: " + e.getMessage());
-    }
+    final var totalDurationMs = (long) (recording.getDurationSeconds() * 1000L);
+    final var player = new OpusAudioPlayer(List.of(channel), frames, totalDurationMs, false);
+    player.startPlaying();
   }
 
   @Override
   public VoiceRecording startRecording(final @NonNull UUID speakerUUID) {
+    final var event = new VoiceRecordingStartEvent(speakerUUID);
+    if (!event.callEvent())
+      return null;
     final var rec = new VoiceRecording(speakerUUID);
     rec.start();
     register(rec);
@@ -184,8 +190,9 @@ public final class VoiceRecordingServiceImpl implements VoiceRecordingService, L
     final var rec = this.voiceRecordings.get(recId);
     if (rec != null && rec.isRecording()) {
       rec.stop();
+      new VoiceRecordingStopEvent(rec).callEvent();
       final var recordingsDir = new File(this.plugin.getDataFolder(), "recordings");
-      VoiceRecordingPersistence.save(rec, recordingsDir);
+      CompletableFuture.runAsync(() -> VoiceRecordingPersistence.save(rec, recordingsDir));
     }
   }
 
@@ -201,7 +208,9 @@ public final class VoiceRecordingServiceImpl implements VoiceRecordingService, L
 
   @Override
   public @NonNull ItemStack createCassette(final @NotNull VoiceRecording recording) {
-    return CassetteItem.create(recording);
+    final var baseItem = CassetteItem.create(recording);
+    final var event = new CassetteCreateEvent(recording, baseItem);
+    return event.callEvent() ? event.getItemStack() : baseItem;
   }
 
   @Override
@@ -276,7 +285,7 @@ public final class VoiceRecordingServiceImpl implements VoiceRecordingService, L
     final var sliced = rec.slice(timestamp, duration);
     register(sliced);
     final var recordingsDir = new File(this.plugin.getDataFolder(), "recordings");
-    VoiceRecordingPersistence.save(sliced, recordingsDir);
+    CompletableFuture.runAsync(() -> VoiceRecordingPersistence.save(sliced, recordingsDir));
     return sliced;
   }
 
@@ -289,7 +298,7 @@ public final class VoiceRecordingServiceImpl implements VoiceRecordingService, L
     final var sliced = rec.slice(startOffsetMs, durationMs);
     register(sliced);
     final var recordingsDir = new File(this.plugin.getDataFolder(), "recordings");
-    VoiceRecordingPersistence.save(sliced, recordingsDir);
+    CompletableFuture.runAsync(() -> VoiceRecordingPersistence.save(sliced, recordingsDir));
     return sliced;
   }
 
@@ -307,67 +316,10 @@ public final class VoiceRecordingServiceImpl implements VoiceRecordingService, L
     final var sliced = rec.sliceLast(durationMs);
     register(sliced);
     final var recordingsDir = new File(this.plugin.getDataFolder(), "recordings");
-    VoiceRecordingPersistence.save(sliced, recordingsDir);
+    CompletableFuture.runAsync(() -> VoiceRecordingPersistence.save(sliced, recordingsDir));
     return sliced;
   }
 
-  // ###############################################################
-  // ------------------- PRIVATE HELPER METHODS --------------------
-  // ###############################################################
-
-  private short[] decodeRecordingFrames(final @NotNull List<TimedAudioFrame> frames) {
-    final var pcmList = new ArrayList<short[]>();
-    var totalSamples = 0;
-    var currentStreamTimeMs = 0L;
-
-    final var decoder = this.api.createDecoder();
-    try {
-      for (final var frame : frames) {
-        if (frame.data().length == 0)
-          continue;
-
-        final var frameTime = frame.timestampMs();
-
-        if (frameTime - currentStreamTimeMs >= 60) {
-          final var silenceMs = frameTime - currentStreamTimeMs;
-          final var silenceSamples = (int) (silenceMs * 48);
-          if (silenceSamples > 0) {
-            pcmList.add(new short[silenceSamples]);
-            totalSamples += silenceSamples;
-          }
-          currentStreamTimeMs = frameTime;
-        }
-
-        final var pcm = decoder.decode(frame.data());
-        if (pcm != null && pcm.length > 0) {
-          pcmList.add(pcm);
-          totalSamples += pcm.length;
-          currentStreamTimeMs += (pcm.length / 48);
-        }
-      }
-    } catch (Exception e) {
-      this.plugin.getLogger().severe("Error decoding Opus frames: " + e.getMessage());
-      return null;
-    } finally {
-      if (!decoder.isClosed()) {
-        try {
-          decoder.close();
-        } catch (Throwable ignored) {}
-      }
-    }
-
-    if (totalSamples == 0)
-      return null;
-
-    final var fullPcm = new short[totalSamples];
-    var offset = 0;
-    for (final var chunk : pcmList) {
-      System.arraycopy(chunk, 0, fullPcm, offset, chunk.length);
-      offset += chunk.length;
-    }
-
-    return fullPcm;
-  }
 
   // ###############################################################
   // ---------------------- EVENT LISTENERS ------------------------
@@ -386,6 +338,11 @@ public final class VoiceRecordingServiceImpl implements VoiceRecordingService, L
     event.setCancelled(true);
     final var player = event.getPlayer();
     final var recording = this.voiceRecordings.get(recUuid);
+    if (recording != null) {
+      final var playEvent = new CassettePlayEvent(player, recording, item);
+      if (!playEvent.callEvent())
+        return;
+    }
     if (recording == null) {
       player.sendMessage(Component.text("[SVC] Recording not found on the server!", NamedTextColor.RED));
       return;
@@ -398,7 +355,7 @@ public final class VoiceRecordingServiceImpl implements VoiceRecordingService, L
     }
 
     player.sendMessage(
-      Component.text("▶ Playing voice cassette (", NamedTextColor.GREEN)
+      Component.text("Playing voice cassette (", NamedTextColor.GREEN)
         .append(Component.text(String.format("%.1f", recording.getDurationSeconds()) + "s", NamedTextColor.YELLOW))
         .append(Component.text(")...", NamedTextColor.GREEN))
     );

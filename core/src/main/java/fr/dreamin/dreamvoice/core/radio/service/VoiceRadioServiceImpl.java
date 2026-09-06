@@ -5,6 +5,9 @@ import de.maxhenkel.voicechat.api.audiochannel.StaticAudioChannel;
 import de.maxhenkel.voicechat.api.opus.OpusEncoder;
 import fr.dreamin.dreamvoice.api.filter.service.VoiceFilterService;
 import fr.dreamin.dreamvoice.api.radio.model.RadioChannel;
+import fr.dreamin.dreamvoice.api.radio.event.RadioChannelCreateEvent;
+import fr.dreamin.dreamvoice.api.radio.event.RadioChannelJoinEvent;
+import fr.dreamin.dreamvoice.api.radio.event.RadioChannelLeaveEvent;
 import fr.dreamin.dreamvoice.api.radio.service.VoiceRadioService;
 import fr.dreamin.dreamvoice.api.voice.event.MicrophonePacketEvent;
 import fr.dreamin.dreamvoice.api.voice.service.VoiceService;
@@ -86,7 +89,16 @@ public final class VoiceRadioServiceImpl implements VoiceRadioService, Listener 
 
   @Override
   public @NotNull RadioChannel getOrCreateChannel(final @NotNull String name) {
-    return this.channels.computeIfAbsent(name.toLowerCase(), RadioChannel::new);
+    final var key = name.toLowerCase();
+    var channel = this.channels.get(key);
+    if (channel == null) {
+      channel = new RadioChannel(key);
+      final var event = new RadioChannelCreateEvent(channel);
+      if (!event.callEvent())
+        return channel;
+      this.channels.put(key, channel);
+    }
+    return channel;
   }
 
   @Override
@@ -104,9 +116,12 @@ public final class VoiceRadioServiceImpl implements VoiceRadioService, Listener 
 
   @Override
   public void joinChannel(final @NotNull UUID playerUuid, final @NotNull String channelName) {
+    final var channel = getOrCreateChannel(channelName);
+    final var event = new RadioChannelJoinEvent(channel, playerUuid);
+    if (!event.callEvent())
+      return;
     leaveChannel(playerUuid);
 
-    final var channel = getOrCreateChannel(channelName);
     channel.addMember(playerUuid);
     this.playerChannels.put(playerUuid, channel.getName());
   }
@@ -114,10 +129,12 @@ public final class VoiceRadioServiceImpl implements VoiceRadioService, Listener 
   @Override
   public void leaveChannel(final @NotNull UUID playerUuid) {
     final var current = this.playerChannels.remove(playerUuid);
-    if (current != null) {
-      final var ch = this.channels.get(current);
-      if (ch != null)
-        ch.removeMember(playerUuid);
+    if (current == null)
+      return;
+    final var ch = this.channels.get(current);
+    if (ch != null) {
+      ch.removeMember(playerUuid);
+      new RadioChannelLeaveEvent(ch, playerUuid).callEvent();
     }
   }
 

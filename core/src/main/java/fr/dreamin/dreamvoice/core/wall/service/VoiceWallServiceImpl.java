@@ -10,8 +10,8 @@ import fr.dreamin.dreamvoice.api.codex.service.CodexService;
 import fr.dreamin.dreamvoice.api.filter.service.VoiceFilterService;
 import fr.dreamin.dreamvoice.api.player.model.VPlayer;
 import fr.dreamin.dreamvoice.api.player.service.PlayerService;
-import fr.dreamin.dreamvoice.api.voice.service.VoiceService;
 import fr.dreamin.dreamvoice.api.wall.model.VoiceWallMode;
+import fr.dreamin.dreamvoice.api.wall.event.VoiceWallOcclusionEvent;
 import fr.dreamin.dreamvoice.api.wall.service.VoiceWallService;
 import fr.dreamin.dreamvoice.core.DreamVoice;
 import fr.dreamin.dreamvoice.core.player.manager.VoiceWallManager;
@@ -201,6 +201,7 @@ public final class VoiceWallServiceImpl extends Tick implements VoiceWallService
     final @NotNull VPlayer vReceiver,
     final @NotNull VoicechatConnection receiverConn
   ) {
+
     final var senderUuid = vSender.getUuid();
     final var filterService = DreamVoice.getService(VoiceFilterService.class);
     final var hasFilters = filterService != null && filterService.hasActiveFilters(senderUuid);
@@ -210,14 +211,55 @@ public final class VoiceWallServiceImpl extends Tick implements VoiceWallService
       final var wallManager = vReceiver.getManager(VoiceWallManager.class);
       if (wallManager != null)
         totalDbLoss = wallManager.getTotalAttenuationDb(vSender);
+
+      if (Math.abs(totalDbLoss) > 0.001) {
+        final var occlusionEvent = new VoiceWallOcclusionEvent(
+          vSender,
+          vReceiver,
+          totalDbLoss,
+          totalDbLoss,
+          totalDbLoss >= 99.0
+        );
+        if (!occlusionEvent.callEvent())
+          totalDbLoss = 0.0;
+        else {
+          totalDbLoss = occlusionEvent.getLossDb();
+          if (occlusionEvent.isBlocked())
+            totalDbLoss = 100.0;
+        }
+      }
+    }
+
+    final var pReceiverPlayer = vReceiver.getBukkitPlayer();
+    final var receiverIsDebugging = pReceiverPlayer != null && this.debugPlayers.contains(vReceiver.getUuid());
+    final var senderName = resolvePlayerName(vSender);
+
+    if (totalDbLoss >= 99.0) {
+      event.cancel();
+      if (receiverIsDebugging)
+        pReceiverPlayer.sendActionBar(
+          Component.text("[VOICE] ", NamedTextColor.DARK_RED)
+            .append(Component.text(senderName, NamedTextColor.AQUA))
+            .append(Component.text(String.format(" -> BLOCKED (100%% Soundproof, loss=%.1fdB)", totalDbLoss), NamedTextColor.RED))
+        );
+
+      return;
     }
 
     final var hasAttenuation = Math.abs(totalDbLoss) > 0.001;
     final var distance = calculateDistance(vSender, vReceiver);
     final var hasAirDamping = this.airDamping && distance > 5.0;
 
-    if (!hasAttenuation && !hasFilters && !hasAirDamping)
+    if (!hasAttenuation && !hasFilters && !hasAirDamping) {
+      if (receiverIsDebugging)
+        pReceiverPlayer.sendActionBar(
+          Component.text("[VOICE] ", NamedTextColor.GREEN)
+            .append(Component.text(senderName, NamedTextColor.AQUA))
+            .append(Component.text(" -> DIRECT (0.0 dB, 100% Vol)", NamedTextColor.GREEN))
+        );
+      
       return;
+    }
 
     try {
       if (this.debug)
@@ -225,37 +267,74 @@ public final class VoiceWallServiceImpl extends Tick implements VoiceWallService
 
       final var packet = event.getPacket();
       final var opusData = packet.getOpusEncodedData();
-      if (opusData == null || opusData.length == 0 || this.api == null)
+      if (opusData == null || opusData.length == 0)
         return;
 
       final var receiverUUID = receiverConn.getPlayer().getUuid();
       final var streamKey = senderUuid + ":" + receiverUUID;
       final var decoder = this.streamDecoders.computeIfAbsent(streamKey, _ -> this.api.createDecoder());
       final var encoder = this.streamEncoders.computeIfAbsent(streamKey, _ -> this.api.createEncoder());
-      this.lastStreamActivity.put(streamKey, System.currentTimeMillis());
+      final var lastTime = this.lastStreamActivity.put(streamKey, System.currentTimeMillis());
+      if (lastTime != null && (System.currentTimeMillis() - lastTime > 400L)) {
+        decoder.resetState();
+        encoder.resetState();
+      }
 
       var pcm = decoder.decode(opusData);
       if (pcm == null || pcm.length == 0)
         return;
 
-      pcm = applyDspGainAndFilters(pcm, senderUuid, filterService, hasFilters, hasAttenuation, totalDbLoss, hasAirDamping, distance);
+      final var rawRms = computeRms(pcm);
+      pcm = applyDspGainAndFilters(pcm, senderUuid, filterService, hasFilters, hasAttenuation, totalDbLoss);
+      final var postRms = computeRms(pcm);
 
       final var newOpus = encoder.encode(pcm);
+      if (newOpus == null || newOpus.length == 0)
+        return;
+
       final var newPacket = packet.entitySoundPacketBuilder()
-        .channelId(packet.getChannelId())
-        .entityUuid(packet.getEntityUuid())
-        .distance(packet.getDistance())
-        .whispering(packet.isWhispering())
         .opusEncodedData(newOpus)
-        .category(packet.getCategory())
         .build();
 
       event.cancel();
       this.api.sendEntitySoundPacketTo(receiverConn, newPacket);
 
+      if (receiverIsDebugging) {
+        final var gainFactor = Math.pow(10.0, -totalDbLoss / 20.0);
+        final var volPercent = Math.round(gainFactor * 100.0);
+        final var isAudible = postRms > 50;
+
+        pReceiverPlayer.sendActionBar(
+          Component.text("[VOICE] ", NamedTextColor.GOLD)
+            .append(Component.text(senderName, NamedTextColor.AQUA))
+            .append(Component.text(String.format(" | Loss: -%.1fdB (%d%% vol)", totalDbLoss, volPercent), NamedTextColor.YELLOW))
+            .append(Component.text(String.format(" | RMS: %d -> %d", rawRms, postRms), NamedTextColor.GRAY))
+            .append(Component.text(isAudible ? " [HEARD]" : " [SILENT]", isAudible ? NamedTextColor.GREEN : NamedTextColor.RED))
+        );
+      }
+
     } catch (Exception e) {
       this.plugin.getLogger().warning("Audio processing error : " + e.getMessage());
+      if (receiverIsDebugging)
+        pReceiverPlayer.sendMessage(Component.text("[VOICE ERROR] Audio processing exception: " + e.getMessage(), NamedTextColor.RED));
     }
+  }
+
+  private static int computeRms(final short[] pcm) {
+    if (pcm == null || pcm.length == 0)
+      return 0;
+    long sum = 0;
+    for (final short s : pcm)
+      sum += (long) s * s;
+
+    return (int) Math.sqrt((double) sum / pcm.length);
+  }
+
+  private static String resolvePlayerName(final @NotNull VPlayer player) {
+    final var bp = player.getBukkitPlayer();
+    if (bp != null)
+      return bp.getName();
+    return player.getUuid().toString().substring(0, 8);
   }
 
   // ###############################################################
@@ -276,9 +355,7 @@ public final class VoiceWallServiceImpl extends Tick implements VoiceWallService
     final @Nullable VoiceFilterService filterService,
     final boolean hasFilters,
     final boolean hasAttenuation,
-    final double totalDbLoss,
-    final boolean hasAirDamping,
-    final double distance
+    final double totalDbLoss
   ) {
     if (hasFilters && filterService != null)
       pcm = filterService.applyFilters(senderUuid, pcm);
@@ -288,9 +365,6 @@ public final class VoiceWallServiceImpl extends Tick implements VoiceWallService
       for (int i = 0; i < pcm.length; i++)
         pcm[i] = (short) Math.clamp(Math.round(pcm[i] * gain), Short.MIN_VALUE, Short.MAX_VALUE);
     }
-
-    if (hasAirDamping)
-      applyAirDamping(pcm, distance);
 
     pcm = AudioLimiter.process(pcm);
 
@@ -328,7 +402,8 @@ public final class VoiceWallServiceImpl extends Tick implements VoiceWallService
         manager.updatePosition();
         manager.setMoved(true);
         invalidateCacheForPlayer(vPlayer);
-      } else
+      }
+      else
         manager.setMoved(false);
     }
 
@@ -351,7 +426,8 @@ public final class VoiceWallServiceImpl extends Tick implements VoiceWallService
           continue;
 
         final var cacheKey = generateCacheKey(vPlayer, otherVPlayer);
-        if (!managerA.isMoved() && !managerB.isMoved() && this.lineOfSightCache.containsKey(cacheKey))
+        final var cached = this.lineOfSightCache.get(cacheKey);
+        if (!managerA.isMoved() && !managerB.isMoved() && cached != null && !cached.isExpired(getActualTick(), 40))
           continue;
 
         processPlayerPair(vPlayer, otherVPlayer, cacheKey);
@@ -367,7 +443,7 @@ public final class VoiceWallServiceImpl extends Tick implements VoiceWallService
 
     if (!pa.getWorld().equals(pb.getWorld())) {
       blockBoth(vPlayer, otherVPlayer, 0.0, VoiceWallManager.WallBlockReason.DISTANCE);
-      this.lineOfSightCache.put(cacheKey, new CachedLineOfSight(false, 100.0, getActualTick()));
+      this.lineOfSightCache.remove(cacheKey);
       return;
     }
 
@@ -380,11 +456,11 @@ public final class VoiceWallServiceImpl extends Tick implements VoiceWallService
       return;
     }
 
-    final var maxVoiceDistance = codexService.getConfig().getDistance();
+    final var maxVoiceDistance = codexService.getConfig().getEffectiveDistance();
     final var distance = pa.getLocation().distance(pb.getLocation());
     if (distance > maxVoiceDistance) {
       blockBoth(vPlayer, otherVPlayer, 0.0, VoiceWallManager.WallBlockReason.DISTANCE);
-      this.lineOfSightCache.put(cacheKey, new CachedLineOfSight(false, 100.0, getActualTick()));
+      this.lineOfSightCache.remove(cacheKey);
       return;
     }
 
@@ -394,13 +470,13 @@ public final class VoiceWallServiceImpl extends Tick implements VoiceWallService
     if (los == null || los.lineOfSight())
       return;
 
-    final var attenuation = (this.mode == VoiceWallMode.STRICT_BLOCK) ? 100.0 : los.totalAttenuation();
+    final var attenuation = los.totalAttenuation();
     blockBoth(vPlayer, otherVPlayer, attenuation, VoiceWallManager.WallBlockReason.WALL);
   }
 
   private CachedLineOfSight getLineOfSightCached(final @NotNull VPlayer vPlayer, final @NotNull VPlayer otherVPlayer, final @NotNull String cacheKey) {
     final var cached = this.lineOfSightCache.get(cacheKey);
-    if (cached != null && !cached.isExpired(getActualTick(), 600)) {
+    if (cached != null && !cached.isExpired(getActualTick(), 40)) {
       if (this.enable) {
         vPlayer.consumeManager(VoiceWallManager.class, VoiceWallManager::incrementCacheHits);
         otherVPlayer.consumeManager(VoiceWallManager.class, VoiceWallManager::incrementCacheHits);
@@ -450,7 +526,7 @@ public final class VoiceWallServiceImpl extends Tick implements VoiceWallService
   }
 
   private void cleanupCache() {
-    this.lineOfSightCache.entrySet().removeIf(entry -> entry.getValue().isExpired(getActualTick(), 1200));
+    this.lineOfSightCache.entrySet().removeIf(entry -> entry.getValue().isExpired(getActualTick(), 100));
 
     final var now = System.currentTimeMillis();
     this.lastStreamActivity.entrySet().removeIf(entry -> {
@@ -498,12 +574,15 @@ public final class VoiceWallServiceImpl extends Tick implements VoiceWallService
     var closestPlayer = (Player) null;
     var closestDist = Double.MAX_VALUE;
 
+    final var codexService = DreamVoice.getService(CodexService.class);
+    final var maxDist = codexService != null ? codexService.getConfig().getEffectiveDistance() : MAX_DEBUG_DISTANCE;
+
     for (final var target : Bukkit.getOnlinePlayers()) {
       if (target.getUniqueId().equals(viewerUuid) || !target.getWorld().equals(viewer.getWorld()))
         continue;
 
       final var d = viewer.getLocation().distance(target.getLocation());
-      if (d < closestDist && d <= MAX_DEBUG_DISTANCE) {
+      if (d < closestDist && d <= maxDist) {
         closestDist = d;
         closestPlayer = target;
       }

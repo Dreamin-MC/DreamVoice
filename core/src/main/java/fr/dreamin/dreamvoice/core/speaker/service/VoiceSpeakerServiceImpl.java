@@ -6,7 +6,12 @@ import de.maxhenkel.voicechat.api.audiochannel.LocationalAudioChannel;
 import de.maxhenkel.voicechat.api.opus.OpusEncoder;
 import fr.dreamin.dreamvoice.api.filter.service.VoiceFilterService;
 import fr.dreamin.dreamvoice.api.recording.model.VoiceRecording;
+import fr.dreamin.dreamvoice.core.recording.player.OpusAudioPlayer;
 import fr.dreamin.dreamvoice.api.speaker.model.Speaker;
+import fr.dreamin.dreamvoice.api.speaker.event.SpeakerPlaySoundEvent;
+import fr.dreamin.dreamvoice.api.speaker.event.SpeakerRegisterEvent;
+import fr.dreamin.dreamvoice.api.speaker.event.SpeakerStopSoundEvent;
+import fr.dreamin.dreamvoice.api.speaker.event.SpeakerUnregisterEvent;
 import fr.dreamin.dreamvoice.api.speaker.service.VoiceSpeakerService;
 import fr.dreamin.dreamvoice.api.voice.event.MicrophonePacketEvent;
 import fr.dreamin.dreamvoice.api.voice.service.VoiceService;
@@ -54,7 +59,6 @@ public final class VoiceSpeakerServiceImpl implements VoiceSpeakerService, Liste
   private @NotNull VoicechatServerApi api;
 
   private VolumeCategory volumeCategory;
-  private boolean voiceServiceMissingLogged = false;
 
   private final @NotNull Map<UUID, Speaker> speakers = new ConcurrentHashMap<>();
   private final @NotNull Map<String, LocationalAudioChannel> listenerChannels = new ConcurrentHashMap<>();
@@ -114,14 +118,19 @@ public final class VoiceSpeakerServiceImpl implements VoiceSpeakerService, Liste
 
   @Override
   public void register(final @NotNull Speaker speaker) {
+    final var event = new SpeakerRegisterEvent(speaker);
+    if (!event.callEvent())
+      return;
     this.speakers.put(speaker.getUuid(), speaker);
   }
 
   @Override
   public void unregister(final @NotNull UUID uuid) {
     final var speaker = this.speakers.remove(uuid);
-    if (speaker != null)
+    if (speaker != null) {
       speaker.stopPlaying();
+      new SpeakerUnregisterEvent(speaker).callEvent();
+    }
   }
 
   @Override
@@ -141,56 +150,52 @@ public final class VoiceSpeakerServiceImpl implements VoiceSpeakerService, Liste
 
   @Override
   public void playRecording(final @NotNull Speaker speaker, final @NotNull VoiceRecording recording) {
+    playRecording(List.of(speaker), recording, false);
+  }
+
+  @Override
+  public void playRecording(final @NotNull Speaker speaker, final @NotNull VoiceRecording recording, final boolean loop) {
+    playRecording(List.of(speaker), recording, loop);
+  }
+
+  @Override
+  public void playRecording(final @NotNull Collection<Speaker> speakers, final @NotNull VoiceRecording recording) {
+    playRecording(speakers, recording, false);
+  }
+
+  @Override
+  public void playRecording(final @NotNull Collection<Speaker> speakers, final @NotNull VoiceRecording recording, final boolean loop) {
     final var frames = recording.getAudioFrames();
-    if (frames.isEmpty())
+    if (frames.isEmpty() || speakers.isEmpty())
       return;
 
-    final var pcmList = new ArrayList<short[]>();
-    var totalSamples = 0;
-    var currentStreamTimeMs = 0L;
+    final var channels = speakers.stream()
+      .map(Speaker::getSpeakerChannel)
+      .filter(ch -> !ch.isClosed())
+      .toList();
 
-    try {
-      final var decoder = this.api.createDecoder();
+    if (channels.isEmpty())
+      return;
 
-      for (final var frame : frames) {
-        if (frame.data().length == 0)
-          continue;
+    for (final var speaker : speakers) {
+      speaker.stopPlaying();
+    }
 
-        final var frameTime = frame.timestampMs();
+    final var totalDurationMs = (long) (recording.getDurationSeconds() * 1000L);
+    final var player = new OpusAudioPlayer(channels, frames, totalDurationMs, loop);
+    for (final var speaker : speakers) {
+      speaker.setActiveAudioPlayer(player);
+    }
 
-        if (frameTime - currentStreamTimeMs >= 60) {
-          final var silenceMs = frameTime - currentStreamTimeMs;
-          final var silenceSamples = (int) (silenceMs * 48);
-          if (silenceSamples > 0) {
-            pcmList.add(new short[silenceSamples]);
-            totalSamples += silenceSamples;
-          }
-          currentStreamTimeMs = frameTime;
-        }
-
-        final var pcm = decoder.decode(frame.data());
-        if (pcm != null && pcm.length > 0) {
-          pcmList.add(pcm);
-          totalSamples += pcm.length;
-          currentStreamTimeMs += (pcm.length / 48);
+    player.setOnStopped(() -> {
+      for (final var speaker : speakers) {
+        if (speaker.getActiveAudioPlayer() == player) {
+          speaker.setActiveAudioPlayer(null);
         }
       }
-    } catch (Exception e) {
-      this.plugin.getLogger().severe("Error decoding Opus frames for speaker: " + e.getMessage());
-      return;
-    }
+    });
 
-    if (totalSamples == 0)
-      return;
-
-    final var fullPcm = new short[totalSamples];
-    var offset = 0;
-    for (final var chunk : pcmList) {
-      System.arraycopy(chunk, 0, fullPcm, offset, chunk.length);
-      offset += chunk.length;
-    }
-
-    playSound(speaker, fullPcm, false);
+    player.startPlaying();
   }
 
   @Override
@@ -200,6 +205,9 @@ public final class VoiceSpeakerServiceImpl implements VoiceSpeakerService, Liste
 
   @Override
   public void playSound(final @NotNull Speaker speaker, final short @NotNull [] pcm, final boolean loop) {
+    final var playEvent = new SpeakerPlaySoundEvent(speaker, "pcm", loop);
+    if (!playEvent.callEvent())
+      return;
     speaker.stopPlaying();
 
     try {
@@ -224,6 +232,14 @@ public final class VoiceSpeakerServiceImpl implements VoiceSpeakerService, Liste
 
   @Override
   public void playSoundFile(final @NotNull Speaker speaker, final @NotNull String fileName, final boolean loop) {
+    playSoundFile(List.of(speaker), fileName, loop);
+  }
+
+  @Override
+  public void playSoundFile(final @NotNull Collection<Speaker> speakers, final @NotNull String fileName, final boolean loop) {
+    if (speakers.isEmpty())
+      return;
+
     CompletableFuture.runAsync(() -> {
       try {
         final var soundDir = new File(this.plugin.getDataFolder(), "sounds");
@@ -237,8 +253,13 @@ public final class VoiceSpeakerServiceImpl implements VoiceSpeakerService, Liste
         }
 
         final var pcm = RawUtils.fileToShorts48Hz(soundFile);
-        if (pcm.length > 0)
-          Bukkit.getScheduler().runTask(this.plugin, () -> playSound(speaker, pcm, loop));
+        if (pcm.length > 0) {
+          Bukkit.getScheduler().runTask(this.plugin, () -> {
+            for (final var speaker : speakers) {
+              playSound(speaker, pcm, loop);
+            }
+          });
+        }
       } catch (Exception e) {
         this.plugin.getLogger().severe("Error loading sound file: " + e.getMessage());
       }
@@ -247,11 +268,24 @@ public final class VoiceSpeakerServiceImpl implements VoiceSpeakerService, Liste
 
   @Override
   public void playSoundUrl(final @NotNull Speaker speaker, final @NotNull String url, final boolean loop) {
+    playSoundUrl(List.of(speaker), url, loop);
+  }
+
+  @Override
+  public void playSoundUrl(final @NotNull Collection<Speaker> speakers, final @NotNull String url, final boolean loop) {
+    if (speakers.isEmpty())
+      return;
+
     CompletableFuture.runAsync(() -> {
       try {
         final var pcm = RawUtils.urlToShorts48Hz(url);
-        if (pcm.length > 0)
-          Bukkit.getScheduler().runTask(this.plugin, () -> playSound(speaker, pcm, loop));
+        if (pcm.length > 0) {
+          Bukkit.getScheduler().runTask(this.plugin, () -> {
+            for (final var speaker : speakers) {
+              playSound(speaker, pcm, loop);
+            }
+          });
+        }
       } catch (Exception e) {
         this.plugin.getLogger().severe("Error streaming sound from URL: " + e.getMessage());
       }
@@ -261,6 +295,7 @@ public final class VoiceSpeakerServiceImpl implements VoiceSpeakerService, Liste
   @Override
   public void stopSound(final @NotNull Speaker speaker) {
     speaker.stopPlaying();
+    new SpeakerStopSoundEvent(speaker).callEvent();
   }
 
   @Override
@@ -301,9 +336,23 @@ public final class VoiceSpeakerServiceImpl implements VoiceSpeakerService, Liste
   }
 
   private void broadcastToDedicatedChannels(final @NotNull List<Speaker> speakers, final @NotNull MicrophonePacketEvent event) {
+    final var sender = event.getSender();
+    final var senderUuid = sender != null ? sender.getPlayer().getUuid() : null;
+    final var rawOpus = event.getPacket().getOpusEncodedData();
+    if (rawOpus == null || rawOpus.length == 0)
+      return;
+
     speakers.forEach(speaker -> {
       final var vc = speaker.getVoiceChannel();
-      Objects.requireNonNullElseGet(vc, speaker::getSpeakerChannel).send(event.getPacket());
+      final var ch = Objects.requireNonNullElseGet(vc, speaker::getSpeakerChannel);
+      if (senderUuid != null) {
+        final var existingFilter = speaker.getFilter();
+        if (existingFilter != null)
+          ch.setFilter(sp -> !sp.getUuid().equals(senderUuid) && existingFilter.test(sp));
+        else
+          ch.setFilter(sp -> !sp.getUuid().equals(senderUuid));
+      }
+      ch.send(rawOpus);
     });
   }
 
@@ -311,7 +360,9 @@ public final class VoiceSpeakerServiceImpl implements VoiceSpeakerService, Liste
     final @NotNull Speaker speaker,
     final @NotNull UUID senderUuid,
     final @NotNull Player listener,
-    final @NotNull short[] pcm,
+    final byte @NotNull [] rawOpus,
+    final short @Nullable [] basePcm,
+    final @Nullable VoiceService voiceService,
     final @Nullable VoiceWallService wallService,
     final @Nullable VoiceFilterService filterService,
     final boolean hasFilters,
@@ -320,6 +371,9 @@ public final class VoiceSpeakerServiceImpl implements VoiceSpeakerService, Liste
     final double dist,
     final long now
   ) {
+    if (listener.getUniqueId().equals(senderUuid))
+      return;
+
     final var listenerConn = this.api.getConnectionOf(listener.getUniqueId());
     if (listenerConn == null)
       return;
@@ -334,38 +388,42 @@ public final class VoiceSpeakerServiceImpl implements VoiceSpeakerService, Liste
     if (totalDbLoss >= 99.0)
       return;
 
-    final var wallGain = totalDbLoss > 0.0 ? (float) Math.pow(10.0, -totalDbLoss / 20.0) : 1.0f;
+    final var hasAttenuation = totalDbLoss > 0.001;
 
-    var processedPcm = pcm.clone();
-    if (hasFilters && filterService != null)
-      processedPcm = filterService.applyFilters(senderUuid, processedPcm);
+    byte[] audioToSend = rawOpus;
 
-    if (wallGain < 1.0f) {
-      for (int i = 0; i < processedPcm.length; i++)
-        processedPcm[i] = (short) Math.clamp(Math.round(processedPcm[i] * wallGain), Short.MIN_VALUE, Short.MAX_VALUE);
-    }
+    if (hasFilters || hasAttenuation) {
+      if (basePcm == null || basePcm.length == 0)
+        return;
 
-    if (wallService != null && wallService.isAirDampingEnabled() && dist > 5.0) {
-      final var alpha = Math.max(0.10f, 1.0f - (float) (dist - 5.0) * 0.038f);
-      var smooth = (float) processedPcm[0];
-      for (int i = 0; i < processedPcm.length; i++) {
-        smooth = smooth + alpha * (processedPcm[i] - smooth);
-        processedPcm[i] = (short) Math.clamp(Math.round(smooth), Short.MIN_VALUE, Short.MAX_VALUE);
+      try {
+        var processedPcm = basePcm.clone();
+        if (hasFilters && filterService != null)
+          processedPcm = filterService.applyFilters(senderUuid, processedPcm);
+
+        if (hasAttenuation) {
+          final var wallGain = (float) Math.pow(10.0, -totalDbLoss / 20.0);
+          for (int i = 0; i < processedPcm.length; i++)
+            processedPcm[i] = (short) Math.clamp(Math.round(processedPcm[i] * wallGain), Short.MIN_VALUE, Short.MAX_VALUE);
+        }
+
+        processedPcm = AudioLimiter.process(processedPcm);
+
+        final var streamKey = speaker.getUuid() + ":" + senderUuid + ":" + listener.getUniqueId();
+        var encoder = this.streamEncoders.computeIfAbsent(streamKey, _ -> this.api.createEncoder());
+        if (encoder.isClosed()) {
+          encoder = this.api.createEncoder();
+          this.streamEncoders.put(streamKey, encoder);
+        }
+
+        audioToSend = encoder.encode(processedPcm);
+      } catch (Exception e) {
+        this.plugin.getLogger().warning("Error processing listener DSP audio: " + e.getMessage());
+        return;
       }
     }
 
-    processedPcm = AudioLimiter.process(processedPcm);
-
     final var streamKey = speaker.getUuid() + ":" + senderUuid + ":" + listener.getUniqueId();
-
-    var encoder = this.streamEncoders.get(streamKey);
-    if (encoder == null || encoder.isClosed()) {
-      encoder = this.api.createEncoder();
-      this.streamEncoders.put(streamKey, encoder);
-    }
-
-    final var listenerOpus = encoder.encode(processedPcm);
-
     var ch = this.listenerChannels.get(streamKey);
     if (ch == null || ch.isClosed()) {
       final var spkLoc = speaker.getLocation();
@@ -386,7 +444,7 @@ public final class VoiceSpeakerServiceImpl implements VoiceSpeakerService, Liste
     if (ch != null) {
       final var spkLoc = speaker.getLocation();
       ch.updateLocation(this.api.createPosition(spkLoc.getX(), spkLoc.getY(), spkLoc.getZ()));
-      ch.send(listenerOpus);
+      ch.send(audioToSend);
       this.lastChannelActivity.put(streamKey, now);
     }
   }
@@ -412,7 +470,7 @@ public final class VoiceSpeakerServiceImpl implements VoiceSpeakerService, Liste
     final var wallService = DreamVoice.getService(VoiceWallService.class);
     final var filterService = DreamVoice.getService(VoiceFilterService.class);
     final var voiceService = DreamVoice.getService(VoiceService.class);
-    final var hasFilters = filterService != null && filterService.hasActiveFilters(senderUuid);
+    final var hasFilters = filterService != null && filterService.hasExplicitFilters(senderUuid);
     final var isWallEnabled = wallService != null && wallService.isEnable();
 
     if (!isWallEnabled && !hasFilters) {
@@ -420,43 +478,40 @@ public final class VoiceSpeakerServiceImpl implements VoiceSpeakerService, Liste
       return;
     }
 
-    if (voiceService == null) {
-      if (!this.voiceServiceMissingLogged) {
-        this.voiceServiceMissingLogged = true;
-        this.plugin.getLogger().warning("VoiceService is unavailable. Speaker audio processing is skipped.");
-      }
+    final var rawOpus = event.getPacket().getOpusEncodedData();
+    if (rawOpus == null || rawOpus.length == 0)
       return;
+
+    final var now = System.currentTimeMillis();
+
+    short[] basePcm = null;
+    if (voiceService != null) {
+      try {
+        final var decoder = voiceService.getDecoder(senderUuid);
+        basePcm = decoder.decode(rawOpus);
+      } catch (Exception e) {
+        this.plugin.getLogger().warning("Error decoding speaker mic packet: " + e.getMessage());
+      }
     }
 
-    try {
-      final var decoder = voiceService.getDecoder(senderUuid);
-      final var pcm = decoder.decode(event.getPacket().getOpusEncodedData());
-      if (pcm == null || pcm.length == 0)
-        return;
+    for (final var speaker : matchingSpeakers) {
+      final var spkLoc = speaker.getLocation();
+      final var spkWorld = spkLoc.getWorld();
+      if (spkWorld == null)
+        continue;
 
-      final var now = System.currentTimeMillis();
+      final var maxDist = speaker.getDistance() != null ? speaker.getDistance() : 16.0f;
 
-      for (final var speaker : matchingSpeakers) {
-        final var spkLoc = speaker.getLocation();
-        final var spkWorld = spkLoc.getWorld();
-        if (spkWorld == null)
+      for (final var listener : Bukkit.getOnlinePlayers()) {
+        if (!listener.getWorld().equals(spkWorld))
           continue;
 
-        final var maxDist = speaker.getDistance() != null ? speaker.getDistance() : 16.0f;
+        final var dist = spkLoc.distance(listener.getLocation());
+        if (dist > maxDist)
+          continue;
 
-        for (final var listener : Bukkit.getOnlinePlayers()) {
-          if (!listener.getWorld().equals(spkWorld))
-            continue;
-
-          final var dist = spkLoc.distance(listener.getLocation());
-          if (dist > maxDist)
-            continue;
-
-          processSingleListenerStream(speaker, senderUuid, listener, pcm, wallService, filterService, hasFilters, isWallEnabled, maxDist, dist, now);
-        }
+        processSingleListenerStream(speaker, senderUuid, listener, rawOpus, basePcm, voiceService, wallService, filterService, hasFilters, isWallEnabled, maxDist, dist, now);
       }
-    } catch (Exception e) {
-      this.plugin.getLogger().warning("Error processing speaker audio: " + e.getMessage());
     }
   }
 

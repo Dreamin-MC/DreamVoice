@@ -115,7 +115,7 @@ public final class VoiceWallCmd {
       Component.text("[VOICEWALL] Particle raycast debugging for ", NamedTextColor.GREEN)
         .append(Component.text(player.getName(), NamedTextColor.YELLOW))
         .append(Component.text(": ", NamedTextColor.GREEN))
-        .append(Component.text(active ? "ENABLED 🟢 (Green=Direct, Yellow=Diffracted, Red=Occluded)" : "DISABLED ⚪", active ? NamedTextColor.GREEN : NamedTextColor.RED))
+        .append(Component.text(active ? "ENABLED (Green=Direct, Yellow=Diffracted, Red=Occluded)" : "DISABLED", active ? NamedTextColor.GREEN : NamedTextColor.RED))
     );
   }
 
@@ -139,6 +139,7 @@ public final class VoiceWallCmd {
     sender.sendMessage(Component.text("==== [VOICEWALL SETTINGS] ====", NamedTextColor.GOLD));
     sender.sendMessage(Component.text("Active: ", NamedTextColor.GRAY).append(Component.text(String.valueOf(wallService.isEnable()), wallService.isEnable() ? NamedTextColor.GREEN : NamedTextColor.RED)));
     sender.sendMessage(Component.text("Current Mode: ", NamedTextColor.GRAY).append(Component.text(wallService.getMode().name(), NamedTextColor.YELLOW)));
+    sender.sendMessage(Component.text("Max Distance: ", NamedTextColor.GRAY).append(Component.text(codex.getEffectiveDistance() + "m", NamedTextColor.YELLOW)));
     sender.sendMessage(Component.text("Air Damping: ", NamedTextColor.GRAY).append(Component.text(String.valueOf(wallService.isAirDampingEnabled()), NamedTextColor.AQUA)));
     sender.sendMessage(Component.text("Diffraction / Bypass: ", NamedTextColor.GRAY).append(Component.text(diff != null && diff.enabled() ? "YES (Bypass=" + diff.maxBypassWidth() + "m, Path=" + diff.maxPathDistance() + "m)" : "NO", NamedTextColor.YELLOW)));
   }

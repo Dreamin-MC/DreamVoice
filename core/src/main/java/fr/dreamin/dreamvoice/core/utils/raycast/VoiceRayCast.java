@@ -3,6 +3,7 @@ package fr.dreamin.dreamvoice.core.utils.raycast;
 import fr.dreamin.dreamvoice.api.codex.model.Codex;
 import fr.dreamin.dreamvoice.api.codex.service.CodexService;
 import fr.dreamin.dreamvoice.api.wall.model.VoiceWallMode;
+import fr.dreamin.dreamvoice.api.wall.service.VoiceWallService;
 import fr.dreamin.dreamvoice.core.DreamVoice;
 import org.bukkit.FluidCollisionMode;
 import org.bukkit.Location;
@@ -119,7 +120,8 @@ public final class VoiceRayCast {
 
     final var voiceWall = codex != null ? codex.getVoiceWall() : null;
     final var diffraction = voiceWall != null ? voiceWall.getDiffractionConfig() : Codex.DiffractionConfig.defaults();
-    final var mode = voiceWall != null ? voiceWall.getEffectiveMode() : VoiceWallMode.REALISTIC;
+    final var wallService = DreamVoice.getService(VoiceWallService.class);
+    final var mode = wallService != null ? wallService.getMode() : (voiceWall != null ? voiceWall.getEffectiveMode() : VoiceWallMode.REALISTIC);
 
     // 2. Diffraction / Acoustic Bypass (Tier 1: Multi-Ray Lateral/Vertical)
     if (diffraction.enabled()) {

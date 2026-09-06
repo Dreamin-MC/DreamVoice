@@ -74,12 +74,20 @@ public interface VoiceFilterService {
   @NotNull List<VoiceFilter> getActiveFilters(final @NotNull UUID playerUuid);
 
   /**
-   * Checks whether a player has any active filters.
+   * Checks whether a player has any active filters (including environmental ones).
    *
    * @param playerUuid the UUID of the player
    * @return {@code true} if at least one filter is active
    */
   boolean hasActiveFilters(final @NotNull UUID playerUuid);
+
+  /**
+   * Checks whether a player has any manually configured filters (excluding auto-environmental filters).
+   *
+   * @param playerUuid the UUID of the player
+   * @return {@code true} if at least one explicit filter is attached
+   */
+  boolean hasExplicitFilters(final @NotNull UUID playerUuid);
 
   /**
    * Checks whether auto-environmental filtering (underwater, caves, etc.) is enabled for a player.

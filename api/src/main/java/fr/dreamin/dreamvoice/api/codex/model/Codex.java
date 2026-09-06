@@ -23,9 +23,22 @@ public final class Codex {
   private VoiceWall voiceWall;
 
   /**
+   * Resolves the effective acoustic voice distance.
+   * Prioritizes the distance configured under voiceWall if set, otherwise falls back to root distance.
+   *
+   * @return the resolved voice distance in blocks
+   */
+  public double getEffectiveDistance() {
+    if (this.voiceWall != null && this.voiceWall.distance() != null && this.voiceWall.distance() > 0)
+      return this.voiceWall.distance();
+    return this.distance > 0 ? this.distance : 16.0;
+  }
+
+  /**
    * VoiceWall acoustic engine configuration.
    *
    * @param enabled            whether VoiceWall is enabled globally
+   * @param distance           optional distance radius override specifically for VoiceWall
    * @param mode               the configured occlusion mode
    * @param airDamping         whether high-frequency distance absorption is active
    * @param globalMultiplier   server-wide soundproofing multiplier
@@ -37,6 +50,7 @@ public final class Codex {
    */
   public record VoiceWall(
     boolean enabled,
+    @Nullable Double distance,
     @Nullable VoiceWallMode mode,
     @Nullable Boolean airDamping,
     @Nullable Double globalMultiplier,
@@ -46,6 +60,18 @@ public final class Codex {
     @Nullable DiffractionConfig diffraction,
     @Nullable SoundMaterials soundMaterials
   ) {
+
+    /**
+     * Resolves the effective VoiceWall distance with a fallback.
+     *
+     * @param fallback default distance if not explicitly configured in voiceWall
+     * @return the resolved distance in blocks
+     */
+    public double getEffectiveDistance(final double fallback) {
+      if (this.distance != null && this.distance > 0)
+        return this.distance;
+      return fallback > 0 ? fallback : 16.0;
+    }
 
     /**
      * Resolves the effective VoiceWall mode based on explicit mode and enabled flag.

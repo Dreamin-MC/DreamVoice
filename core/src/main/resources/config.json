@@ -2,6 +2,7 @@
   "distance": 16.0,
   "voiceWall": {
     "enabled": true,
+    "distance": 16.0,
     "mode": "REALISTIC",
     "airDamping": true,
     "globalMultiplier": 1.0,

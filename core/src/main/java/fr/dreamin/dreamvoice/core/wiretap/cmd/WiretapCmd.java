@@ -300,7 +300,7 @@ public final class WiretapCmd {
     sender.sendMessage(
       Component.text("[WIRETAP] Recording started on '", NamedTextColor.GREEN)
         .append(Component.text(name, NamedTextColor.YELLOW))
-        .append(Component.text("' 🔴", NamedTextColor.RED))
+        .append(Component.text("'", NamedTextColor.GREEN))
     );
   }
 
@@ -416,7 +416,7 @@ public final class WiretapCmd {
     sender.sendMessage(Component.text("Attached Entity: ", NamedTextColor.GRAY).append(Component.text(attached, NamedTextColor.LIGHT_PURPLE)));
     sender.sendMessage(Component.text("Range: ", NamedTextColor.GRAY).append(Component.text(wt.getDistance() + "m", NamedTextColor.YELLOW)));
     sender.sendMessage(Component.text("Filter: ", NamedTextColor.GRAY).append(Component.text(wt.getFilterId() != null ? wt.getFilterId() : "none", NamedTextColor.AQUA)));
-    sender.sendMessage(Component.text("Recording: ", NamedTextColor.GRAY).append(Component.text(wt.isRecording() ? "YES 🔴" : "NO", wt.isRecording() ? NamedTextColor.RED : NamedTextColor.GREEN)));
+    sender.sendMessage(Component.text("Recording: ", NamedTextColor.GRAY).append(Component.text(wt.isRecording() ? "YES" : "NO", wt.isRecording() ? NamedTextColor.RED : NamedTextColor.GREEN)));
     sender.sendMessage(Component.text("Recordings Count: ", NamedTextColor.GRAY).append(Component.text(wt.getRecordings().size(), NamedTextColor.YELLOW)));
     sender.sendMessage(Component.text("Connected Listeners: ", NamedTextColor.GRAY).append(Component.text(wt.getListeners().size() + " player(s)", NamedTextColor.AQUA)));
   }

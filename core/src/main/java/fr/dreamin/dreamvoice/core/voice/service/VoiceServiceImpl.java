@@ -5,6 +5,7 @@ import de.maxhenkel.voicechat.api.VoicechatPlugin;
 import de.maxhenkel.voicechat.api.VoicechatServerApi;
 import de.maxhenkel.voicechat.api.audiochannel.AudioPlayer;
 import de.maxhenkel.voicechat.api.events.EventRegistration;
+import de.maxhenkel.voicechat.api.events.SoundPacketEvent;
 import de.maxhenkel.voicechat.api.events.VoicechatServerStartedEvent;
 import de.maxhenkel.voicechat.api.opus.OpusDecoder;
 import de.maxhenkel.voicechat.api.opus.OpusEncoder;
@@ -367,6 +368,9 @@ public final class VoiceServiceImpl implements VoiceService, VoicechatPlugin, Li
   }
 
   private void onEntitySoundPacket(final @NotNull de.maxhenkel.voicechat.api.events.EntitySoundPacketEvent event) {
+    if (!SoundPacketEvent.SOURCE_PROXIMITY.equals(event.getSource()))
+      return;
+
     final var senderConn = event.getSenderConnection();
     final var receiverCon = event.getReceiverConnection();
 
@@ -407,12 +411,12 @@ public final class VoiceServiceImpl implements VoiceService, VoicechatPlugin, Li
   }
 
   private void onMicrophonePacket(final @NotNull de.maxhenkel.voicechat.api.events.MicrophonePacketEvent event) {
-    Bukkit.getScheduler().runTask(this.plugin, () -> new MicrophonePacketEvent(
+    new MicrophonePacketEvent(
       event,
       event.getSenderConnection(),
       event.getReceiverConnection(),
       event.getPacket()
-    ).callEvent());
+    ).callEvent();
   }
 
   // ###############################################################

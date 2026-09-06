@@ -11,6 +11,10 @@ import fr.dreamin.dreamvoice.api.voice.event.MicrophonePacketEvent;
 import fr.dreamin.dreamvoice.api.voice.service.VoiceService;
 import fr.dreamin.dreamvoice.api.wall.service.VoiceWallService;
 import fr.dreamin.dreamvoice.api.wiretap.model.VoiceWiretap;
+import fr.dreamin.dreamvoice.api.wiretap.event.WiretapRegisterEvent;
+import fr.dreamin.dreamvoice.api.wiretap.event.WiretapRemoveEvent;
+import fr.dreamin.dreamvoice.api.wiretap.event.WiretapSubscribeEvent;
+import fr.dreamin.dreamvoice.api.wiretap.event.WiretapUnsubscribeEvent;
 import fr.dreamin.dreamvoice.api.wiretap.service.VoiceWiretapService;
 import fr.dreamin.dreamvoice.core.DreamVoice;
 import fr.dreamin.dreamvoice.core.recording.storage.VoiceRecordingPersistence;
@@ -33,6 +37,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -49,8 +54,8 @@ public final class VoiceWiretapServiceImpl implements VoiceWiretapService, Liste
   private static final long CLEANUP_INTERVAL_TICKS = 600L;
   private static final long INACTIVITY_TIMEOUT_MS = 30000L;
   private static final String CATEGORY_ID = "wiretap_vol";
-  private static final String CATEGORY_NAME = "Wiretap / Bug";
-  private static final String CATEGORY_DESC = "Volume for hidden wiretaps and listening bugs";
+  private static final String CATEGORY_NAME = "Wiretap";
+  private static final String CATEGORY_DESC = "Volume for wiretap audio monitoring and surveillance";
 
   // ###############################################################
   // --------------------- INSTANCE FIELDS -------------------------
@@ -132,6 +137,9 @@ public final class VoiceWiretapServiceImpl implements VoiceWiretapService, Liste
 
   @Override
   public void register(final @NotNull VoiceWiretap wiretap) {
+    final var event = new WiretapRegisterEvent(wiretap);
+    if (!event.callEvent())
+      return;
     this.wiretaps.put(wiretap.getName().toLowerCase(), wiretap);
   }
 
@@ -139,6 +147,7 @@ public final class VoiceWiretapServiceImpl implements VoiceWiretapService, Liste
   public void removeWiretap(final @NotNull String name) {
     final var wt = this.wiretaps.remove(name.toLowerCase());
     if (wt != null) {
+      new WiretapRemoveEvent(wt).callEvent();
       wt.stopRecording();
       final var idStr = wt.getUuid().toString();
       this.channels.keySet().removeIf(k -> k.contains(idStr));
@@ -184,15 +193,21 @@ public final class VoiceWiretapServiceImpl implements VoiceWiretapService, Liste
   @Override
   public void addListener(final @NotNull String name, final @NotNull UUID playerUuid) {
     final var wt = getWiretap(name);
-    if (wt != null)
+    if (wt != null) {
+      final var event = new WiretapSubscribeEvent(wt, playerUuid);
+      if (!event.callEvent())
+        return;
       wt.addListener(playerUuid);
+    }
   }
 
   @Override
   public void removeListener(final @NotNull String name, final @NotNull UUID playerUuid) {
     final var wt = getWiretap(name);
-    if (wt != null)
+    if (wt != null) {
       wt.removeListener(playerUuid);
+      new WiretapUnsubscribeEvent(wt, playerUuid).callEvent();
+    }
   }
 
   @Override
@@ -239,7 +254,7 @@ public final class VoiceWiretapServiceImpl implements VoiceWiretapService, Liste
     final var rec = wt.stopRecording();
     if (rec != null) {
       final var recordingsDir = new File(this.plugin.getDataFolder(), "recordings");
-      VoiceRecordingPersistence.save(rec, recordingsDir);
+      CompletableFuture.runAsync(() -> VoiceRecordingPersistence.save(rec, recordingsDir));
     }
     return rec;
   }

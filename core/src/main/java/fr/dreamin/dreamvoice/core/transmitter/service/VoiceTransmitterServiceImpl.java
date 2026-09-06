@@ -6,6 +6,7 @@ import de.maxhenkel.voicechat.api.audiochannel.StaticAudioChannel;
 import de.maxhenkel.voicechat.api.opus.OpusEncoder;
 import fr.dreamin.dreamvoice.api.filter.service.VoiceFilterService;
 import fr.dreamin.dreamvoice.api.transmitter.model.ReceiverConfig;
+import fr.dreamin.dreamvoice.api.transmitter.event.TransmitterToggleEvent;
 import fr.dreamin.dreamvoice.api.transmitter.service.VoiceTransmitterService;
 import fr.dreamin.dreamvoice.api.voice.event.MicrophonePacketEvent;
 import fr.dreamin.dreamvoice.api.voice.service.VoiceService;
@@ -109,6 +110,9 @@ public final class VoiceTransmitterServiceImpl implements VoiceTransmitterServic
 
   @Override
   public void createTransmitter(final @NotNull UUID uuid) {
+    final var event = new TransmitterToggleEvent(uuid, true);
+    if (!event.callEvent())
+      return;
     this.transmitters.putIfAbsent(uuid, new ConcurrentHashMap<>());
   }
 
@@ -119,7 +123,8 @@ public final class VoiceTransmitterServiceImpl implements VoiceTransmitterServic
 
   @Override
   public void removeTransmitter(final @NotNull UUID uuid) {
-    this.transmitters.remove(uuid);
+    if (this.transmitters.remove(uuid) != null)
+      new TransmitterToggleEvent(uuid, false).callEvent();
   }
 
   @Override

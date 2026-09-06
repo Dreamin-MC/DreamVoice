@@ -46,7 +46,7 @@ public final class CassetteItem {
         .append(Component.text(recording.getUuid().toString().substring(0, 8) + "...", NamedTextColor.DARK_GRAY))
         .decoration(TextDecoration.ITALIC, false),
       Component.empty(),
-      Component.text("▶ Right-Click to play", NamedTextColor.GREEN)
+      Component.text("Right-Click to play", NamedTextColor.GREEN)
         .decoration(TextDecoration.ITALIC, false)
     ));
 

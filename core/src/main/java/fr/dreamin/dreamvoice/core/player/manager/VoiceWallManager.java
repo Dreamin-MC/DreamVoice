@@ -2,6 +2,8 @@ package fr.dreamin.dreamvoice.core.player.manager;
 
 import fr.dreamin.dreamapi.api.annotations.Inject;
 import fr.dreamin.dreamvoice.api.player.model.PlayerManager;
+import fr.dreamin.dreamvoice.api.voice.service.VoiceService;
+import fr.dreamin.dreamvoice.core.DreamVoice;
 import fr.dreamin.dreamvoice.api.player.model.VPlayer;
 import lombok.Getter;
 import lombok.Setter;
@@ -120,7 +122,16 @@ public final class VoiceWallManager extends PlayerManager {
   }
 
   public boolean isValidClient() {
-    return this.vPlayer.getClient() != null && this.vPlayer.getClient().isConnected();
+    var client = this.vPlayer.getClient();
+    if (client != null && client.isConnected())
+      return true;
+
+    final var voiceService = DreamVoice.getService(VoiceService.class);
+    if (voiceService != null && voiceService.getAPI() != null) {
+      client = voiceService.getAPI().getConnectionOf(this.vPlayer.getUuid());
+      return client != null && client.isConnected();
+    }
+    return false;
   }
 
   public void incrementRaycastCount() {

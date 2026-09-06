@@ -47,7 +47,7 @@ public final class VoiceProjectionServiceImpl implements VoiceProjectionService,
   private static final long CLEANUP_INTERVAL_TICKS = 600L;
   private static final long INACTIVITY_TIMEOUT_MS = 30000L;
   private static final String CATEGORY_ID = "proj_volume";
-  private static final String CATEGORY_NAME = "Projection / Body Anchor";
+  private static final String CATEGORY_NAME = "Projection";
   private static final String CATEGORY_DESC = "Volume for body anchor voice projections and camera listening";
 
   // ###############################################################

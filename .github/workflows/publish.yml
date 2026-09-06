@@ -170,6 +170,52 @@ jobs:
             echo "No version changes in README.md, gradle.properties, or build.gradle to commit."
           fi
 
+      - name: Update versions in GitHub Wiki
+        env:
+          WIKI_AUTH_TOKEN: ${{ secrets.WIKI_TOKEN || secrets.GH_PAT || secrets.GH_TOKEN || secrets.PAT || secrets.GITHUB_TOKEN }}
+        run: |
+          if [ -z "${WIKI_AUTH_TOKEN}" ]; then
+            echo "::warning::No token found for wiki update. Please add a secret WIKI_TOKEN (Personal Access Token with repo scope). Skipping."
+            exit 0
+          fi
+
+          echo "Cloning GitHub Wiki..."
+          if git clone "https://x-access-token:${WIKI_AUTH_TOKEN}@github.com/${{ github.repository }}.wiki.git" wiki; then
+            cd wiki
+            
+            # 1. Update Home.md (Minecraft, Simple Voice Chat, Java, and Plugin versions)
+            if [ -f "Home.md" ]; then
+              sed -i -E "s/(Paper \/ Purpur )[0-9]+(\.[0-9]+)*\+/\1${{ env.MC_VERSION }}+/" Home.md
+              sed -i -E "s/(Simple Voice Chat \(SVC\) )[0-9]+(\.[0-9]+)*\+/\1${{ env.VOICECHAT_VERSION }}+/" Home.md
+              sed -i -E "s/(\(version )[0-9]+(\.[0-9]+)* (or higher\))/\1${{ env.MC_VERSION }} \3/" Home.md
+              sed -i -E "s/(Java )[0-9]+ (or higher)/\1${{ env.JAVA_VERSION }} \2/" Home.md
+              sed -i -E "s/(\(v)[0-9]+(\.[0-9]+)*\+\)/\1${{ env.VOICECHAT_VERSION }}+\)/" Home.md
+              sed -i -E "s/(\[DreamVoice\] Enabling DreamVoice v)[0-9]+\.[0-9]+\.[0-9]+/\1${{ env.VERSION }}/" Home.md
+            fi
+            
+            # 2. Update Developer-API.md (Dependency versions for JitPack and GitHub Packages)
+            if [ -f "Developer-API.md" ]; then
+              sed -i -E "s/(compileOnly\(?['\"]com\.github\.Dreamin-MC\.DreamVoice:api:)[^'\")]+(['\")]*)/\1${{ env.VERSION }}\2/" Developer-API.md
+              sed -i -E "s/(compileOnly [\"']com\.github\.Dreamin-MC\.DreamVoice:api:)[^'\"]+(['\"])/\1${{ env.VERSION }}\2/" Developer-API.md
+              sed -i -E "s/(compileOnly\(?['\"]fr\.dreamin:dreamvoice-api:)[^'\")]+(['\")]*)/\1${{ env.VERSION }}\2/" Developer-API.md
+              sed -i -E "s/(<version>)[^<]+(<\/version>)/\1${{ env.VERSION }}\2/" Developer-API.md
+            fi
+            
+            if ! git diff --quiet; then
+              git config user.name "github-actions[bot]"
+              git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+              git add -A
+              git commit -m "chore(release): bump version in wiki to ${{ env.VERSION }} [skip ci]"
+              git push origin master || git push origin main
+              echo "Successfully pushed version updates to GitHub Wiki."
+            else
+              echo "No version changes detected in GitHub Wiki."
+            fi
+            cd ..
+          else
+            echo "::warning::Could not clone GitHub Wiki. Note: The default GITHUB_TOKEN cannot push to GitHub Wikis by design. Please add a secret named 'WIKI_TOKEN' with a Personal Access Token (repo scope)."
+          fi
+
       - name: Rollback / Delete remote tag on failure
         if: failure() || cancelled()
         env:

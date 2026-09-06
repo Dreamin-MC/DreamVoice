@@ -16,7 +16,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public final class VoiceFilterManager extends PlayerManager {
 
   private final @NotNull Set<String> activeFilterIds = ConcurrentHashMap.newKeySet();
-  private boolean autoEnvironment = true;
+  private boolean autoEnvironment = false;
 
   // ###############################################################
   // --------------------- CONSTRUCTOR METHODS ---------------------

@@ -9,7 +9,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/Java-25-orange.svg" alt="Java 25" />
   <img src="https://img.shields.io/badge/Paper-26.1.2+-blue.svg" alt="Paper 26.1.2+" />
-  <img src="https://img.shields.io/badge/Simple%20Voice%20Chat-2.6.x-green.svg" alt="Simple Voice Chat" />
+  <img src="https://img.shields.io/badge/Simple%20Voice%20Chat-2.6.21+-green.svg" alt="Simple Voice Chat" />
   <a href="https://jitpack.io/#Dreamin-MC/DreamVoice"><img src="https://jitpack.io/v/Dreamin-MC/DreamVoice.svg" alt="JitPack" /></a>
   <a href="https://modrinth.com/plugin/dreamvoice"><img src="https://img.shields.io/badge/Modrinth-1.1.0-00AF5C?logo=modrinth&logoColor=white" alt="Modrinth" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-GPL%20v3-blue.svg" alt="License: GPL v3" /></a>
@@ -82,16 +82,16 @@
 
 ## 📚 Detailed Documentation
 
-Explore the comprehensive module guides in the [`docs/`](docs/) directory:
+Explore the comprehensive guides on our **[Official GitHub Wiki](https://github.com/Dreamin-MC/DreamVoice/wiki)**:
 
-* 🧱 [**VoiceWall & Acoustic Physics Guide**](docs/voicewall.md)
-* 📢 [**Spatial Speakers Guide**](docs/speakers.md)
-* 👻 [**Voice Projection & Camera Mode Guide**](docs/projection.md)
-* 🕵️ [**Covert Wiretaps Guide**](docs/wiretap.md)
-* 📼 [**Voice Recording & Cassettes Guide**](docs/recording.md)
-* 📻 [**Radios & Transmitters Guide**](docs/radio_transmitter.md)
-* 🎛️ [**DSP Voice Filters Guide**](docs/filters.md)
-* 🕹️ [**Complete Command Reference**](docs/commands.md)
+* 🧱 [**VoiceWall & Acoustic Physics Guide**](https://github.com/Dreamin-MC/DreamVoice/wiki/VoiceWall-Acoustic-Engine)
+* 📢 [**3D Spatial Speakers Guide**](https://github.com/Dreamin-MC/DreamVoice/wiki/3D-Spatial-Speakers)
+* 👻 [**Voice Projection & Camera Mode Guide**](https://github.com/Dreamin-MC/DreamVoice/wiki/Voice-Projections)
+* 🕵️ [**Covert Wiretaps Guide**](https://github.com/Dreamin-MC/DreamVoice/wiki/Wiretaps-&-Bugs)
+* 📼 [**Voice Recording & Cassettes Guide**](https://github.com/Dreamin-MC/DreamVoice/wiki/Audio-Recordings-&-Cassettes)
+* 📻 [**Radios & Transmitters Guide**](https://github.com/Dreamin-MC/DreamVoice/wiki/Radios-&-Transmitters)
+* 🎛️ [**DSP Voice Filters Guide**](https://github.com/Dreamin-MC/DreamVoice/wiki/DSP-Voice-Filters)
+* 🕹️ [**Complete Command Reference**](https://github.com/Dreamin-MC/DreamVoice/wiki/Commands-&-Permissions)
 
 ---
 

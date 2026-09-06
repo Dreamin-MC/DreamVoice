@@ -92,7 +92,39 @@ public interface VoiceSpeakerService {
    * @param speaker   the target speaker
    * @param recording the voice recording to play
    */
-  void playRecording(final @NotNull Speaker speaker, final @NotNull VoiceRecording recording);
+  default void playRecording(final @NotNull Speaker speaker, final @NotNull VoiceRecording recording) {
+    playRecording(speaker, recording, false);
+  }
+
+  /**
+   * Plays a recorded voice session through a speaker with optional looping.
+   *
+   * @param speaker   the target speaker
+   * @param recording the voice recording to play
+   * @param loop      whether playback should loop
+   */
+  void playRecording(final @NotNull Speaker speaker, final @NotNull VoiceRecording recording, final boolean loop);
+
+  /**
+   * Plays a recorded voice session through multiple speakers simultaneously.
+   *
+   * @param speakers  the target speakers
+   * @param recording the voice recording to play
+   */
+  default void playRecording(final @NotNull Collection<Speaker> speakers, final @NotNull VoiceRecording recording) {
+    playRecording(speakers, recording, false);
+  }
+
+  /**
+   * Plays a recorded voice session through multiple speakers simultaneously with optional looping.
+   *
+   * @param speakers  the target speakers
+   * @param recording the voice recording to play
+   * @param loop      whether playback should loop
+   */
+  default void playRecording(final @NotNull Collection<Speaker> speakers, final @NotNull VoiceRecording recording, final boolean loop) {
+    speakers.forEach(speaker -> playRecording(speaker, recording, loop));
+  }
 
   /**
    * Plays raw PCM audio samples through a speaker.
@@ -121,6 +153,17 @@ public interface VoiceSpeakerService {
   void playSoundFile(final @NotNull Speaker speaker, final @NotNull String fileName, final boolean loop);
 
   /**
+   * Plays an audio file from the `sounds/` directory through multiple speakers simultaneously.
+   *
+   * @param speakers the target speakers
+   * @param fileName file name relative to sounds folder
+   * @param loop     whether playback should loop
+   */
+  default void playSoundFile(final @NotNull Collection<Speaker> speakers, final @NotNull String fileName, final boolean loop) {
+    speakers.forEach(speaker -> playSoundFile(speaker, fileName, loop));
+  }
+
+  /**
    * Streams a web audio URL through a speaker.
    *
    * @param speaker the target speaker
@@ -128,6 +171,17 @@ public interface VoiceSpeakerService {
    * @param loop    whether playback should loop
    */
   void playSoundUrl(final @NotNull Speaker speaker, final @NotNull String url, final boolean loop);
+
+  /**
+   * Streams a web audio URL through multiple speakers simultaneously.
+   *
+   * @param speakers the target speakers
+   * @param url      the audio stream URL
+   * @param loop     whether playback should loop
+   */
+  default void playSoundUrl(final @NotNull Collection<Speaker> speakers, final @NotNull String url, final boolean loop) {
+    speakers.forEach(speaker -> playSoundUrl(speaker, url, loop));
+  }
 
   /**
    * Stops any active sound playback on a speaker.

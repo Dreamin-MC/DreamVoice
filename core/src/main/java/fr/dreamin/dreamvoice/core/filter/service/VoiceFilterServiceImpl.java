@@ -1,6 +1,8 @@
 package fr.dreamin.dreamvoice.core.filter.service;
 
 import fr.dreamin.dreamvoice.api.filter.model.VoiceFilter;
+import fr.dreamin.dreamvoice.api.filter.event.VoiceFilterApplyEvent;
+import fr.dreamin.dreamvoice.api.filter.event.VoiceFilterRemoveEvent;
 import fr.dreamin.dreamvoice.api.filter.service.VoiceFilterService;
 import fr.dreamin.dreamvoice.api.player.service.PlayerService;
 import fr.dreamin.dreamvoice.core.DreamVoice;
@@ -90,6 +92,13 @@ public final class VoiceFilterServiceImpl implements VoiceFilterService, Listene
     if (vPlayer == null)
       return;
 
+    final var filter = getFilter(filterId);
+    if (filter != null) {
+      final var event = new VoiceFilterApplyEvent(playerUuid, filter);
+      if (!event.callEvent())
+        return;
+    }
+
     vPlayer.consumeManager(VoiceFilterManager.class, m -> m.addFilter(filterId));
   }
 
@@ -100,6 +109,9 @@ public final class VoiceFilterServiceImpl implements VoiceFilterService, Listene
       return;
 
     vPlayer.consumeManager(VoiceFilterManager.class, m -> m.removeFilter(filterId));
+    final var filter = getFilter(filterId);
+    if (filter != null)
+      new VoiceFilterRemoveEvent(playerUuid, filter).callEvent();
   }
 
   @Override
@@ -140,6 +152,16 @@ public final class VoiceFilterServiceImpl implements VoiceFilterService, Listene
   @Override
   public boolean hasActiveFilters(final @NotNull UUID playerUuid) {
     return !getActiveFilters(playerUuid).isEmpty();
+  }
+
+  @Override
+  public boolean hasExplicitFilters(final @NotNull UUID playerUuid) {
+    final var vPlayer = this.playerService.getPlayer(playerUuid);
+    if (vPlayer == null)
+      return false;
+
+    final var manager = vPlayer.getManager(VoiceFilterManager.class);
+    return manager != null && !manager.getActiveFilterIds().isEmpty();
   }
 
   @Override
