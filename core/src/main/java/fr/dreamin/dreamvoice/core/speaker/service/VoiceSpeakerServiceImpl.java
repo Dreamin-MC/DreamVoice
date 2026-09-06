@@ -336,8 +336,6 @@ public final class VoiceSpeakerServiceImpl implements VoiceSpeakerService, Liste
   }
 
   private void broadcastToDedicatedChannels(final @NotNull List<Speaker> speakers, final @NotNull MicrophonePacketEvent event) {
-    final var sender = event.getSender();
-    final var senderUuid = sender != null ? sender.getPlayer().getUuid() : null;
     final var rawOpus = event.getPacket().getOpusEncodedData();
     if (rawOpus == null || rawOpus.length == 0)
       return;
@@ -345,13 +343,7 @@ public final class VoiceSpeakerServiceImpl implements VoiceSpeakerService, Liste
     speakers.forEach(speaker -> {
       final var vc = speaker.getVoiceChannel();
       final var ch = Objects.requireNonNullElseGet(vc, speaker::getSpeakerChannel);
-      if (senderUuid != null) {
-        final var existingFilter = speaker.getFilter();
-        if (existingFilter != null)
-          ch.setFilter(sp -> !sp.getUuid().equals(senderUuid) && existingFilter.test(sp));
-        else
-          ch.setFilter(sp -> !sp.getUuid().equals(senderUuid));
-      }
+      ch.setFilter(speaker.getFilter());
       ch.send(rawOpus);
     });
   }
@@ -371,11 +363,12 @@ public final class VoiceSpeakerServiceImpl implements VoiceSpeakerService, Liste
     final double dist,
     final long now
   ) {
-    if (listener.getUniqueId().equals(senderUuid))
-      return;
-
     final var listenerConn = this.api.getConnectionOf(listener.getUniqueId());
     if (listenerConn == null)
+      return;
+
+    final var speakerFilter = speaker.getFilter();
+    if (speakerFilter != null && !speakerFilter.test(listenerConn.getPlayer()))
       return;
 
     var totalDbLoss = 0.0;

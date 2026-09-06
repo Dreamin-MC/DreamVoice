@@ -27,7 +27,7 @@ public final class VoiceWallOcclusionEvent extends ToolsCancelEvent {
     final double lossDb,
     final boolean blocked
   ) {
-    super();
+    super(true);
     this.sender = sender;
     this.receiver = receiver;
     this.originalLossDb = originalLossDb;
