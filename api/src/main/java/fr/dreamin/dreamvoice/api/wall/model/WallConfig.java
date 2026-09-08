@@ -1,5 +1,9 @@
 package fr.dreamin.dreamvoice.api.wall.model;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -16,13 +20,16 @@ import java.util.Map;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonIgnoreProperties(ignoreUnknown = true)
 public final class WallConfig {
 
   private boolean enabled = true;
   private @Nullable Double distance = 16.0;
   private @Nullable VoiceWallMode mode = VoiceWallMode.REALISTIC;
   private @Nullable Boolean airDamping = true;
+
   private @Nullable Double globalMultiplier = 1.0;
+
   private @Nullable Double defaultAttenuation = 15.0;
   private @Nullable Map<String, Double> categories;
   private @Nullable Map<String, Double> overrides;
@@ -32,6 +39,7 @@ public final class WallConfig {
   // ----------------------- PUBLIC METHODS ------------------------
   // ###############################################################
 
+  @JsonIgnore
   public double getEffectiveDistance() {
     if (this.distance != null && this.distance > 0)
       return this.distance;
@@ -39,6 +47,7 @@ public final class WallConfig {
     return 16.0;
   }
 
+  @JsonIgnore
   public double getEffectiveDistance(final double fallback) {
     if (this.distance != null && this.distance > 0)
       return this.distance;
@@ -46,6 +55,7 @@ public final class WallConfig {
     return fallback > 0 ? fallback : 16.0;
   }
 
+  @JsonIgnore
   public @NotNull VoiceWallMode getEffectiveMode() {
     if (!this.enabled)
       return VoiceWallMode.OFF;
@@ -56,6 +66,7 @@ public final class WallConfig {
     return VoiceWallMode.REALISTIC;
   }
 
+  @JsonIgnore
   public @NotNull DiffractionConfig getDiffractionConfig() {
     if (this.diffraction != null)
       return this.diffraction;
@@ -63,10 +74,12 @@ public final class WallConfig {
     return DiffractionConfig.defaults();
   }
 
-  public double getMultiplier() {
+  @JsonIgnore
+  public double getGlobalMultiplier() {
     return (this.globalMultiplier != null && this.globalMultiplier > 0.0) ? this.globalMultiplier : 1.0;
   }
 
+  @JsonIgnore
   public double getDefaultAttenuationDb() {
     if (this.defaultAttenuation != null)
       return this.defaultAttenuation;
@@ -74,8 +87,9 @@ public final class WallConfig {
     return 15.0;
   }
 
+  @JsonIgnore
   public double getAttenuationDb(final @NotNull String materialName) {
-    final var mult = getMultiplier();
+    final var mult = getGlobalMultiplier();
     final var matUpper = materialName.toUpperCase();
 
     if (this.overrides != null && this.overrides.containsKey(matUpper))
@@ -161,6 +175,7 @@ public final class WallConfig {
   // --------------------------- RECORD ----------------------------
   // ###############################################################
 
+  @JsonIgnoreProperties(ignoreUnknown = true)
   public record DiffractionConfig(
     boolean enabled,
     double maxBypassWidth,

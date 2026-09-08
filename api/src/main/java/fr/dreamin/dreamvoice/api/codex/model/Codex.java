@@ -11,6 +11,8 @@ import org.jetbrains.annotations.Nullable;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 /**
  * Root configuration container for DreamVoice managing active modules.
  */
@@ -18,6 +20,7 @@ import java.util.Map;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonIgnoreProperties(ignoreUnknown = true)
 public final class Codex {
 
   private Map<String, Boolean> modules = new HashMap<>();

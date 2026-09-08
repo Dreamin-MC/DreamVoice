@@ -1,0 +1,68 @@
+{
+    "_comment": "DO NOT EDIT: FILE GENERATED AUTOMATICALLY BY PTERODACTYL PANEL - PTERODACTYL.IO",
+    "meta": {
+        "version": "PTDL_v2",
+        "update_url": null
+    },
+    "exported_at": "2024-04-02T14:11:47+02:00",
+    "name": "DreamVoice Transcription Sidecar",
+    "author": "contact@dreamin.fr",
+    "description": "High-performance AI transcription sidecar for DreamVoice powered by faster-whisper.",
+    "features": null,
+    "docker_images": {
+        "Python 3.12": "ghcr.io/parkervcp/yolks:python_3.12",
+        "Python 3.11": "ghcr.io/parkervcp/yolks:python_3.11",
+        "Python 3.10": "ghcr.io/parkervcp/yolks:python_3.10",
+        "Python 3.9": "ghcr.io/parkervcp/yolks:python_3.9",
+        "Python 3.8": "ghcr.io/parkervcp/yolks:python_3.8",
+        "Python 3.7": "ghcr.io/parkervcp/yolks:python_3.7",
+        "Python 2.7": "ghcr.io/parkervcp/yolks:python_2.7"
+    },
+    "file_denylist": [],
+    "startup": "if [ -f requirements.txt ]; then pip install -U --prefix .local -r requirements.txt; fi; /usr/local/bin/python app.py",
+    "config": {
+        "files": "{}",
+        "startup": "{\r\n    \"done\": \"change this part\"\r\n}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\napt update\napt install -y git curl ffmpeg\n\nmkdir -p /mnt/server\ncd /mnt/server\n\ncat << 'EOF' > requirements.txt\nfastapi>=0.110.0\nuvicorn[standard]>=0.28.0\nfaster-whisper>=1.0.0\npython-multipart>=0.0.9\nEOF\n\ncat << 'EOF' > app.py\nimport os\nimport io\nimport tempfile\nimport uvicorn\nfrom typing import List, Optional\nfrom fastapi import FastAPI, UploadFile, File, Form, HTTPException\nfrom pydantic import BaseModel\nfrom faster_whisper import WhisperModel\n\napp = FastAPI(title=\"DreamVoice Transcription Sidecar\")\n\nPORT = int(os.getenv(\"SERVER_PORT\", \"8000\"))\nMODEL_SIZE = os.getenv(\"WHISPER_MODEL\", \"base\")\nDEVICE = os.getenv(\"DEVICE\", \"cpu\")\nCOMPUTE_TYPE = os.getenv(\"COMPUTE_TYPE\", \"int8\")\n\nprint(f\"[DreamVoice] Loading Whisper model '{MODEL_SIZE}' on {DEVICE} ({COMPUTE_TYPE})...\")\nmodel = WhisperModel(MODEL_SIZE, device=DEVICE, compute_type=COMPUTE_TYPE)\nprint(\"[DreamVoice] Model ready! Listening on port\", PORT)\n\nclass SegmentModel(BaseModel):\n    start: float\n    end: float\n    text: str\n\nclass TranscriptionResponse(BaseModel):\n    language: str\n    duration: float\n    text: str\n    segments: List[SegmentModel]\n\n@app.get(\"/health\")\ndef health():\n    return {\"status\": \"ok\", \"model\": MODEL_SIZE, \"device\": DEVICE}\n\n@app.post(\"/transcribe\", response_model=TranscriptionResponse)\nasync def transcribe_audio(file: UploadFile = File(...), language: Optional[str] = Form(None)):\n    try:\n        suffix = os.path.splitext(file.filename)[1] if file.filename else \".wav\"\n        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as temp_file:\n            content = await file.read()\n            temp_file.write(content)\n            temp_path = temp_file.name\n        try:\n            segments_generator, info = model.transcribe(\n                temp_path,\n                beam_size=5,\n                language=language if language and language.strip() else None,\n                vad_filter=True\n            )\n            segments = []\n            full_text = []\n            for s in segments_generator:\n                cleaned = s.text.strip()\n                if cleaned:\n                    segments.append(SegmentModel(start=round(s.start, 2), end=round(s.end, 2), text=cleaned))\n                    full_text.append(cleaned)\n            return TranscriptionResponse(\n                language=info.language,\n                duration=round(info.duration, 2),\n                text=\" \".join(full_text),\n                segments=segments\n            )\n        finally:\n            if os.path.exists(temp_path):\n                os.remove(temp_path)\n    except Exception as e:\n        raise HTTPException(status_code=500, detail=str(e))\n\nif __name__ == \"__main__\":\n    uvicorn.run(app, host=\"0.0.0.0\", port=PORT)\nEOF\n\npip install -U --prefix .local -r requirements.txt\necho -e \"[DreamVoice] Setup completed!\"\nexit 0\n",
+            "container": "python:3.8-slim-bookworm",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Whisper Model",
+            "description": "Whisper model size to load: tiny, base, small, medium, large-v3.",
+            "env_variable": "WHISPER_MODEL",
+            "default_value": "base",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string",
+            "field_type": "text"
+        },
+        {
+            "name": "Compute Device",
+            "description": "Execution device: cpu or cuda.",
+            "env_variable": "DEVICE",
+            "default_value": "cpu",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string",
+            "field_type": "text"
+        },
+        {
+            "name": "Compute Type",
+            "description": "Quantization type: int8, float16, float32.",
+            "env_variable": "COMPUTE_TYPE",
+            "default_value": "int8",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string",
+            "field_type": "text"
+        }
+    ]
+}

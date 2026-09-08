@@ -365,6 +365,17 @@ public final class VoiceRecordingServiceImpl implements VoiceRecordingService, L
     });
   }
 
+  @Override
+  public short @Nullable [] decodeToPcm(final @NotNull VoiceRecording recording) {
+    if (recording.getCachedPcm() != null)
+      return recording.getCachedPcm();
+
+    final var pcm = decodeRecordingFrames(recording.getAudioFrames());
+    if (pcm != null)
+      recording.setCachedPcm(pcm);
+    return pcm;
+  }
+
   // ###############################################################
   // ------------------- PRIVATE HELPER METHODS --------------------
   // ###############################################################
@@ -454,6 +465,13 @@ public final class VoiceRecordingServiceImpl implements VoiceRecordingService, L
     final var recUuid = CassetteItem.getRecordingUuid(item);
     if (recUuid == null)
       return;
+
+    final var clickedBlock = event.getClickedBlock();
+    if (clickedBlock != null) {
+      final var speechService = DreamVoice.getService(fr.dreamin.dreamvoice.api.speech.service.VoiceSpeechService.class);
+      if (speechService != null && speechService.isStationBlock(clickedBlock))
+        return; // Handled by TranscriptionStation
+    }
 
     event.setCancelled(true);
     final var player = event.getPlayer();

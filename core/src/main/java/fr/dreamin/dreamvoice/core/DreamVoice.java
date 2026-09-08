@@ -1,8 +1,6 @@
 package fr.dreamin.dreamvoice.core;
 
 import de.maxhenkel.voicechat.api.BukkitVoicechatService;
-import fr.dreamin.dreamapi.api.item.ItemAction;
-import fr.dreamin.dreamapi.api.item.ItemDefinition;
 import fr.dreamin.dreamapi.plugin.DreamPlugin;
 import fr.dreamin.dreamvoice.api.codex.service.CodexService;
 import fr.dreamin.dreamvoice.api.filter.service.VoiceFilterService;
@@ -34,6 +32,7 @@ import fr.dreamin.dreamvoice.core.room.command.VoiceRoomCommand;
 import fr.dreamin.dreamvoice.core.room.service.VoiceRoomServiceImpl;
 import fr.dreamin.dreamvoice.core.speaker.cmd.SpeakerCmd;
 import fr.dreamin.dreamvoice.core.speaker.service.VoiceSpeakerServiceImpl;
+import fr.dreamin.dreamvoice.core.speech.cmd.VoiceSpeechCommand;
 import fr.dreamin.dreamvoice.core.transmitter.cmd.TransmitterCmd;
 import fr.dreamin.dreamvoice.core.transmitter.service.VoiceTransmitterServiceImpl;
 import fr.dreamin.dreamvoice.core.voice.service.VoiceServiceImpl;
@@ -81,21 +80,26 @@ public final class DreamVoice extends DreamPlugin implements Listener {
     registerCommand(new VoiceWallCmd());
     registerCommand(new VoiceRoomCommand());
     registerCommand(new VoiceFilterCommand());
+    registerCommand(new VoiceSpeechCommand());
   }
 
 
 
   @Override
   public void onDreamDisable() {
-    final var persistenceService = getService(VoicePersistenceService.class);
-    if (persistenceService != null) {
-      persistenceService.cancelAutoSaveTasks();
-      persistenceService.saveAll();
-    }
+    try {
+      final var persistenceService = getService(VoicePersistenceService.class);
+      if (persistenceService != null) {
+        persistenceService.cancelAutoSaveTasks();
+        persistenceService.saveAll();
+      }
+    } catch (Throwable ignored) {}
 
-    final var voiceService = getService(VoiceService.class);
-    if (voiceService != null)
-      voiceService.clearAllSounds();
+    try {
+      final var voiceService = getService(VoiceService.class);
+      if (voiceService != null)
+        voiceService.clearAllSounds();
+    } catch (Throwable ignored) {}
   }
 
 
@@ -124,6 +128,7 @@ public final class DreamVoice extends DreamPlugin implements Listener {
     final var voiceWallService = new VoiceWallServiceImpl(this, playerService);
     final var persistenceService = new VoicePersistenceServiceImpl(this);
     final var codexService = new CodexServiceImpl(this, voiceWallService);
+    final var voiceSpeechService = new fr.dreamin.dreamvoice.core.speech.service.VoiceSpeechServiceImpl(this);
     final var voiceService = new VoiceServiceImpl(this, playerService, voiceWallService);
 
     Bukkit.getServicesManager().register(CodexService.class, codexService, this, ServicePriority.Normal);
@@ -138,6 +143,7 @@ public final class DreamVoice extends DreamPlugin implements Listener {
     Bukkit.getServicesManager().register(VoiceWiretapService.class, voiceWiretapService, this, ServicePriority.Normal);
     Bukkit.getServicesManager().register(VoiceRoomService.class, voiceRoomService, this, ServicePriority.Normal);
     Bukkit.getServicesManager().register(VoicePersistenceService.class, persistenceService, this, ServicePriority.Normal);
+    Bukkit.getServicesManager().register(fr.dreamin.dreamvoice.api.speech.service.VoiceSpeechService.class, voiceSpeechService, this, ServicePriority.Normal);
     Bukkit.getServicesManager().register(VoiceService.class, voiceService, this, ServicePriority.Normal);
     service.registerPlugin(voiceService);
   }

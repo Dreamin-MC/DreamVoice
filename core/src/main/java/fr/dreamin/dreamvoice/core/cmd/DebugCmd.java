@@ -6,8 +6,7 @@ import cloud.commandframework.annotations.CommandPermission;
 import cloud.commandframework.annotations.suggestions.Suggestions;
 import cloud.commandframework.context.CommandContext;
 import fr.dreamin.dreamvoice.api.codex.service.CodexService;
-import fr.dreamin.dreamvoice.api.filter.model.VoiceFilter;
-import fr.dreamin.dreamvoice.api.filter.service.VoiceFilterService;
+
 import fr.dreamin.dreamvoice.api.player.model.PlayerState;
 import fr.dreamin.dreamvoice.api.player.service.PlayerService;
 import fr.dreamin.dreamvoice.api.voice.model.VoiceSoundBuilder;
@@ -65,18 +64,6 @@ public final class DebugCmd {
     return List.of("alive", "dead", "spec");
   }
 
-  @Suggestions("voice_filters")
-  public List<String> suggFilters(final @NotNull CommandContext<CommandSender> ctx, final @NotNull String in) {
-    final var filterService = DreamVoice.getService(VoiceFilterService.class);
-    if (filterService == null)
-      return List.of();
-
-    return filterService.getAvailableFilters().stream()
-      .map(VoiceFilter::getId)
-      .filter(id -> id.startsWith(in.toLowerCase()))
-      .sorted()
-      .collect(Collectors.toList());
-  }
 
 
   // ------------------------------------------------------------
@@ -385,125 +372,6 @@ public final class DebugCmd {
           .append(Component.text(e.getMessage() != null ? e.getMessage() : "Unknown", NamedTextColor.GRAY))
       );
     }
-  }
-
-  // ###############################################################
-  // ----------------------- FILTER COMMANDS -----------------------
-  // ###############################################################
-
-  @CommandMethod("voice filter list")
-  @CommandPermission("dreamvoice.cmd.debug")
-  private void listFilters(final @NotNull CommandSender sender) {
-    final var filterService = DreamVoice.getService(VoiceFilterService.class);
-    if (filterService == null) {
-      sender.sendMessage(Component.text("[SVC] Filter service unavailable.", NamedTextColor.RED));
-      return;
-    }
-
-    final var filters = filterService.getAvailableFilters();
-    sender.sendMessage(
-      Component.text("[SVC] Available voice filters (", NamedTextColor.GRAY)
-        .append(Component.text(filters.size(), NamedTextColor.YELLOW))
-        .append(Component.text("):", NamedTextColor.GRAY))
-    );
-
-    for (final var filter : filters) {
-      sender.sendMessage(
-        Component.text(" - ", NamedTextColor.GRAY)
-          .append(Component.text(filter.getId(), NamedTextColor.AQUA))
-          .append(Component.text(" (" + filter.getName() + ", prio=" + filter.getPriority() + ")", NamedTextColor.GRAY))
-      );
-    }
-  }
-
-  @CommandMethod("voice filter set <player> <filter>")
-  @CommandPermission("dreamvoice.cmd.debug")
-  private void setFilter(
-    final @NotNull CommandSender sender,
-    @Argument("player") final @NotNull Player target,
-    @Argument(value = "filter", suggestions = "voice_filters") final @NotNull String filterId
-  ) {
-    final var filterService = DreamVoice.getService(VoiceFilterService.class);
-    if (filterService == null) {
-      sender.sendMessage(Component.text("[SVC] Filter service unavailable.", NamedTextColor.RED));
-      return;
-    }
-
-    if (filterService.getFilter(filterId) == null) {
-      sender.sendMessage(Component.text("[SVC] Unknown filter: " + filterId, NamedTextColor.RED));
-      return;
-    }
-
-    filterService.addFilter(target.getUniqueId(), filterId);
-    sender.sendMessage(
-      Component.text("[SVC] Filter ", NamedTextColor.GREEN)
-        .append(Component.text(filterId, NamedTextColor.YELLOW))
-        .append(Component.text(" applied to ", NamedTextColor.GREEN))
-        .append(Component.text(target.getName(), NamedTextColor.AQUA))
-    );
-  }
-
-  @CommandMethod("voice filter remove <player> <filter>")
-  @CommandPermission("dreamvoice.cmd.debug")
-  private void removeFilter(
-    final @NotNull CommandSender sender,
-    @Argument("player") final @NotNull Player target,
-    @Argument(value = "filter", suggestions = "voice_filters") final @NotNull String filterId
-  ) {
-    final var filterService = DreamVoice.getService(VoiceFilterService.class);
-    if (filterService == null) {
-      sender.sendMessage(Component.text("[SVC] Filter service unavailable.", NamedTextColor.RED));
-      return;
-    }
-
-    filterService.removeFilter(target.getUniqueId(), filterId);
-    sender.sendMessage(
-      Component.text("[SVC] Filter ", NamedTextColor.YELLOW)
-        .append(Component.text(filterId, NamedTextColor.YELLOW))
-        .append(Component.text(" removed from ", NamedTextColor.GREEN))
-        .append(Component.text(target.getName(), NamedTextColor.AQUA))
-    );
-  }
-
-  @CommandMethod("voice filter clear <player>")
-  @CommandPermission("dreamvoice.cmd.debug")
-  private void clearFilters(
-    final @NotNull CommandSender sender,
-    @Argument("player") final @NotNull Player target
-  ) {
-    final var filterService = DreamVoice.getService(VoiceFilterService.class);
-    if (filterService == null) {
-      sender.sendMessage(Component.text("[SVC] Filter service unavailable.", NamedTextColor.RED));
-      return;
-    }
-
-    filterService.clearFilters(target.getUniqueId());
-    sender.sendMessage(
-      Component.text("[SVC] All voice filters cleared for ", NamedTextColor.GREEN)
-        .append(Component.text(target.getName(), NamedTextColor.AQUA))
-    );
-  }
-
-  @CommandMethod("voice filter auto <player> <enabled>")
-  @CommandPermission("dreamvoice.cmd.debug")
-  private void setAutoEnvironment(
-    final @NotNull CommandSender sender,
-    @Argument("player") final @NotNull Player target,
-    @Argument("enabled") final boolean enabled
-  ) {
-    final var filterService = DreamVoice.getService(VoiceFilterService.class);
-    if (filterService == null) {
-      sender.sendMessage(Component.text("[SVC] Filter service unavailable.", NamedTextColor.RED));
-      return;
-    }
-
-    filterService.setAutoEnvironmentEnabled(target.getUniqueId(), enabled);
-    sender.sendMessage(
-      Component.text("[SVC] Automatic environment filters ", NamedTextColor.GREEN)
-        .append(Component.text(enabled ? "enabled" : "disabled", enabled ? NamedTextColor.YELLOW : NamedTextColor.RED))
-        .append(Component.text(" for ", NamedTextColor.GREEN))
-        .append(Component.text(target.getName(), NamedTextColor.AQUA))
-    );
   }
 
   // ###############################################################

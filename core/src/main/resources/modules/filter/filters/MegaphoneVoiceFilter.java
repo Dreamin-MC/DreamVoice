@@ -87,9 +87,9 @@ public final class MegaphoneVoiceFilter implements VoiceFilter {
   // ###############################################################
 
   private static final class MegaphoneState {
-    final RadioVoiceFilter.Biquad hp = new RadioVoiceFilter.Biquad();
-    final RadioVoiceFilter.Biquad lp = new RadioVoiceFilter.Biquad();
-    final RadioVoiceFilter.Biquad peak = new RadioVoiceFilter.Biquad();
+    final Biquad hp = new Biquad();
+    final Biquad lp = new Biquad();
+    final Biquad peak = new Biquad();
     final float[] delay = new float[BUFFER_SIZE];
     int writeIndex = 0;
 
@@ -109,6 +109,61 @@ public final class MegaphoneVoiceFilter implements VoiceFilter {
       if (readIndex < 0)
         readIndex += BUFFER_SIZE;
       return this.delay[readIndex];
+    }
+  }
+
+  static final class Biquad {
+    float b0 = 1.0f, b1 = 0.0f, b2 = 0.0f, a1 = 0.0f, a2 = 0.0f;
+    float x1 = 0.0f, x2 = 0.0f, y1 = 0.0f, y2 = 0.0f;
+
+    void setHighPass(final float freq, final float sampleRate, final float q) {
+      final var w0 = 2.0 * Math.PI * freq / sampleRate;
+      final var cos = Math.cos(w0);
+      final var alpha = Math.sin(w0) / (2.0 * q);
+      final var a0 = 1.0 + alpha;
+      this.b0 = (float) ((1.0 + cos) / (2.0 * a0));
+      this.b1 = (float) (-(1.0 + cos) / a0);
+      this.b2 = (float) ((1.0 + cos) / (2.0 * a0));
+      this.a1 = (float) ((-2.0 * cos) / a0);
+      this.a2 = (float) ((1.0 - alpha) / a0);
+    }
+
+    void setLowPass(final float freq, final float sampleRate, final float q) {
+      final var w0 = 2.0 * Math.PI * freq / sampleRate;
+      final var cos = Math.cos(w0);
+      final var alpha = Math.sin(w0) / (2.0 * q);
+      final var a0 = 1.0 + alpha;
+      this.b0 = (float) ((1.0 - cos) / (2.0 * a0));
+      this.b1 = (float) ((1.0 - cos) / a0);
+      this.b2 = (float) ((1.0 - cos) / (2.0 * a0));
+      this.a1 = (float) ((-2.0 * cos) / a0);
+      this.a2 = (float) ((1.0 - alpha) / a0);
+    }
+
+    void setPeaking(final float freq, final float sampleRate, final float gainDb, final float q) {
+      final var w0 = 2.0 * Math.PI * freq / sampleRate;
+      final var cos = Math.cos(w0);
+      final var A = Math.pow(10.0, gainDb / 40.0);
+      final var alpha = Math.sin(w0) / (2.0 * q);
+      final var a0 = 1.0 + alpha / A;
+      this.b0 = (float) ((1.0 + alpha * A) / a0);
+      this.b1 = (float) ((-2.0 * cos) / a0);
+      this.b2 = (float) ((1.0 - alpha * A) / a0);
+      this.a1 = (float) ((-2.0 * cos) / a0);
+      this.a2 = (float) ((1.0 - alpha / A) / a0);
+    }
+
+    float process(final float in) {
+      final var out = this.b0 * in + this.b1 * this.x1 + this.b2 * this.x2 - this.a1 * this.y1 - this.a2 * this.y2;
+      this.x2 = this.x1;
+      this.x1 = in;
+      this.y2 = this.y1;
+      this.y1 = out;
+      return out;
+    }
+
+    void reset() {
+      this.x1 = this.x2 = this.y1 = this.y2 = 0.0f;
     }
   }
 

@@ -8,6 +8,7 @@ repositories {
 
 dependencies {
   api project(":api")
+  implementation("com.alphacephei:vosk:0.3.45")
 }
 
 base {

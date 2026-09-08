@@ -58,6 +58,92 @@ public final class VoiceFilterCommand {
     }
   }
 
+  @CommandDescription("Apply a voice filter to a player")
+  @CommandMethod("voice filter set <player> <filter>")
+  @CommandPermission("dreamvoice.admin")
+  public void setFilter(
+    final @NotNull CommandSender sender,
+    @Argument("player") final @NotNull org.bukkit.entity.Player target,
+    @Argument(value = "filter", suggestions = "filter_ids") final @NotNull String filterId
+  ) {
+    final var service = DreamVoice.getService(VoiceFilterService.class);
+    if (service == null)
+      return;
+
+    if (service.getFilter(filterId) == null) {
+      sender.sendMessage(Component.text("[VoiceFilter] Unknown filter: " + filterId, NamedTextColor.RED));
+      return;
+    }
+
+    service.addFilter(target.getUniqueId(), filterId);
+    sender.sendMessage(
+      Component.text("[VoiceFilter] Filter ", NamedTextColor.GREEN)
+        .append(Component.text(filterId, NamedTextColor.YELLOW))
+        .append(Component.text(" applied to ", NamedTextColor.GREEN))
+        .append(Component.text(target.getName(), NamedTextColor.AQUA))
+    );
+  }
+
+  @CommandDescription("Remove a voice filter from a player")
+  @CommandMethod("voice filter remove <player> <filter>")
+  @CommandPermission("dreamvoice.admin")
+  public void removeFilter(
+    final @NotNull CommandSender sender,
+    @Argument("player") final @NotNull org.bukkit.entity.Player target,
+    @Argument(value = "filter", suggestions = "filter_ids") final @NotNull String filterId
+  ) {
+    final var service = DreamVoice.getService(VoiceFilterService.class);
+    if (service == null)
+      return;
+
+    service.removeFilter(target.getUniqueId(), filterId);
+    sender.sendMessage(
+      Component.text("[VoiceFilter] Filter ", NamedTextColor.YELLOW)
+        .append(Component.text(filterId, NamedTextColor.YELLOW))
+        .append(Component.text(" removed from ", NamedTextColor.GREEN))
+        .append(Component.text(target.getName(), NamedTextColor.AQUA))
+    );
+  }
+
+  @CommandDescription("Clear all voice filters from a player")
+  @CommandMethod("voice filter clear <player>")
+  @CommandPermission("dreamvoice.admin")
+  public void clearFilters(
+    final @NotNull CommandSender sender,
+    @Argument("player") final @NotNull org.bukkit.entity.Player target
+  ) {
+    final var service = DreamVoice.getService(VoiceFilterService.class);
+    if (service == null)
+      return;
+
+    service.clearFilters(target.getUniqueId());
+    sender.sendMessage(
+      Component.text("[VoiceFilter] All voice filters cleared for ", NamedTextColor.GREEN)
+        .append(Component.text(target.getName(), NamedTextColor.AQUA))
+    );
+  }
+
+  @CommandDescription("Enable or disable automatic environmental voice filters for a player")
+  @CommandMethod("voice filter auto <player> <enabled>")
+  @CommandPermission("dreamvoice.admin")
+  public void setAutoEnvironment(
+    final @NotNull CommandSender sender,
+    @Argument("player") final @NotNull org.bukkit.entity.Player target,
+    @Argument("enabled") final boolean enabled
+  ) {
+    final var service = DreamVoice.getService(VoiceFilterService.class);
+    if (service == null)
+      return;
+
+    service.setAutoEnvironmentEnabled(target.getUniqueId(), enabled);
+    sender.sendMessage(
+      Component.text("[VoiceFilter] Automatic environment filters ", NamedTextColor.GREEN)
+        .append(Component.text(enabled ? "enabled" : "disabled", enabled ? NamedTextColor.YELLOW : NamedTextColor.RED))
+        .append(Component.text(" for ", NamedTextColor.GREEN))
+        .append(Component.text(target.getName(), NamedTextColor.AQUA))
+    );
+  }
+
   @CommandDescription("Reload all custom and file-based filters from disk")
   @CommandMethod("voice filter reload")
   @CommandPermission("dreamvoice.admin")

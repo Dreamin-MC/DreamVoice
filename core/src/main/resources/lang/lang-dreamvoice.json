@@ -51,6 +51,34 @@
         { "locale": "FR", "value": "<yellow>Filtre vocal retiré.</yellow>" },
         { "locale": "EN", "value": "<yellow>Voice filter removed.</yellow>" }
       ]
+    },
+    {
+      "key": "speech.analyzing",
+      "lang": [
+        { "locale": "FR", "value": "<yellow>⚡ Analyse de la bande audio en cours...</yellow>" },
+        { "locale": "EN", "value": "<yellow>⚡ Analyzing audio cassette...</yellow>" }
+      ]
+    },
+    {
+      "key": "speech.analyzing_subtitle",
+      "lang": [
+        { "locale": "FR", "value": "<gray>Veuillez patienter...</gray>" },
+        { "locale": "EN", "value": "<gray>Please wait...</gray>" }
+      ]
+    },
+    {
+      "key": "speech.book_title",
+      "lang": [
+        { "locale": "FR", "value": "Rapport : {id}" },
+        { "locale": "EN", "value": "Report: {id}" }
+      ]
+    },
+    {
+      "key": "speech.book_header",
+      "lang": [
+        { "locale": "FR", "value": "<bold><gold>=== RAPPORT D'ÉCOUTE ===</gold></bold>\n<gray>Bande :</gray> <yellow>{id}</yellow>\n<gray>Durée :</gray> <aqua>{duration}s</aqua>\n<gray>Locuteur :</gray> <yellow>{author}</yellow>\n-------------------" },
+        { "locale": "EN", "value": "<bold><gold>=== AUDIO REPORT ===</gold></bold>\n<gray>Tape:</gray> <yellow>{id}</yellow>\n<gray>Duration:</gray> <aqua>{duration}s</aqua>\n<gray>Speaker:</gray> <yellow>{author}</yellow>\n-------------------" }
+      ]
     }
   ]
 }

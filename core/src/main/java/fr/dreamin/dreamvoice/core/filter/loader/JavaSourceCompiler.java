@@ -21,7 +21,8 @@ import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.Map;
+import java.util.List;
+import java.util.Set;
 import java.util.logging.Logger;
 
 /**
@@ -55,82 +56,186 @@ public final class JavaSourceCompiler {
       final var className = extractClassName(sourceFile, sourceCode);
 
       final var diagnostics = new DiagnosticCollector<JavaFileObject>();
-      final var standardFileManager = compiler.getStandardFileManager(diagnostics, null, null);
-      final var byteCodeMap = new HashMap<String, ByteArrayOutputStream>();
 
-      final var fileManager = new ForwardingJavaFileManager<JavaFileManager>(standardFileManager) {
-        @Override
-        public JavaFileObject getJavaFileForOutput(
-          final Location location,
-          final String name,
-          final JavaFileObject.Kind kind,
-          final FileObject sibling
-        ) {
-          return new SimpleJavaFileObject(URI.create("mem:///" + name.replace('.', '/') + kind.extension), kind) {
-            @Override
-            public OutputStream openOutputStream() {
-              final var baos = new ByteArrayOutputStream();
-              byteCodeMap.put(name, baos);
-              return baos;
-            }
-          };
-        }
-      };
-
-      final var compilationUnit = new SimpleJavaFileObject(
-        URI.create("string:///" + className.replace('.', '/') + JavaFileObject.Kind.SOURCE.extension),
-        JavaFileObject.Kind.SOURCE
-      ) {
-        @Override
-        public CharSequence getCharContent(final boolean ignoreEncodingErrors) {
-          return sourceCode;
-        }
-      };
-
-      final var options = new ArrayList<String>();
-      options.add("-proc:none");
-
-      final var task = compiler.getTask(
-        null,
-        fileManager,
-        diagnostics,
-        options,
-        null,
-        Collections.singletonList(compilationUnit)
-      );
-
-      final var success = task.call();
-      if (!success) {
-        this.logger.warning("[VoiceFilter] Failed to compile " + sourceFile.getName() + ":");
-        for (final var diag : diagnostics.getDiagnostics())
-          this.logger.warning(String.format("  Line %d: %s", diag.getLineNumber(), diag.getMessage(null)));
-        return null;
-      }
-
-      final var customLoader = new ClassLoader(this.parentClassLoader) {
-        @Override
-        protected Class<?> findClass(final String name) throws ClassNotFoundException {
-          final var bytes = byteCodeMap.get(name);
-          if (bytes != null) {
-            final var b = bytes.toByteArray();
-            return defineClass(name, b, 0, b.length);
+      try (final var standardFileManager = compiler.getStandardFileManager(diagnostics, null, null)) {
+        final var classpathFiles = resolveClasspath(standardFileManager);
+        if (!classpathFiles.isEmpty()) {
+          try {
+            standardFileManager.setLocation(javax.tools.StandardLocation.CLASS_PATH, classpathFiles);
+          } catch (final IOException e) {
+            this.logger.warning("[VoiceFilter] Failed to set compiler standardFileManager classpath: " + e.getMessage());
           }
-          return super.findClass(name);
         }
-      };
 
-      final var loadedClass = customLoader.loadClass(className);
-      if (!VoiceFilter.class.isAssignableFrom(loadedClass)) {
-        this.logger.warning("[VoiceFilter] Class " + className + " in " + sourceFile.getName() + " does not implement VoiceFilter.");
-        return null;
+        final var byteCodeMap = new HashMap<String, ByteArrayOutputStream>();
+
+        final var fileManager = new ForwardingJavaFileManager<JavaFileManager>(standardFileManager) {
+          @Override
+          public JavaFileObject getJavaFileForOutput(
+            final Location location,
+            final String name,
+            final JavaFileObject.Kind kind,
+            final FileObject sibling
+          ) {
+            return new SimpleJavaFileObject(URI.create("mem:///" + name.replace('.', '/') + kind.extension), kind) {
+              @Override
+              public OutputStream openOutputStream() {
+                final var baos = new ByteArrayOutputStream();
+                byteCodeMap.put(name, baos);
+                return baos;
+              }
+            };
+          }
+        };
+
+        final var compilationUnit = new SimpleJavaFileObject(
+          URI.create("string:///" + className.replace('.', '/') + JavaFileObject.Kind.SOURCE.extension),
+          JavaFileObject.Kind.SOURCE
+        ) {
+          @Override
+          public CharSequence getCharContent(final boolean ignoreEncodingErrors) {
+            return sourceCode;
+          }
+        };
+
+        final var options = new ArrayList<String>();
+        options.add("-proc:none");
+        if (!classpathFiles.isEmpty()) {
+          final var cpString = classpathFiles.stream()
+            .map(File::getAbsolutePath)
+            .collect(java.util.stream.Collectors.joining(File.pathSeparator));
+          options.add("-classpath");
+          options.add(cpString);
+        }
+
+        final var task = compiler.getTask(
+          null,
+          fileManager,
+          diagnostics,
+          options,
+          null,
+          Collections.singletonList(compilationUnit)
+        );
+
+        final var success = task.call();
+        if (!success) {
+          this.logger.warning("[VoiceFilter] Failed to compile " + sourceFile.getName() + ":");
+          for (final var diag : diagnostics.getDiagnostics())
+            this.logger.warning(String.format("  Line %d: %s", diag.getLineNumber(), diag.getMessage(null)));
+          return null;
+        }
+
+        final var loadedClass = getLoadedClass(byteCodeMap, className);
+        if (!VoiceFilter.class.isAssignableFrom(loadedClass)) {
+          this.logger.warning("[VoiceFilter] Class " + className + " in " + sourceFile.getName() + " does not implement VoiceFilter.");
+          return null;
+        }
+
+        final var constructor = loadedClass.getDeclaredConstructor();
+        constructor.setAccessible(true);
+        return (VoiceFilter) constructor.newInstance();
       }
-
-      final var constructor = loadedClass.getDeclaredConstructor();
-      constructor.setAccessible(true);
-      return (VoiceFilter) constructor.newInstance();
     } catch (final Exception e) {
       this.logger.severe("[VoiceFilter] Error compiling filter " + sourceFile.getName() + ": " + e.getMessage());
       return null;
+    }
+  }
+
+  // ###############################################################
+  // ----------------------- PRIVATE METHODS -----------------------
+  // ###############################################################
+
+  private Class<?> getLoadedClass(HashMap<String, ByteArrayOutputStream> byteCodeMap, String className) throws ClassNotFoundException {
+    final var customLoader = new ClassLoader(this.parentClassLoader) {
+      @Override
+      protected Class<?> findClass(final String name) throws ClassNotFoundException {
+        final var bytes = byteCodeMap.get(name);
+        if (bytes != null) {
+          final var b = bytes.toByteArray();
+          return defineClass(name, b, 0, b.length);
+        }
+        return super.findClass(name);
+      }
+    };
+
+    final var loadedClass = customLoader.loadClass(className);
+    return loadedClass;
+  }
+
+  private @NotNull List<File> resolveClasspath(final @NotNull javax.tools.StandardJavaFileManager standardFileManager) {
+    final var files = new java.util.LinkedHashSet<File>();
+
+    // 1. Existing StandardFileManager classpath
+    try {
+      final var existing = standardFileManager.getLocation(javax.tools.StandardLocation.CLASS_PATH);
+      if (existing != null) {
+        for (final var f : existing) {
+          if (f != null && f.exists())
+            files.add(f);
+        }
+      }
+    } catch (final Throwable ignored) {
+    }
+
+    // 2. Add locations of essential classes
+    addClassLocation(JavaSourceCompiler.class, files);
+    addClassLocation(VoiceFilter.class, files);
+    addClassByName("fr.dreamin.dreamvoice.api.player.model.VPlayer", files);
+    addClassByName("org.jetbrains.annotations.NotNull", files);
+    addClassByName("org.jetbrains.annotations.Nullable", files);
+    addClassByName("org.jspecify.annotations.NonNull", files);
+    addClassByName("org.bukkit.Bukkit", files);
+
+    // 3. ClassLoader hierarchy URLs
+    var cl = this.parentClassLoader;
+    while (cl != null) {
+      if (cl instanceof java.net.URLClassLoader ucl) {
+        for (final var url : ucl.getURLs()) {
+          try {
+            final var f = new File(url.toURI());
+            if (f.exists())
+              files.add(f);
+          } catch (final Throwable ignored) {
+          }
+        }
+      }
+      cl = cl.getParent();
+    }
+
+    // 4. System java.class.path
+    final var sysCp = System.getProperty("java.class.path");
+    if (sysCp != null && !sysCp.isBlank()) {
+      for (final var entry : sysCp.split(java.util.regex.Pattern.quote(File.pathSeparator))) {
+        if (!entry.isBlank()) {
+          final var f = new File(entry);
+          if (f.exists())
+            files.add(f);
+        }
+      }
+    }
+
+    return new ArrayList<>(files);
+  }
+
+  private void addClassLocation(final @Nullable Class<?> clazz, final @NotNull Set<File> files) {
+    if (clazz == null)
+      return;
+    try {
+      final var cs = clazz.getProtectionDomain().getCodeSource();
+      if (cs != null && cs.getLocation() != null) {
+        final var file = new File(cs.getLocation().toURI());
+        if (file.exists())
+          files.add(file);
+      }
+    } catch (final Throwable ignored) {
+    }
+  }
+
+  private void addClassByName(final @NotNull String className, final @NotNull Set<File> files) {
+    try {
+      final var clazz = Class.forName(className, false, this.parentClassLoader);
+      addClassLocation(clazz, files);
+    } catch (final Throwable ignored) {
     }
   }
 

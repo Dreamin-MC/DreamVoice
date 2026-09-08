@@ -246,4 +246,12 @@ public interface VoiceRecordingService {
    */
   CompletableFuture<File> exportRecording(final @NotNull VoiceRecording recording, final @NotNull AudioExportFormat format, final @Nullable String fileName);
 
+  /**
+   * Decodes all Opus frames of a recording into continuous 48kHz mono 16-bit PCM samples.
+   *
+   * @param recording the recording session
+   * @return decoded PCM samples array, or {@code null} if empty/failed
+   */
+  short @Nullable [] decodeToPcm(final @NotNull VoiceRecording recording);
+
 }
