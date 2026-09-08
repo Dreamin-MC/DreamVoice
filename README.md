@@ -1,7 +1,7 @@
 # 🎙️ DreamVoice
 
 <p align="center">
-  <strong>Spatialized Audio Framework, Acoustic Physics Engine & In-Game Comms for Minecraft Paper</strong>
+  <strong>Spatialized Audio Framework, Acoustic Physics Engine, Speech Recognition & Comms for Minecraft Paper</strong>
   <br />
   <i>Developed by Dreamin’ Studios for the PaperMC & Simple Voice Chat ecosystem</i>
 </p>
@@ -19,7 +19,7 @@
 
 ## 🌟 Overview
 
-**DreamVoice** is a complete spatialized voice and acoustic solution built on top of **Simple Voice Chat (SVC)**. Designed for immersive gamemodes, roleplay servers, and narrative minigames (such as **Danganronpa**, Murder Mystery, and investigation games), it delivers realistic acoustic physics, 3D directional speakers, voice projections, covert wiretaps, real-time DSP voice filters, interactive cassette recordings, and independent persistent data storage surviving server reboots.
+**DreamVoice** is an enterprise-grade spatialized voice, acoustics, and speech intelligence solution built on top of **Simple Voice Chat (SVC)**. Designed for immersive gamemodes, roleplay servers, and narrative minigames (such as **Danganronpa**, Murder Mystery, and investigation games), it delivers realistic acoustic physics, 3D directional speakers, voice projections, covert wiretaps, dynamic file-based DSP voice filters (`.yml`, `.json`, `.java`), real-time offline speech recognition and keyword spotting, soundproof acoustic rooms, interactive cassette recordings, and independent per-module persistent data storage surviving server reboots.
 
 ---
 
@@ -28,13 +28,17 @@
 ```
  🎙️ DREAMVOICE CORE ARCHITECTURE
  ├── 🧱 VoiceWall (Acoustic Engine, Material Attenuation, Open Door Bypass, Particle Raycast Debug)
+ ├── 🏰 Acoustic Rooms (Soundproof booths, Acoustic zones, Dynamic reverb & Cuboid bounds)
  ├── 📢 3D Speakers (3D Positional audio, Mobile entity tracking, Dual voice/playback channels)
  ├── 👻 Voice Projection (Remote voice projection, Security Camera/Drone listening, Fake Players)
  ├── 🕵️ Wiretaps (Covert spy mics, Mobile entity bugs, Direct cassette recording)
- ├── 📼 Voice Recordings (Live audio capture, Physical Cassette items, MP3 & URL player)
+ ├── 📼 Voice Recordings & Export (Live audio capture, Physical Cassettes, MP3/OGG/WAV export)
  ├── 📻 Radios & Transmitters (Multi-user frequencies, Roger Beep, Point-to-point links)
- ├── 🎛️ DSP Filters & Soft Limiter (Voice Disguiser, Vocoder, Demon, Anti-clipping Limiter)
- └── 💾 Independent System Persistence (Automatic save & load for all modules on server restart)
+ ├── 🎛️ Dynamic DSP Filters (13 Built-in filters, Pipeline .yml/.json, Hot-compiled .java, Soft Limiter)
+ ├── 🗣️ Speech & Keyword Spotting (Offline Vosk KWS, Grammar JSON, Whisper Sidecar, Analysis Stations)
+ ├── 🎒 DreamAPI Item Handlers (VoiceItemHandler for armor, held items, right-click triggers)
+ ├── 🌍 Decoupled i18n Localization (DreamAPI LangService integration with per-player locale)
+ └── 💾 Modular System Persistence (Independent per-module storage under modules/*, Auto-Save)
 ```
 
 ### 1. 🧱 Acoustic Engine & VoiceWall
@@ -46,37 +50,59 @@
 * **Air Damping**: Natural high-frequency absorption over distance.
 * **Visual Particle Debug & Action Bar**: Real-time particle ray visualization (🟢 Green=Direct Air, 🟡 Yellow=Bypassed/Diffracted, 🔴 Red=Blocked) and live Action Bar diagnostics via `/voicewall debug [player]`.
 
-### 2. 📢 Spatialized 3D Speakers
+### 2. 🏰 Acoustic Rooms & Soundproofing
+* **Soundproof Zones**: Define isolation zones (`Cuboid`) where outside voices are attenuated or 100% isolated (`isolation_pct`).
+* **Presets & Reverberation**: Built-in presets (`soundproof`, `studio`, `cathedral`, `bunker`) with spatial reverberation parameters (`decay`, `roomSizeMs`, `wetGain`).
+* **Automatic Filter Stacking**: Automatically applies voice filters (e.g. `muffled`) when entering a zone.
+* **DreamAPI Cuboid Integration**: Managed via `/voice room` commands.
+
+### 3. 📢 Spatialized 3D Speakers
 * Directional 3D audio positioned at static coordinates or dynamically attached to any **Bukkit Entity** (NPC, drone, mob, vehicle, ArmorStand).
 * **Independent Dual Channels**: Speak into a speaker's microphone while background music/sound effects play simultaneously with zero interruption or audio collision.
 * **Access Modes**: Configure `GLOBAL` public broadcast or `RESTRICTED` mode linked to authorized players.
 
-### 3. 👻 Voice Projections (Camera Mode & Fake Players)
+### 4. 👻 Voice Projections (Camera Mode & Fake Players)
 * Projects a player's voice to a remote target location or moving entity while allowing them to hear their camera's surrounding environment (`hearPlayerEnvironment`).
 * Perfect for security cameras, surveillance drones, astral projections, and intercoms.
 
-### 4. 🕵️ Covert Wiretaps & Cassettes
+### 5. 🕵️ Covert Wiretaps & Cassettes
 * Place static or entity-attached spy microphones (mobile bugs).
 * Live listening stream for investigators (`/wiretap listen`).
 * Direct recording to **interactive physical Cassette Items**.
 
-### 5. 📼 Voice Recordings & Audio Cassettes
+### 6. 📼 Voice Recordings & Multi-Format Export
 * Live session audio recording with timestamps and duration slicing (`/record slice`).
-* External MP3 file and web URL streaming.
+* **Audio Export**: Asynchronously export any recording to **MP3, OGG, or WAV** (`/record export <id> <mp3|ogg|wav> [name]`).
 * Physical Cassette items playable on right-click in hand or via 3D speakers.
 
-### 6. 📻 Radios & Transmitters
+### 7. 📻 Radios & Transmitters
 * **Multi-User Radio Channels**: Tune into frequencies with custom audio filters and configurable Roger Beep end-of-transmission tones.
 * **Transmitters**: Direct point-to-point voice broadcast to selected players with custom maximum ranges.
 
-### 7. 🎛️ DSP Processing & Audio Stream Isolation
-* **Zero Audio Crackling**: Fully isolated audio streams indexed by composite key `(Sender:Receiver:Source)`.
+### 8. 🎛️ Dynamic DSP Filters & Soft Limiter
+* **Dynamic File-Based Filters**: 13 built-in filters extracted to `modules/filter/filters/`.
+* **3 Supported Formats**:
+  * `.yml` & `.json`: Declarative DSP pipelines (`lowpass`, `highpass`, `gain`, `overdrive`, `ring_modulator`, `delay/echo`).
+  * `.java`: Real-time on-the-fly compilation via JDK `JavaCompiler` with live classloading.
+* **Filter Exporter**: Export active filters into pipeline YAML/JSON or Java source files (`/voice filter export`).
 * **Soft-Knee Dynamic Limiter**: Real-time DSP anti-clipping limiter preventing distortion.
-* **DSP Voice Filters**: Voice anonymizer `disguise`, `robot`, `phone`, `demon`, `whisper`, and custom filter API.
 
-### 8. 💾 Full Data Persistence
-* Automatically loads all active speakers, wiretaps, projections, radios, and transmitters on startup (`onServerStarted`) and saves them on shutdown (`onDreamDisable`).
-* Independent JSON files under `plugins/DreamVoice/data/` for easy backup and module reload.
+### 9. 🗣️ Speech-to-Text & Realtime Keyword Spotting (KWS)
+* **Realtime Keyword Spotting**: Ultra-lightweight background keyword detection using offline **Vosk** models with constrained grammar JSON arrays (`[unk]`, zero hallucinations).
+* **Noise Gate & Silence Reset**: Audio RMS energy gate and automatic phonetic buffer clearance on pauses (`silence_reset_ms`).
+* **Bukkit Event**: Fires `VoiceKeywordSpokenEvent` for custom roleplay triggers, spells, and voice-activated doors.
+* **Interactive Transcription Stations**: Right-click on a Lectern or Jukebox with a Cassette to transcribe recordings into a formatted **Written Book** (`Material.WRITTEN_BOOK`).
+* **Hybrid Engine**: Supports local embedded Vosk or external high-performance Whisper Sidecar HTTP container.
+* **Model Downloader**: One-click download for small and big models (`/voice speech download <lang>`).
+
+### 10. 🎒 DreamAPI Item Handlers & i18n
+* **VoiceItemHandler**: Easily bind voice filters or radio frequencies to custom items via DreamAPI's item builder (`addFilter`, `removeFilter`, `toggleFilter`, `timedFilter`, `connectRadio`).
+* **Decoupled Localization**: Fully integrated with DreamAPI `LangService`, using `plugins/DreamVoice/lang/lang-dreamvoice.json` with per-player client locale resolution.
+
+### 11. 💾 Modular Storage & Persistence
+* Clean per-module directory layout under `plugins/DreamVoice/modules/` (`wall`, `speaker`, `radio`, `record`, `wiretap`, `projection`, `transmitter`, `room`, `filter`, `speech`).
+* Independent `persistence` configuration with custom `auto_save` intervals per module.
+* Zero-loss hot migration from legacy 1.x layouts.
 
 ---
 
@@ -85,12 +111,14 @@
 Explore the comprehensive guides on our **[Official GitHub Wiki](https://github.com/Dreamin-MC/DreamVoice/wiki)**:
 
 * 🧱 [**VoiceWall & Acoustic Physics Guide**](https://github.com/Dreamin-MC/DreamVoice/wiki/VoiceWall-Acoustic-Engine)
+* 🏰 [**Acoustic Rooms & Soundproof Zones Guide**](https://github.com/Dreamin-MC/DreamVoice/wiki/Acoustic-Rooms)
 * 📢 [**3D Spatial Speakers Guide**](https://github.com/Dreamin-MC/DreamVoice/wiki/3D-Spatial-Speakers)
 * 👻 [**Voice Projection & Camera Mode Guide**](https://github.com/Dreamin-MC/DreamVoice/wiki/Voice-Projections)
 * 🕵️ [**Covert Wiretaps Guide**](https://github.com/Dreamin-MC/DreamVoice/wiki/Wiretaps-&-Bugs)
 * 📼 [**Voice Recording & Cassettes Guide**](https://github.com/Dreamin-MC/DreamVoice/wiki/Audio-Recordings-&-Cassettes)
 * 📻 [**Radios & Transmitters Guide**](https://github.com/Dreamin-MC/DreamVoice/wiki/Radios-&-Transmitters)
 * 🎛️ [**DSP Voice Filters Guide**](https://github.com/Dreamin-MC/DreamVoice/wiki/DSP-Voice-Filters)
+* 🗣️ [**Speech Recognition & Keyword Spotting Guide**](https://github.com/Dreamin-MC/DreamVoice/wiki/Speech-Recognition)
 * 🕹️ [**Complete Command Reference**](https://github.com/Dreamin-MC/DreamVoice/wiki/Commands-&-Permissions)
 
 ---
@@ -103,6 +131,15 @@ Explore the comprehensive guides on our **[Official GitHub Wiki](https://github.
 | `/dreamvoice reload [all\|config\|data]` | Reloads configuration, saved data, or both |
 | `/voicewall mode <strict\|realistic\|off>` | Changes wall occlusion mode |
 | `/voicewall debug [player]` | Toggles visual particle sound raycast diagnostics |
+| `/voice room list` / `/voice room info <id>` | Lists and inspects acoustic rooms |
+| `/voice room reload` | Reloads acoustic room presets and definitions |
+| `/voice filter list` / `/voice filter reload` | Lists active voice filters and reloads files |
+| `/voice filter export <filter> <yml\|json\|java>` | Exports a voice filter to YAML, JSON, or Java |
+| `/voice speech download <lang>` | Downloads an official speech recognition model |
+| `/voice speech models` / `/voice speech setmodel <id>` | Lists installed models and sets active model |
+| `/voice speech transcribe <id> [book\|chat]` | Transcribes a voice recording into a book or chat |
+| `/voice speech debug` | Toggles realtime speech & keyword debug notifications |
+| `/voice speech reload` | Reloads speech config and keyword definitions |
 | `/speaker add <name> [range]` | Creates a 3D locational speaker |
 | `/speaker info <name>` | Shows detailed speaker info and status |
 | `/speaker play <name> <record\|file\|url> <source>` | Plays audio or recording through the speaker |
@@ -115,6 +152,7 @@ Explore the comprehensive guides on our **[Official GitHub Wiki](https://github.
 | `/transmitter enable` / `/transmitter add <player>` | Manages point-to-point voice transmitter |
 | `/record start` / `/record stop` | Records your voice and creates playable cassettes |
 | `/record cassette <id> [player]` | Gives a physical Cassette item |
+| `/record export <id> <mp3\|ogg\|wav> [fileName]` | Exports a recording to MP3, OGG, or WAV |
 
 ---
 
