@@ -107,10 +107,11 @@ jobs:
                       return 0x9e6bff
               return 0x9e6bff
 
-          brand_color = parse_color(custom_color)
+          role_mention = "<@&1546913649308995738>"
 
           # 1. Modern system: Discord Components V2 (Container, TextDisplay, Separators, Buttons)
           v2_payload = {
+              "content": role_mention,
               "flags": 32768,  # IS_COMPONENTS_V2
               "components": [
                   {
@@ -172,7 +173,7 @@ jobs:
 
           # 2. Classic fallback (Embed + ActionRow)
           classic_payload = {
-              "content": f"🚀 **DreamVoice `{clean_version}` has just been released!**",
+              "content": f"{role_mention} 🚀 **DreamVoice `{clean_version}` has just been released!**",
               "embeds": [
                   {
                       "title": f"🎙️ DreamVoice v{clean_version}",
