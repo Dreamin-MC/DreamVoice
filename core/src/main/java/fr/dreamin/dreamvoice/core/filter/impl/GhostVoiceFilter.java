@@ -12,11 +12,12 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * DSP audio filter simulating an eerie, spectral ghost voice with chorus detuning and modulated whisper reflections.
+ * Features linearly interpolated chorus delay taps and soft-knee dynamics to eliminate modulation clicks and clipping.
  */
 public final class GhostVoiceFilter implements VoiceFilter {
 
   private static final int BUFFER_SIZE = 16384; // ~340ms memory
-  private static final int DELAY_TAP = 7200; // 150ms echo
+  private static final float DELAY_TAP = 7200.0f; // 150ms echo
   private static final double SAMPLE_RATE = 48000.0;
   private static final double TWO_PI = 2.0 * Math.PI;
   private static final double LFO_INC = (TWO_PI * 0.8) / SAMPLE_RATE;
@@ -44,6 +45,9 @@ public final class GhostVoiceFilter implements VoiceFilter {
 
   @Override
   public short[] process(final short @NonNull [] samples, final @Nullable VPlayer player) {
+    if (samples.length == 0)
+      return samples;
+
     final var uuid = player != null ? player.getUuid() : new UUID(0, 0);
     final var state = this.states.computeIfAbsent(uuid, _ -> new GhostState());
 
@@ -56,16 +60,25 @@ public final class GhostVoiceFilter implements VoiceFilter {
       if (state.lfoPhase >= TWO_PI)
         state.lfoPhase -= TWO_PI;
 
-      final var modDelay = DELAY_TAP + (int) (480.0f * Math.sin(state.lfoPhase));
-      final var wetEcho = state.getEcho(modDelay);
+      final var modDelay = DELAY_TAP + (480.0f * (float) Math.sin(state.lfoPhase));
+      final var wetEcho = state.getEchoInterpolated(modDelay);
 
       // Low-pass whisper filtering
       state.filterLp = state.filterLp + 0.12f * (dry - state.filterLp);
 
-      final var eerie = (dry * 0.50f) + (state.filterLp * 0.40f) + (wetEcho * 0.55f);
-      state.writeEcho(dry * 0.70f + wetEcho * 0.50f);
+      final var eerie = (dry * 0.50f) + (state.filterLp * 0.28f) + (wetEcho * 0.35f);
+      state.writeEcho(dry * 0.60f + wetEcho * 0.38f);
 
-      output[i] = (short) Math.clamp(Math.round(eerie), Short.MIN_VALUE, Short.MAX_VALUE);
+      var norm = eerie / 32767.0f;
+      if (norm > 0.85f || norm < -0.85f) {
+        final var abs = Math.abs(norm);
+        final var excess = abs - 0.85f;
+        final var compressed = 0.85f + 0.15f * (float) Math.tanh(excess / 0.15f);
+        final var sign = norm < 0 ? -1.0f : 1.0f;
+        norm = sign * compressed;
+      }
+
+      output[i] = (short) Math.clamp(Math.round(norm * 32767.0f), Short.MIN_VALUE, Short.MAX_VALUE);
     }
 
     return output;
@@ -91,12 +104,17 @@ public final class GhostVoiceFilter implements VoiceFilter {
       this.writeIndex = (this.writeIndex + 1) % BUFFER_SIZE;
     }
 
-    float getEcho(final int delaySamples) {
-      var readIndex = this.writeIndex - delaySamples;
-      while (readIndex < 0)
-        readIndex += BUFFER_SIZE;
-      readIndex = readIndex % BUFFER_SIZE;
-      return this.delay[readIndex];
+    float getEchoInterpolated(final float delaySamples) {
+      var readPos = (float) this.writeIndex - delaySamples;
+      while (readPos < 0.0f)
+        readPos += BUFFER_SIZE;
+      while (readPos >= (float) BUFFER_SIZE)
+        readPos -= BUFFER_SIZE;
+
+      final var i0 = (int) readPos;
+      final var i1 = (i0 + 1) % BUFFER_SIZE;
+      final var frac = readPos - (float) i0;
+      return this.delay[i0] * (1.0f - frac) + this.delay[i1] * frac;
     }
   }
 

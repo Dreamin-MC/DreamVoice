@@ -2,6 +2,7 @@ package fr.dreamin.dreamvoice.api.recording.service;
 
 import de.maxhenkel.voicechat.api.VoicechatConnection;
 import de.maxhenkel.voicechat.api.VoicechatServerApi;
+import fr.dreamin.dreamvoice.api.recording.model.AudioExportFormat;
 import fr.dreamin.dreamvoice.api.recording.model.VoiceRecording;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
@@ -206,5 +207,43 @@ public interface VoiceRecordingService {
    * @return sliced {@link VoiceRecording}, or {@code null} if not found
    */
   @Nullable VoiceRecording sliceLastRecording(final @NotNull UUID recordingUuid, final long durationMs);
+
+  /**
+   * Asynchronously exports a recording into an external audio file (MP3, OGG, WAV).
+   *
+   * @param recordingUuid the recording UUID to export
+   * @param format        the target audio export format
+   * @return CompletableFuture containing the exported File
+   */
+  CompletableFuture<File> exportRecording(final @NotNull UUID recordingUuid, final @NotNull AudioExportFormat format);
+
+  /**
+   * Asynchronously exports a recording into an external audio file (MP3, OGG, WAV) with an optional custom filename.
+   *
+   * @param recordingUuid the recording UUID to export
+   * @param format        the target audio export format
+   * @param fileName      optional custom file name (without extension), or {@code null} to use the recording UUID
+   * @return CompletableFuture containing the exported File
+   */
+  CompletableFuture<File> exportRecording(final @NotNull UUID recordingUuid, final @NotNull AudioExportFormat format, final @Nullable String fileName);
+
+  /**
+   * Asynchronously exports a recording into an external audio file (MP3, OGG, WAV).
+   *
+   * @param recording the recording instance to export
+   * @param format    the target audio export format
+   * @return CompletableFuture containing the exported File
+   */
+  CompletableFuture<File> exportRecording(final @NotNull VoiceRecording recording, final @NotNull AudioExportFormat format);
+
+  /**
+   * Asynchronously exports a recording into an external audio file (MP3, OGG, WAV) with an optional custom filename.
+   *
+   * @param recording the recording instance to export
+   * @param format    the target audio export format
+   * @param fileName  optional custom file name (without extension), or {@code null} to use the recording UUID
+   * @return CompletableFuture containing the exported File
+   */
+  CompletableFuture<File> exportRecording(final @NotNull VoiceRecording recording, final @NotNull AudioExportFormat format, final @Nullable String fileName);
 
 }

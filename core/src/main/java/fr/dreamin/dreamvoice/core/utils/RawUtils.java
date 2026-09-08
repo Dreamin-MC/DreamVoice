@@ -24,6 +24,10 @@ public final class RawUtils {
 
   private static final HttpClient HTTP_CLIENT = HttpClient.newHttpClient();
 
+  // ###############################################################
+  // ----------------------- PUBLIC METHODS ------------------------
+  // ###############################################################
+
   public static byte[] mp3toPcm48Hz(final byte @NotNull [] mp3Data) throws Exception {
     final var tempMp3 = Files.createTempFile("audio", ".mp3");
     try {
@@ -54,7 +58,7 @@ public final class RawUtils {
     try {
       Files.write(tempMp3, mp3Data);
 
-      final var ffmpeg = new File(DreamVoice.getInstance().getDataFolder(), "ffmpeg.exe").getAbsolutePath();
+      final var ffmpeg = resolveFfmpegBinary();
 
       final var pb = new ProcessBuilder(
         ffmpeg, "-y", "-i", tempMp3.toString(),
@@ -123,6 +127,136 @@ public final class RawUtils {
 
   public static byte[] oggToPcm48Hz(final byte @NotNull [] oggPath) throws Exception {
     return mp3toPcm48Hz(oggPath);
+  }
+
+  public static void pcmToAudioFile(final short @NotNull [] pcm, final @NotNull File destination, final @NotNull String format) throws Exception {
+    if (destination.getParentFile() != null && !destination.getParentFile().exists())
+      destination.getParentFile().mkdirs();
+
+    final var pcmBytes = new byte[pcm.length * 2];
+    ByteBuffer.wrap(pcmBytes).order(ByteOrder.LITTLE_ENDIAN).asShortBuffer().put(pcm);
+
+    if (format.equalsIgnoreCase("wav")) {
+      writeWavFile(pcmBytes, destination, 48000, 1, 16);
+      return;
+    }
+
+    // Convert via FFmpeg if available
+    final var tempPcm = Files.createTempFile("ffmpeg_pcm_in", ".pcm");
+    try {
+      Files.write(tempPcm, pcmBytes);
+
+      final var ffmpegBin = resolveFfmpegBinary();
+
+      final var pb = new ProcessBuilder(
+        ffmpegBin, "-y",
+        "-f", "s16le", "-ar", "48000", "-ac", "1", "-i", tempPcm.toString(),
+        destination.getAbsolutePath()
+      );
+      pb.redirectErrorStream(true);
+
+      Process process = null;
+      try {
+        process = pb.start();
+      } catch (IOException e) {
+        // Fallback: write standard WAV directly to destination
+        writeWavFile(pcmBytes, destination, 48000, 1, 16);
+        DreamVoice.getInstance().getLogger().warning("[DreamVoice] FFmpeg not found or not executable. Exported as WAV format.");
+        return;
+      }
+
+      final var finished = process.waitFor(20, TimeUnit.SECONDS);
+
+      if (!finished || process.exitValue() != 0 || !destination.exists() || destination.length() == 0) {
+        // Fallback: write standard WAV directly to destination
+        writeWavFile(pcmBytes, destination, 48000, 1, 16);
+        DreamVoice.getInstance().getLogger().warning("[DreamVoice] FFmpeg conversion failed. Exported as WAV fallback.");
+      }
+    } finally {
+      Files.deleteIfExists(tempPcm);
+    }
+  }
+
+  public static void writeWavFile(
+    final byte @NotNull [] pcmData,
+    final @NotNull File outputFile,
+    final int sampleRate,
+    final int channels,
+    final int bitsPerSample
+  ) throws IOException {
+    final var totalAudioLen = pcmData.length;
+    final var totalDataLen = totalAudioLen + 36;
+    final var byteRate = sampleRate * channels * bitsPerSample / 8;
+
+    try (final var fos = new java.io.FileOutputStream(outputFile)) {
+      final var header = new byte[44];
+
+      // RIFF/WAVE header
+      header[0] = 'R'; header[1] = 'I'; header[2] = 'F'; header[3] = 'F';
+      header[4] = (byte) (totalDataLen & 0xff);
+      header[5] = (byte) ((totalDataLen >> 8) & 0xff);
+      header[6] = (byte) ((totalDataLen >> 16) & 0xff);
+      header[7] = (byte) ((totalDataLen >> 24) & 0xff);
+      header[8] = 'W'; header[9] = 'A'; header[10] = 'V'; header[11] = 'E';
+      header[12] = 'f'; header[13] = 'm'; header[14] = 't'; header[15] = ' ';
+      header[16] = 16; header[17] = 0; header[18] = 0; header[19] = 0; // 16 for PCM format chunk
+      header[20] = 1; header[21] = 0; // PCM format
+      header[22] = (byte) channels; header[23] = 0;
+      header[24] = (byte) (sampleRate & 0xff);
+      header[25] = (byte) ((sampleRate >> 8) & 0xff);
+      header[26] = (byte) ((sampleRate >> 16) & 0xff);
+      header[27] = (byte) ((sampleRate >> 24) & 0xff);
+      header[28] = (byte) (byteRate & 0xff);
+      header[29] = (byte) ((byteRate >> 8) & 0xff);
+      header[30] = (byte) ((byteRate >> 16) & 0xff);
+      header[31] = (byte) ((byteRate >> 24) & 0xff);
+      header[32] = (byte) (channels * bitsPerSample / 8); header[33] = 0; // block align
+      header[34] = (byte) bitsPerSample; header[35] = 0;
+      header[36] = 'd'; header[37] = 'a'; header[38] = 't'; header[39] = 'a';
+      header[40] = (byte) (totalAudioLen & 0xff);
+      header[41] = (byte) ((totalAudioLen >> 8) & 0xff);
+      header[42] = (byte) ((totalAudioLen >> 16) & 0xff);
+      header[43] = (byte) ((totalAudioLen >> 24) & 0xff);
+
+      fos.write(header, 0, 44);
+      fos.write(pcmData);
+    }
+  }
+
+  public static @NotNull String resolveFfmpegBinary() {
+    final var plugin = DreamVoice.getInstance();
+    final var pluginFolder = plugin.getDataFolder();
+    final var isWindows = System.getProperty("os.name", "").toLowerCase().contains("win");
+    final var binaryName = isWindows ? "ffmpeg.exe" : "ffmpeg";
+    final var localBinary = new File(pluginFolder, binaryName);
+
+    // If binary not present in plugin folder, check if bundled in jar resources and extract it
+    if (!localBinary.exists()) {
+      try (final var in = plugin.getResource(binaryName)) {
+        if (in != null) {
+          if (!pluginFolder.exists())
+            pluginFolder.mkdirs();
+          Files.copy(in, localBinary.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+          plugin.getLogger().info("[DreamVoice] Extracted bundled " + binaryName + " to " + localBinary.getAbsolutePath());
+        }
+      } catch (Throwable t) {
+        plugin.getLogger().warning("[DreamVoice] Could not extract bundled " + binaryName + ": " + t.getMessage());
+      }
+    }
+
+    if (localBinary.exists() && (!localBinary.getName().endsWith(".exe") || isWindows)) {
+      if (!isWindows && !localBinary.canExecute()) {
+        try {
+          localBinary.setExecutable(true, false);
+        } catch (Throwable ignored) {}
+      }
+      if (isWindows || localBinary.canExecute()) {
+        return localBinary.getAbsolutePath();
+      }
+    }
+
+    // Default to system PATH ffmpeg
+    return "ffmpeg";
   }
 
 }

@@ -12,13 +12,11 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * DSP audio filter simulating a classic telephone carbon microphone bandpass (350Hz to 3400Hz).
+ * Features 2nd-order biquad G.711 telecom bandpass and vintage carbon microphone asymmetrical saturation.
  */
 public final class TelephoneVoiceFilter implements VoiceFilter {
 
-  // Classic telephone bandpass: 350Hz to 3400Hz
-  private static final float HP_ALPHA = 0.955f;
-  private static final float LP_ALPHA = 0.360f;
-
+  private static final float SAMPLE_RATE = 48000.0f;
   private final Map<UUID, PhoneState> states = new ConcurrentHashMap<>();
 
   // ##############################################################
@@ -42,29 +40,31 @@ public final class TelephoneVoiceFilter implements VoiceFilter {
 
   @Override
   public short[] process(final short @NonNull [] samples, final @Nullable VPlayer player) {
+    if (samples.length == 0)
+      return samples;
+
     final var uuid = player != null ? player.getUuid() : new UUID(0, 0);
-    final var state = this.states.computeIfAbsent(uuid, k -> new PhoneState());
+    final var state = this.states.computeIfAbsent(uuid, _ -> new PhoneState());
 
     final var output = new short[samples.length];
 
     for (int i = 0; i < samples.length; i++) {
       final var input = (float) samples[i];
 
-      final var hp = HP_ALPHA * (state.prevHp + input - state.prevInput);
-      state.prevInput = input;
-      state.prevHp = hp;
+      // 2nd-order Butterworth bandpass (350Hz - 3400Hz)
+      final var hp = state.hp.process(input);
+      final var lp = state.lp.process(hp);
 
-      state.prevLp = state.prevLp + LP_ALPHA * (hp - state.prevLp);
+      // Carbon capsule asymmetrical soft saturation
+      var x = lp / 16000.0f;
+      if (x > 0.0f) {
+        x = x - (0.25f * x * x);
+      } else {
+        x = x + (0.12f * x * x);
+      }
+      x = (float) Math.tanh(x * 1.25f) * 0.88f;
 
-      var x = state.prevLp / 14000.0f;
-      if (x > 1.0f)
-        x = 1.0f;
-      else if (x < -1.0f)
-        x = -1.0f;
-      else
-        x = (1.2f * x) - (0.2f * x * x * x);
-
-      final var result = x * 18000.0f;
+      final var result = x * 22000.0f;
       output[i] = (short) Math.clamp(Math.round(result), Short.MIN_VALUE, Short.MAX_VALUE);
     }
 
@@ -81,9 +81,13 @@ public final class TelephoneVoiceFilter implements VoiceFilter {
   // ###############################################################
 
   private static final class PhoneState {
-    float prevInput = 0.0f;
-    float prevHp = 0.0f;
-    float prevLp = 0.0f;
+    final RadioVoiceFilter.Biquad hp = new RadioVoiceFilter.Biquad();
+    final RadioVoiceFilter.Biquad lp = new RadioVoiceFilter.Biquad();
+
+    PhoneState() {
+      this.hp.setHighPass(350.0f, SAMPLE_RATE, 0.707f);
+      this.lp.setLowPass(3400.0f, SAMPLE_RATE, 0.707f);
+    }
   }
 
 }

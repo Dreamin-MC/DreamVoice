@@ -4,6 +4,7 @@ import de.maxhenkel.voicechat.api.VoicechatConnection;
 import de.maxhenkel.voicechat.api.VoicechatServerApi;
 import de.maxhenkel.voicechat.api.VolumeCategory;
 import fr.dreamin.dreamvoice.api.filter.service.VoiceFilterService;
+import fr.dreamin.dreamvoice.api.recording.model.AudioExportFormat;
 import fr.dreamin.dreamvoice.api.recording.model.TimedAudioFrame;
 import fr.dreamin.dreamvoice.api.recording.model.VoiceRecording;
 import fr.dreamin.dreamvoice.api.recording.event.CassetteCreateEvent;
@@ -35,10 +36,7 @@ import org.jspecify.annotations.NonNull;
 import java.io.File;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
@@ -152,7 +150,7 @@ public final class VoiceRecordingServiceImpl implements VoiceRecordingService, L
 
     final var frames = recording.getAudioFrames();
     if (frames.isEmpty()) {
-      this.plugin.getLogger().warning("No audio frames in recording " + recording.getUuid());
+      this.plugin.getLogger().warning("No audio frames to play in recording " + recording.getUuid());
       return;
     }
 
@@ -162,9 +160,8 @@ public final class VoiceRecordingServiceImpl implements VoiceRecordingService, L
       return;
     }
 
-    for (final var connection : connections) {
+    for (final var connection : connections)
       channel.addTarget(connection);
-    }
 
     if (this.volumeCategory != null)
       channel.setCategory(this.volumeCategory.getId());
@@ -318,6 +315,113 @@ public final class VoiceRecordingServiceImpl implements VoiceRecordingService, L
     final var recordingsDir = new File(this.plugin.getDataFolder(), "recordings");
     CompletableFuture.runAsync(() -> VoiceRecordingPersistence.save(sliced, recordingsDir));
     return sliced;
+  }
+
+  @Override
+  public CompletableFuture<File> exportRecording(final @NotNull UUID recordingUuid, final @NotNull AudioExportFormat format) {
+    return exportRecording(recordingUuid, format, null);
+  }
+
+  @Override
+  public CompletableFuture<File> exportRecording(final @NotNull UUID recordingUuid, final @NotNull AudioExportFormat format, final @Nullable String fileName) {
+    final var rec = this.voiceRecordings.get(recordingUuid);
+    if (rec == null)
+      return CompletableFuture.failedFuture(new IllegalArgumentException("Recording not found: " + recordingUuid));
+
+    return exportRecording(rec, format, fileName);
+  }
+
+  @Override
+  public CompletableFuture<File> exportRecording(final @NotNull VoiceRecording recording, final @NotNull AudioExportFormat format) {
+    return exportRecording(recording, format, null);
+  }
+
+  @Override
+  public CompletableFuture<File> exportRecording(final @NotNull VoiceRecording recording, final @NotNull AudioExportFormat format, final @Nullable String fileName) {
+    return CompletableFuture.supplyAsync(() -> {
+      final var frames = recording.getAudioFrames();
+      if (frames.isEmpty())
+        throw new IllegalStateException("No audio data to export for recording: " + recording.getUuid());
+
+      final var pcm = decodeRecordingFrames(frames);
+      if (pcm == null || pcm.length == 0)
+        throw new IllegalStateException("Failed to decode audio frames for recording: " + recording.getUuid());
+
+      final var exportDir = new File(this.plugin.getDataFolder(), "exports");
+      if (!exportDir.exists())
+        exportDir.mkdirs();
+
+      final var baseName = (fileName != null && !fileName.isBlank())
+        ? fileName.trim().replaceAll("[^a-zA-Z0-9._-]", "_")
+        : recording.getUuid().toString();
+
+      final var targetFile = new File(exportDir, baseName + "." + format.getExtension());
+      try {
+        RawUtils.pcmToAudioFile(pcm, targetFile, format.getExtension());
+        return targetFile;
+      } catch (Exception e) {
+        throw new CompletionException("Failed to export recording to " + format.name() + ": " + e.getMessage(), e);
+      }
+    });
+  }
+
+  // ###############################################################
+  // ------------------- PRIVATE HELPER METHODS --------------------
+  // ###############################################################
+
+  private short[] decodeRecordingFrames(final @NotNull List<TimedAudioFrame> frames) {
+    final var pcmList = new ArrayList<short[]>();
+    var totalSamples = 0;
+    var currentStreamTimeMs = 0L;
+
+    final var decoder = this.api.createDecoder();
+    try {
+      for (final var frame : frames) {
+        final var data = frame.data();
+        if (data == null || data.length == 0)
+          continue;
+
+        final var frameTime = frame.timestampMs();
+
+        if (frameTime - currentStreamTimeMs >= 60) {
+          final var silenceMs = frameTime - currentStreamTimeMs;
+          final var silenceSamples = (int) (silenceMs * 48);
+          if (silenceSamples > 0) {
+            pcmList.add(new short[silenceSamples]);
+            totalSamples += silenceSamples;
+          }
+          currentStreamTimeMs = frameTime;
+        }
+
+        final var pcm = decoder.decode(data);
+        if (pcm != null && pcm.length > 0) {
+          pcmList.add(pcm);
+          totalSamples += pcm.length;
+          currentStreamTimeMs += (pcm.length / 48);
+        }
+      }
+    } catch (Exception e) {
+      this.plugin.getLogger().severe("Error decoding Opus frames for export: " + e.getMessage());
+      return null;
+    } finally {
+      if (!decoder.isClosed()) {
+        try {
+          decoder.close();
+        } catch (Throwable ignored) {}
+      }
+    }
+
+    if (totalSamples == 0)
+      return null;
+
+    final var fullPcm = new short[totalSamples];
+    var offset = 0;
+    for (final var chunk : pcmList) {
+      System.arraycopy(chunk, 0, fullPcm, offset, chunk.length);
+      offset += chunk.length;
+    }
+
+    return fullPcm;
   }
 
 

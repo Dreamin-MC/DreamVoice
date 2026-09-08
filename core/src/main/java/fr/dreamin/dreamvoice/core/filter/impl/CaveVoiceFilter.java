@@ -12,6 +12,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * DSP audio filter simulating stone cavern multi-tap reverb and low-frequency echo reflections.
+ * Features balanced wet/dry acoustic gains and soft-limiting to eliminate digital clipping.
  */
 public final class CaveVoiceFilter implements VoiceFilter {
 
@@ -44,8 +45,11 @@ public final class CaveVoiceFilter implements VoiceFilter {
 
   @Override
   public short[] process(final short @NonNull [] samples, final @Nullable VPlayer player) {
+    if (samples.length == 0)
+      return samples;
+
     final var uuid = player != null ? player.getUuid() : new UUID(0, 0);
-    final var delay = this.delayBuffers.computeIfAbsent(uuid, k -> new DelayBuffer());
+    final var delay = this.delayBuffers.computeIfAbsent(uuid, _ -> new DelayBuffer());
 
     final var output = new short[samples.length];
 
@@ -57,11 +61,21 @@ public final class CaveVoiceFilter implements VoiceFilter {
       final var e3 = delay.get(TAP_3);
       final var e4 = delay.get(TAP_4);
 
-      final var wet = (e1 * 0.45f) + (e2 * 0.35f) + (e3 * 0.28f) + (e4 * 0.22f);
-      final var combined = (dry * 0.75f) + (wet * 0.60f);
+      final var wet = (e1 * 0.34f) + (e2 * 0.26f) + (e3 * 0.20f) + (e4 * 0.14f);
+      final var combined = (dry * 0.68f) + (wet * 0.32f);
 
-      delay.write(dry + wet * 0.42f);
-      output[i] = (short) Math.clamp(Math.round(combined), Short.MIN_VALUE, Short.MAX_VALUE);
+      delay.write(dry * 0.65f + wet * 0.30f);
+
+      var norm = combined / 32767.0f;
+      if (norm > 0.85f || norm < -0.85f) {
+        final var abs = Math.abs(norm);
+        final var excess = abs - 0.85f;
+        final var compressed = 0.85f + 0.15f * (float) Math.tanh(excess / 0.15f);
+        final var sign = norm < 0 ? -1.0f : 1.0f;
+        norm = sign * compressed;
+      }
+
+      output[i] = (short) Math.clamp(Math.round(norm * 32767.0f), Short.MIN_VALUE, Short.MAX_VALUE);
     }
 
     return output;

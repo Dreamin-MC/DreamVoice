@@ -6,22 +6,24 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jspecify.annotations.NonNull;
 
+import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Disguise / Anonymizer voice filter.
- * Completely obscures the speaker's vocal identity and timbre while keeping speech clear.
+ * Obscures the speaker's vocal identity and formant timbre using smooth pitch shifting, sideband wobble, and subtle saturation.
+ * Features per-player state, circular buffer, Hann windowing, and linear interpolation.
  */
 public final class DisguiseVoiceFilter implements VoiceFilter {
 
   private static final int SAMPLE_RATE = 48000;
-  private static final int GRAIN_SIZE = 1200; // 25ms grains
-  private static final float PITCH_FACTOR = 0.76f; // Deep anonymizing shift
-  private static final float TWO_PI = (float) (2.0 * Math.PI);
-  private static final float LFO_INC = (TWO_PI * 38.0f) / SAMPLE_RATE;
+  private static final int GRAIN_SIZE = 1920; // 40ms grains at 48kHz
+  private static final float PITCH_FACTOR = 0.78f; // Deep anonymizing shift
+  private static final double TWO_PI = 2.0 * Math.PI;
+  private static final double LFO_INC = (TWO_PI * 18.0) / SAMPLE_RATE;
 
-  private float phase = 0.0f;
-  private float lfoPhase = 0.0f;
+  private final Map<UUID, DisguiseState> states = new ConcurrentHashMap<>();
 
   // ##############################################################
   // ---------------------- SERVICE METHODS -----------------------
@@ -38,46 +40,55 @@ public final class DisguiseVoiceFilter implements VoiceFilter {
   }
 
   @Override
+  public int getPriority() {
+    return 35;
+  }
+
+  @Override
   public short[] process(final short @NonNull [] samples, final @Nullable VPlayer player) {
     if (samples.length == 0)
       return samples;
 
+    final var uuid = player != null ? player.getUuid() : new UUID(0, 0);
+    final var state = this.states.computeIfAbsent(uuid, _ -> new DisguiseState());
+
     final var output = new short[samples.length];
-    final var grainSize = GRAIN_SIZE;
-    final var hopSize = grainSize / 2;
 
     for (int i = 0; i < samples.length; i++) {
-      final var readPos1 = (int) (this.phase) % grainSize;
-      final var readPos2 = (int) (this.phase + hopSize) % grainSize;
+      state.buffer[state.writePos] = (float) samples[i];
+      state.writePos = (state.writePos + 1) % GRAIN_SIZE;
 
-      final var window1 = 0.5f * (1.0f - (float) Math.cos(TWO_PI * readPos1 / grainSize));
-      final var window2 = 0.5f * (1.0f - (float) Math.cos(TWO_PI * readPos2 / grainSize));
+      state.phase1 += 1.0f;
+      if (state.phase1 >= GRAIN_SIZE)
+        state.phase1 -= GRAIN_SIZE;
 
-      final var sampleIndex1 = Math.clamp(samples.length - 1, 0, i - readPos1 + (int) (readPos1 * PITCH_FACTOR));
-      final var sampleIndex2 = Math.clamp(samples.length - 1, 0, i - readPos2 + (int) (readPos2 * PITCH_FACTOR));
+      final var phase2 = (state.phase1 + (GRAIN_SIZE / 2.0f)) % GRAIN_SIZE;
 
-      final var s1 = samples[sampleIndex1] * window1;
-      final var s2 = samples[sampleIndex2] * window2;
+      // Hann windows (constant 1.0 sum)
+      final var w1 = 0.5f * (1.0f - (float) Math.cos(TWO_PI * state.phase1 / GRAIN_SIZE));
+      final var w2 = 0.5f * (1.0f - (float) Math.cos(TWO_PI * phase2 / GRAIN_SIZE));
 
-      var blended = s1 + s2;
+      final var offset1 = state.phase1 * (PITCH_FACTOR - 1.0f);
+      final var offset2 = phase2 * (PITCH_FACTOR - 1.0f);
 
-      // Harmonic modulation (38Hz sideband wobble)
-      final var mod = 0.88f + 0.12f * (float) Math.sin(this.lfoPhase);
-      this.lfoPhase += LFO_INC;
-      if (this.lfoPhase > TWO_PI)
-        this.lfoPhase -= TWO_PI;
+      final var s1 = state.readInterpolated(state.writePos - offset1);
+      final var s2 = state.readInterpolated(state.writePos - offset2);
 
-      blended *= mod;
+      var blended = (s1 * w1) + (s2 * w2);
 
-      // Subtle soft saturation to disguise vocal harmonics
-      final var normalized = blended / 32768.0f;
-      final var distorted = (float) Math.tanh(normalized * 1.35f) * 0.85f;
+      // Subtle pitch wobble (18 Hz)
+      state.lfoPhase += LFO_INC;
+      if (state.lfoPhase >= TWO_PI)
+        state.lfoPhase -= TWO_PI;
 
-      output[i] = (short) Math.clamp(Math.round(distorted * 32767.0f), Short.MIN_VALUE, Short.MAX_VALUE);
+      final var wobble = 0.90f + 0.10f * (float) Math.sin(state.lfoPhase);
+      blended *= wobble;
 
-      this.phase += (1.0f - PITCH_FACTOR);
-      if (this.phase >= grainSize)
-        this.phase -= grainSize;
+      // Soft saturation to obscure natural harmonic overtone profile
+      var norm = blended / 32768.0f;
+      norm = (float) Math.tanh(norm * 1.35f) * 0.88f;
+
+      output[i] = (short) Math.clamp(Math.round(norm * 32767.0f), Short.MIN_VALUE, Short.MAX_VALUE);
     }
 
     return output;
@@ -85,8 +96,30 @@ public final class DisguiseVoiceFilter implements VoiceFilter {
 
   @Override
   public void resetState(final @NotNull UUID playerUuid) {
-    this.phase = 0.0f;
-    this.lfoPhase = 0.0f;
+    this.states.remove(playerUuid);
+  }
+
+  // ###############################################################
+  // ----------------------- PRIVATE METHODS -----------------------
+  // ###############################################################
+
+  private static final class DisguiseState {
+    final float[] buffer = new float[GRAIN_SIZE];
+    int writePos = 0;
+    float phase1 = 0.0f;
+    double lfoPhase = 0.0;
+
+    float readInterpolated(float readPos) {
+      while (readPos < 0.0f)
+        readPos += GRAIN_SIZE;
+      while (readPos >= (float) GRAIN_SIZE)
+        readPos -= GRAIN_SIZE;
+
+      final var i0 = (int) readPos;
+      final var i1 = (i0 + 1) % GRAIN_SIZE;
+      final var frac = readPos - (float) i0;
+      return this.buffer[i0] * (1.0f - frac) + this.buffer[i1] * frac;
+    }
   }
 
 }

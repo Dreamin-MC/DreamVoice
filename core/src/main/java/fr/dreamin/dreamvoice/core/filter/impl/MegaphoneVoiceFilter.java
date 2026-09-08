@@ -12,15 +12,13 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * DSP audio filter simulating a bullhorn / megaphone horn overdrive with slapback reflection.
+ * Features 2nd-order horn bandpass, acoustic horn resonance peaking, soft overdrive, and normalized slapback.
  */
 public final class MegaphoneVoiceFilter implements VoiceFilter {
 
-  private static final int SLAP_DELAY = 1920; // 40ms slapback echo
+  private static final int SLAP_DELAY = 1920; // 40ms slapback echo at 48kHz
   private static final int BUFFER_SIZE = 4096;
-
-  // Bandpass 700Hz to 3200Hz
-  private static final float HP_ALPHA = 0.915f;
-  private static final float LP_ALPHA = 0.340f;
+  private static final float SAMPLE_RATE = 48000.0f;
 
   private final Map<UUID, MegaphoneState> states = new ConcurrentHashMap<>();
 
@@ -45,6 +43,9 @@ public final class MegaphoneVoiceFilter implements VoiceFilter {
 
   @Override
   public short[] process(final short @NonNull [] samples, final @Nullable VPlayer player) {
+    if (samples.length == 0)
+      return samples;
+
     final var uuid = player != null ? player.getUuid() : new UUID(0, 0);
     final var state = this.states.computeIfAbsent(uuid, _ -> new MegaphoneState());
 
@@ -53,30 +54,23 @@ public final class MegaphoneVoiceFilter implements VoiceFilter {
     for (int i = 0; i < samples.length; i++) {
       final var input = (float) samples[i];
 
-      // High-pass (cut low rumble)
-      final var hp = HP_ALPHA * (state.prevHp + input - state.prevInput);
-      state.prevInput = input;
-      state.prevHp = hp;
+      // 1. Horn acoustic bandpass (600Hz - 3400Hz)
+      final var hp = state.hp.process(input);
+      final var lp = state.lp.process(hp);
 
-      // Low-pass (cut high treble)
-      state.prevLp = state.prevLp + LP_ALPHA * (hp - state.prevLp);
+      // 2. Flared megaphone horn bell resonance (+5 dB at 1100 Hz)
+      final var bell = state.peak.process(lp);
 
-      // Horn overdrive distortion
-      var x = state.prevLp / 16000.0f;
-      if (x > 1.0f)
-        x = 1.0f;
-      else if (x < -1.0f)
-        x = -1.0f;
-      else
-        x = x - (x * x * x) / 3.0f;
-
+      // 3. Horn driver overdrive
+      var x = bell / 16000.0f;
+      x = (float) Math.tanh(x * 1.4f) * 0.85f;
       final var distorted = x * 22000.0f;
 
-      // Slapback echo (megaphone horn acoustic reflection)
+      // 4. Slapback reflection (horn acoustic bounce)
       final var echo = state.getEcho();
       state.writeEcho(distorted);
 
-      final var result = (distorted * 0.85f) + (echo * 0.40f);
+      final var result = (distorted * 0.75f) + (echo * 0.25f);
       output[i] = (short) Math.clamp(Math.round(result), Short.MIN_VALUE, Short.MAX_VALUE);
     }
 
@@ -93,11 +87,17 @@ public final class MegaphoneVoiceFilter implements VoiceFilter {
   // ###############################################################
 
   private static final class MegaphoneState {
-    float prevInput = 0.0f;
-    float prevHp = 0.0f;
-    float prevLp = 0.0f;
+    final RadioVoiceFilter.Biquad hp = new RadioVoiceFilter.Biquad();
+    final RadioVoiceFilter.Biquad lp = new RadioVoiceFilter.Biquad();
+    final RadioVoiceFilter.Biquad peak = new RadioVoiceFilter.Biquad();
     final float[] delay = new float[BUFFER_SIZE];
     int writeIndex = 0;
+
+    MegaphoneState() {
+      this.hp.setHighPass(600.0f, SAMPLE_RATE, 0.707f);
+      this.lp.setLowPass(3400.0f, SAMPLE_RATE, 0.707f);
+      this.peak.setPeaking(1100.0f, SAMPLE_RATE, 5.0f, 1.4f);
+    }
 
     void writeEcho(final float sample) {
       this.delay[this.writeIndex] = sample;

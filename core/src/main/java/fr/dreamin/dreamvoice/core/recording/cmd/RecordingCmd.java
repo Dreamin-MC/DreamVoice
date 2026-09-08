@@ -4,8 +4,10 @@ import cloud.commandframework.annotations.Argument;
 import cloud.commandframework.annotations.CommandDescription;
 import cloud.commandframework.annotations.CommandMethod;
 import cloud.commandframework.annotations.CommandPermission;
+import cloud.commandframework.annotations.specifier.Greedy;
 import cloud.commandframework.annotations.suggestions.Suggestions;
 import cloud.commandframework.context.CommandContext;
+import fr.dreamin.dreamvoice.api.recording.model.AudioExportFormat;
 import fr.dreamin.dreamvoice.api.recording.model.VoiceRecording;
 import fr.dreamin.dreamvoice.api.recording.service.VoiceRecordingService;
 import fr.dreamin.dreamvoice.core.DreamVoice;
@@ -33,9 +35,9 @@ public final class RecordingCmd {
     return this.recordingService;
   }
 
-  // ------------------------------------------------------------
-  // Suggestions
-  // ------------------------------------------------------------
+  // ###############################################################
+  // --------------------- SUGGESTION METHODE ----------------------
+  // ###############################################################
 
   @Suggestions("recordings")
   public @NotNull List<String> suggestRecordings(final @NotNull CommandContext<CommandSender> ctx, final @NotNull String input) {
@@ -47,6 +49,13 @@ public final class RecordingCmd {
       .filter(id -> id.startsWith(input.toLowerCase()))
       .sorted()
       .collect(Collectors.toList());
+  }
+
+  @Suggestions("export_formats")
+  public @NotNull List<String> suggestExportFormats(final @NotNull CommandContext<CommandSender> ctx, final @NotNull String input) {
+    return List.of("mp3", "ogg", "wav").stream()
+      .filter(f -> f.startsWith(input.toLowerCase()))
+      .toList();
   }
 
   // ###############################################################
@@ -420,6 +429,63 @@ public final class RecordingCmd {
       );
     } catch (IllegalArgumentException e) {
       sender.sendMessage(Component.text("Recording not found!", NamedTextColor.RED));
+    }
+  }
+
+  @CommandMethod("record export <id> <format> [fileName]")
+  @CommandPermission("dreamvoice.record.export")
+  @CommandDescription("Export a recording to an audio file (mp3, ogg, wav) with optional custom name")
+  private void exportRecording(
+    final @NotNull CommandSender sender,
+    @Argument(value = "id", suggestions = "recordings") final @NotNull String id,
+    @Argument(value = "format", suggestions = "export_formats") final @NotNull String formatStr,
+    @Argument("fileName") @Greedy final @Nullable String customFileName
+  ) {
+    final var recordingService = requireRecordingService(sender);
+    if (recordingService == null)
+      return;
+
+    try {
+      final var uuid = parseRecordingId(id);
+      final var rec = recordingService.getVoiceRecording(uuid);
+      if (rec == null) {
+        sender.sendMessage(Component.text("Recording not found: " + id, NamedTextColor.RED));
+        return;
+      }
+
+      final AudioExportFormat format;
+      try {
+        format = AudioExportFormat.fromString(formatStr);
+      } catch (IllegalArgumentException e) {
+        sender.sendMessage(Component.text("Invalid format '" + formatStr + "'. Supported: mp3, ogg, wav", NamedTextColor.RED));
+        return;
+      }
+
+      sender.sendMessage(
+        Component.text("Exporting recording ", NamedTextColor.GRAY)
+          .append(Component.text(id, NamedTextColor.YELLOW))
+          .append(Component.text(" to " + format.name() + "...", NamedTextColor.GRAY))
+      );
+
+      recordingService.exportRecording(rec, format, customFileName).thenAccept(exportedFile -> {
+        sender.sendMessage(
+          Component.text("Successfully exported: ", NamedTextColor.GREEN)
+            .append(Component.text(exportedFile.getName(), NamedTextColor.YELLOW))
+            .append(Component.text(" (", NamedTextColor.GRAY))
+            .append(Component.text(String.format("%.1fs", rec.getDurationSeconds()), NamedTextColor.AQUA))
+            .append(Component.text(")", NamedTextColor.GRAY))
+            .append(Component.newline())
+            .append(Component.text("Path: " + exportedFile.getAbsolutePath(), NamedTextColor.DARK_GRAY))
+        );
+      }).exceptionally(err -> {
+        sender.sendMessage(
+          Component.text("Failed to export recording: " + err.getMessage(), NamedTextColor.RED)
+        );
+        return null;
+      });
+
+    } catch (Exception e) {
+      sender.sendMessage(Component.text("Error: " + e.getMessage(), NamedTextColor.RED));
     }
   }
 

@@ -11,12 +11,14 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * DSP audio filter simulating a deep monster pitch shift (-6.5 semitones) using dual-grain synthesis.
+ * DSP audio filter simulating a deep monster / bass voice effect (-6.5 semitones) using smooth dual-grain synthesis.
+ * Uses 40ms grains with Hann windowing (constant 1.0 sum) and linear interpolation to eliminate low-frequency buzz and grain boundary clicks.
  */
 public final class DeepVoiceFilter implements VoiceFilter {
 
-  private static final int GRAIN_SIZE = 1200; // 25ms grain at 48kHz
+  private static final int GRAIN_SIZE = 1920; // 40ms grain at 48kHz (removes grain buzz)
   private static final float PITCH_RATIO = 0.68f; // -6.5 semitones (monster / deep voice)
+  private static final double TWO_PI = 2.0 * Math.PI;
 
   private final Map<UUID, PitchState> states = new ConcurrentHashMap<>();
 
@@ -41,16 +43,19 @@ public final class DeepVoiceFilter implements VoiceFilter {
 
   @Override
   public short[] process(final short @NonNull [] samples, final @Nullable VPlayer player) {
+    if (samples.length == 0)
+      return samples;
+
     final var uuid = player != null ? player.getUuid() : new UUID(0, 0);
     final var state = this.states.computeIfAbsent(uuid, _ -> new PitchState());
 
     final var output = new short[samples.length];
 
     for (int i = 0; i < samples.length; i++) {
-      state.buffer[state.writePos] = samples[i];
+      state.buffer[state.writePos] = (float) samples[i];
       state.writePos = (state.writePos + 1) % GRAIN_SIZE;
 
-      state.phase1 = (state.phase1 + 1.0f);
+      state.phase1 += 1.0f;
       if (state.phase1 >= GRAIN_SIZE)
         state.phase1 -= GRAIN_SIZE;
 
@@ -70,25 +75,18 @@ public final class DeepVoiceFilter implements VoiceFilter {
   // ----------------------- PRIVATE METHODS -----------------------
   // ###############################################################
 
-  private static float getOut(PitchState state) {
-    final var phase2 = (state.phase1 + (GRAIN_SIZE / 2f)) % GRAIN_SIZE;
+  private static float getOut(final PitchState state) {
+    final var phase2 = (state.phase1 + (GRAIN_SIZE / 2.0f)) % GRAIN_SIZE;
 
-    final var w1 = 1.0f - Math.abs((state.phase1 - (GRAIN_SIZE / 2f)) / (GRAIN_SIZE / 2f));
-    final var w2 = 1.0f - Math.abs((phase2 - (GRAIN_SIZE / 2f)) / (GRAIN_SIZE / 2f));
+    // Hann windows: strictly sums to 1.0 with zero derivative at boundaries
+    final var w1 = 0.5f * (1.0f - (float) Math.cos(TWO_PI * state.phase1 / GRAIN_SIZE));
+    final var w2 = 0.5f * (1.0f - (float) Math.cos(TWO_PI * phase2 / GRAIN_SIZE));
 
-    final var offset1 = (int) (state.phase1 * (PITCH_RATIO - 1.0f));
-    final var offset2 = (int) (phase2 * (PITCH_RATIO - 1.0f));
+    final var offset1 = state.phase1 * (PITCH_RATIO - 1.0f);
+    final var offset2 = phase2 * (PITCH_RATIO - 1.0f);
 
-    var read1 = (state.writePos - offset1) % GRAIN_SIZE;
-    if (read1 < 0)
-      read1 += GRAIN_SIZE;
-
-    var read2 = (state.writePos - offset2) % GRAIN_SIZE;
-    if (read2 < 0)
-      read2 += GRAIN_SIZE;
-
-    final var s1 = state.buffer[read1];
-    final var s2 = state.buffer[read2];
+    final var s1 = state.readInterpolated(state.writePos - offset1);
+    final var s2 = state.readInterpolated(state.writePos - offset2);
 
     return (s1 * w1) + (s2 * w2);
   }
@@ -97,6 +95,18 @@ public final class DeepVoiceFilter implements VoiceFilter {
     final float[] buffer = new float[GRAIN_SIZE];
     int writePos = 0;
     float phase1 = 0.0f;
+
+    float readInterpolated(float readPos) {
+      while (readPos < 0.0f)
+        readPos += GRAIN_SIZE;
+      while (readPos >= (float) GRAIN_SIZE)
+        readPos -= GRAIN_SIZE;
+
+      final var i0 = (int) readPos;
+      final var i1 = (i0 + 1) % GRAIN_SIZE;
+      final var frac = readPos - (float) i0;
+      return this.buffer[i0] * (1.0f - frac) + this.buffer[i1] * frac;
+    }
   }
 
 }
