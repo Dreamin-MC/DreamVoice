@@ -1,5 +1,6 @@
 package fr.dreamin.dreamvoice.api.persistence.service;
 
+import fr.dreamin.dreamvoice.api.persistence.model.ModulePersistenceConfig;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.UUID;
@@ -19,6 +20,29 @@ public interface VoicePersistenceService {
    * Loads all saved voice modules from disk.
    */
   void loadAll();
+
+  /**
+   * Returns the persistence configuration of a specific module.
+   *
+   * @param moduleName name of the module (e.g. speaker, radio)
+   * @return persistence config of the module
+   */
+  @NotNull ModulePersistenceConfig getModuleConfig(final @NotNull String moduleName);
+
+  /**
+   * Reloads all module persistence configurations from disk.
+   */
+  void reloadModuleConfigs();
+
+  /**
+   * Starts or restarts all scheduled auto-save tasks.
+   */
+  void startAutoSaveTasks();
+
+  /**
+   * Cancels all scheduled auto-save tasks.
+   */
+  void cancelAutoSaveTasks();
 
   /**
    * Saves all 3D locational speakers to disk.
@@ -76,5 +100,15 @@ public interface VoicePersistenceService {
    * Loads all active point-to-point transmitters from disk.
    */
   void loadTransmitters();
+
+  /**
+   * Saves all acoustic rooms to disk.
+   */
+  void saveRooms();
+
+  /**
+   * Loads all acoustic rooms from disk.
+   */
+  void loadRooms();
 
 }

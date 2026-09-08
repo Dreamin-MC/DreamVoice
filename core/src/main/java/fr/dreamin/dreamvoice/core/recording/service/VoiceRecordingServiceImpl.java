@@ -94,7 +94,7 @@ public final class VoiceRecordingServiceImpl implements VoiceRecordingService, L
 
     this.api.registerVolumeCategory(this.volumeCategory);
 
-    final var recordingsDir = new File(this.plugin.getDataFolder(), "recordings");
+    final var recordingsDir = getRecordingsDir();
     final var loaded = VoiceRecordingPersistence.loadAll(recordingsDir);
     for (final var rec : loaded)
       this.voiceRecordings.put(rec.getUuid(), rec);
@@ -188,7 +188,7 @@ public final class VoiceRecordingServiceImpl implements VoiceRecordingService, L
     if (rec != null && rec.isRecording()) {
       rec.stop();
       new VoiceRecordingStopEvent(rec).callEvent();
-      final var recordingsDir = new File(this.plugin.getDataFolder(), "recordings");
+      final var recordingsDir = getRecordingsDir();
       CompletableFuture.runAsync(() -> VoiceRecordingPersistence.save(rec, recordingsDir));
     }
   }
@@ -234,7 +234,7 @@ public final class VoiceRecordingServiceImpl implements VoiceRecordingService, L
       recording.stop();
       register(recording);
 
-      final var recordingsDir = new File(this.plugin.getDataFolder(), "recordings");
+      final var recordingsDir = getRecordingsDir();
       VoiceRecordingPersistence.save(recording, recordingsDir);
       return recording;
     });
@@ -281,7 +281,7 @@ public final class VoiceRecordingServiceImpl implements VoiceRecordingService, L
 
     final var sliced = rec.slice(timestamp, duration);
     register(sliced);
-    final var recordingsDir = new File(this.plugin.getDataFolder(), "recordings");
+    final var recordingsDir = getRecordingsDir();
     CompletableFuture.runAsync(() -> VoiceRecordingPersistence.save(sliced, recordingsDir));
     return sliced;
   }
@@ -294,7 +294,7 @@ public final class VoiceRecordingServiceImpl implements VoiceRecordingService, L
 
     final var sliced = rec.slice(startOffsetMs, durationMs);
     register(sliced);
-    final var recordingsDir = new File(this.plugin.getDataFolder(), "recordings");
+    final var recordingsDir = getRecordingsDir();
     CompletableFuture.runAsync(() -> VoiceRecordingPersistence.save(sliced, recordingsDir));
     return sliced;
   }
@@ -312,7 +312,7 @@ public final class VoiceRecordingServiceImpl implements VoiceRecordingService, L
 
     final var sliced = rec.sliceLast(durationMs);
     register(sliced);
-    final var recordingsDir = new File(this.plugin.getDataFolder(), "recordings");
+    final var recordingsDir = getRecordingsDir();
     CompletableFuture.runAsync(() -> VoiceRecordingPersistence.save(sliced, recordingsDir));
     return sliced;
   }
@@ -347,7 +347,7 @@ public final class VoiceRecordingServiceImpl implements VoiceRecordingService, L
       if (pcm == null || pcm.length == 0)
         throw new IllegalStateException("Failed to decode audio frames for recording: " + recording.getUuid());
 
-      final var exportDir = new File(this.plugin.getDataFolder(), "exports");
+      final var exportDir = getExportsDir();
       if (!exportDir.exists())
         exportDir.mkdirs();
 
@@ -422,6 +422,22 @@ public final class VoiceRecordingServiceImpl implements VoiceRecordingService, L
     }
 
     return fullPcm;
+  }
+
+  private @NotNull File getRecordingsDir() {
+    final var dir = new File(this.plugin.getDataFolder(), "modules/record/recordings");
+    if (!dir.exists())
+      dir.mkdirs();
+
+    return dir;
+  }
+
+  private @NotNull File getExportsDir() {
+    final var dir = new File(this.plugin.getDataFolder(), "modules/record/exports");
+    if (!dir.exists())
+      dir.mkdirs();
+
+    return dir;
   }
 
 

@@ -1,24 +1,15 @@
 package fr.dreamin.dreamvoice.core.filter.service;
 
+import fr.dreamin.dreamvoice.api.filter.annotation.AutoVoiceFilter;
 import fr.dreamin.dreamvoice.api.filter.model.VoiceFilter;
 import fr.dreamin.dreamvoice.api.filter.event.VoiceFilterApplyEvent;
 import fr.dreamin.dreamvoice.api.filter.event.VoiceFilterRemoveEvent;
 import fr.dreamin.dreamvoice.api.filter.service.VoiceFilterService;
+import fr.dreamin.dreamvoice.api.player.model.VPlayer;
 import fr.dreamin.dreamvoice.api.player.service.PlayerService;
 import fr.dreamin.dreamvoice.core.DreamVoice;
-import fr.dreamin.dreamvoice.core.filter.impl.AlienVoiceFilter;
-import fr.dreamin.dreamvoice.core.filter.impl.CaveVoiceFilter;
-import fr.dreamin.dreamvoice.core.filter.impl.DeepVoiceFilter;
-import fr.dreamin.dreamvoice.core.filter.impl.DisguiseVoiceFilter;
-import fr.dreamin.dreamvoice.core.filter.impl.GasmaskVoiceFilter;
-import fr.dreamin.dreamvoice.core.filter.impl.GhostVoiceFilter;
-import fr.dreamin.dreamvoice.core.filter.impl.HeliumVoiceFilter;
-import fr.dreamin.dreamvoice.core.filter.impl.MegaphoneVoiceFilter;
-import fr.dreamin.dreamvoice.core.filter.impl.MuffledVoiceFilter;
-import fr.dreamin.dreamvoice.core.filter.impl.RadioVoiceFilter;
-import fr.dreamin.dreamvoice.core.filter.impl.RobotVoiceFilter;
-import fr.dreamin.dreamvoice.core.filter.impl.TelephoneVoiceFilter;
-import fr.dreamin.dreamvoice.core.filter.impl.UnderwaterVoiceFilter;
+import fr.dreamin.dreamvoice.core.filter.exporter.VoiceFilterExporter;
+import fr.dreamin.dreamvoice.core.filter.loader.FileFilterLoader;
 import fr.dreamin.dreamvoice.core.player.manager.VoiceFilterManager;
 import org.bukkit.Bukkit;
 import org.bukkit.event.EventHandler;
@@ -28,6 +19,8 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jspecify.annotations.NonNull;
 
+import java.io.File;
+import java.lang.reflect.Constructor;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -47,7 +40,11 @@ public final class VoiceFilterServiceImpl implements VoiceFilterService, Listene
   // --------------------- INSTANCE FIELDS -------------------------
   // ###############################################################
 
+  private final @NotNull DreamVoice plugin;
   private final @NotNull PlayerService playerService;
+  private final @NotNull File filterDirectory;
+  private final @NotNull FileFilterLoader fileFilterLoader;
+  private final @NotNull VoiceFilterExporter filterExporter;
 
   private final Map<String, VoiceFilter> registeredFilters = new ConcurrentHashMap<>();
 
@@ -56,9 +53,15 @@ public final class VoiceFilterServiceImpl implements VoiceFilterService, Listene
   // ###############################################################
 
   public VoiceFilterServiceImpl(final @NotNull DreamVoice plugin, final @NotNull PlayerService playerService) {
+    this.plugin = plugin;
     this.playerService = playerService;
+    this.filterDirectory = new File(plugin.getDataFolder(), "modules/filter/filters");
+    this.fileFilterLoader = new FileFilterLoader(plugin, this.filterDirectory);
+    this.filterExporter = new VoiceFilterExporter(plugin.getLogger(), this.filterDirectory);
 
-    registerDefaults();
+    this.fileFilterLoader.extractDefaults();
+    reloadFilters();
+
     Bukkit.getPluginManager().registerEvents(this, plugin);
   }
 
@@ -184,6 +187,68 @@ public final class VoiceFilterServiceImpl implements VoiceFilterService, Listene
   }
 
   @Override
+  public @NotNull List<VoiceFilter> registerAnnotatedFilters(final @NotNull Collection<Class<?>> classes) {
+    final var registered = new ArrayList<VoiceFilter>();
+
+    for (final var clazz : classes) {
+      if (!VoiceFilter.class.isAssignableFrom(clazz))
+        continue;
+
+      final var annotation = clazz.getAnnotation(AutoVoiceFilter.class);
+      if (annotation == null || !annotation.enabled())
+        continue;
+
+      try {
+        final Constructor<?> constructor = clazz.getDeclaredConstructor();
+        constructor.setAccessible(true);
+        final var filter = (VoiceFilter) constructor.newInstance();
+        registerFilter(filter);
+        registered.add(filter);
+        this.plugin.getLogger().info("[VoiceFilter] Auto-registered filter: " + filter.getId() + " (" + filter.getName() + ") from class " + clazz.getSimpleName());
+      } catch (final NoSuchMethodException e) {
+        this.plugin.getLogger().warning("[VoiceFilter] Class " + clazz.getName() + " has @AutoVoiceFilter but lacks a no-args constructor.");
+      } catch (final Exception e) {
+        this.plugin.getLogger().severe("[VoiceFilter] Failed to instantiate filter " + clazz.getName() + ": " + e.getMessage());
+      }
+    }
+
+    return registered;
+  }
+
+  @Override
+  public void reloadFilters() {
+    final var loaded = this.fileFilterLoader.loadAll();
+    for (final var filter : loaded)
+      registerFilter(filter);
+
+    this.plugin.getLogger().info("[VoiceFilter] Loaded " + loaded.size() + " custom filters from " + this.filterDirectory.getName());
+  }
+
+  @Override
+  public @NotNull File getFilterDirectory() {
+    return this.filterDirectory;
+  }
+
+  @Override
+  public @Nullable VoiceFilter loadFilterFromFile(final @NotNull File file) {
+    final var filter = this.fileFilterLoader.loadFromFile(file);
+    if (filter != null)
+      registerFilter(filter);
+    return filter;
+  }
+
+  @Override
+  public @Nullable File exportFilter(final @NotNull String filterId, final @NotNull String format) {
+    final var filter = getFilter(filterId);
+    if (filter == null) {
+      this.plugin.getLogger().warning("[VoiceFilter] Cannot export filter '" + filterId + "': not found.");
+      return null;
+    }
+
+    return this.filterExporter.exportFilter(filter, format, this.plugin.getClass().getClassLoader());
+  }
+
+  @Override
   public short[] applyFilters(final @NotNull UUID playerUuid, final short @NonNull [] samples) {
     final var vPlayer = this.playerService.getPlayer(playerUuid);
     final var activeFilters = getActiveFilters(playerUuid);
@@ -203,7 +268,7 @@ public final class VoiceFilterServiceImpl implements VoiceFilterService, Listene
   // ###############################################################
 
   private void resolveEnvironmentalFilters(
-    final @NotNull fr.dreamin.dreamvoice.api.player.model.VPlayer vPlayer,
+    final @NotNull VPlayer vPlayer,
     final @NotNull VoiceFilterManager manager,
     final @NotNull List<VoiceFilter> filters
   ) {
@@ -223,22 +288,6 @@ public final class VoiceFilterServiceImpl implements VoiceFilterService, Listene
       if (cave != null)
         filters.add(cave);
     }
-  }
-
-  private void registerDefaults() {
-    registerFilter(new UnderwaterVoiceFilter());
-    registerFilter(new CaveVoiceFilter());
-    registerFilter(new RadioVoiceFilter());
-    registerFilter(new MuffledVoiceFilter());
-    registerFilter(new RobotVoiceFilter());
-    registerFilter(new HeliumVoiceFilter());
-    registerFilter(new DeepVoiceFilter());
-    registerFilter(new MegaphoneVoiceFilter());
-    registerFilter(new GhostVoiceFilter());
-    registerFilter(new GasmaskVoiceFilter());
-    registerFilter(new TelephoneVoiceFilter());
-    registerFilter(new AlienVoiceFilter());
-    registerFilter(new DisguiseVoiceFilter());
   }
 
   // ###############################################################

@@ -3,6 +3,7 @@ package fr.dreamin.dreamvoice.core.utils.raycast;
 import fr.dreamin.dreamvoice.api.codex.model.Codex;
 import fr.dreamin.dreamvoice.api.codex.service.CodexService;
 import fr.dreamin.dreamvoice.api.wall.model.VoiceWallMode;
+import fr.dreamin.dreamvoice.api.wall.model.WallConfig;
 import fr.dreamin.dreamvoice.api.wall.service.VoiceWallService;
 import fr.dreamin.dreamvoice.core.DreamVoice;
 import org.bukkit.FluidCollisionMode;
@@ -152,7 +153,7 @@ public final class VoiceRayCast {
     final @NotNull Location to,
     final @NotNull World world,
     final double directDist,
-    final @NotNull Codex.DiffractionConfig config
+    final @NotNull WallConfig.DiffractionConfig config
   ) {
     final var dir = to.toVector().subtract(from.toVector()).normalize();
     var up = new Vector(0, 1, 0);
@@ -195,28 +196,26 @@ public final class VoiceRayCast {
     if (world == null)
       return 0.0;
 
-    final var delta = to.toVector().subtract(from.toVector());
-    final var totalDistance = delta.length();
-    if (totalDistance < 0.05)
-      return 0.0;
-
-    final var dir = delta.clone().normalize();
+    var totalDbLoss = 0.0;
     final var policy = getSoundPolicy();
 
-    var totalDbLoss = 0.0;
-
     try {
-      final var maxDistance = (int) Math.ceil(totalDistance);
-      final var iterator = new BlockIterator(world, from.toVector(), dir, 0.0, maxDistance);
+      final var dir = to.toVector().subtract(from.toVector());
+      final var distance = dir.length();
+      if (distance < 0.05)
+        return 0.0;
 
-      while (iterator.hasNext()) {
-        final var block = iterator.next();
-        final var type = block.getType();
+      final var blockIt = new BlockIterator(world, from.toVector(), dir.normalize(), 0.0, (int) Math.ceil(distance));
+      while (blockIt.hasNext()) {
+        final var block = blockIt.next();
+        if (block.getType().isAir())
+          continue;
 
-        if (!type.isAir()) {
-          totalDbLoss += policy.getAttenuationDb(type);
-          if (totalDbLoss >= 100.0)
-            return 100.0;
+        final var loss = policy.getAttenuationDb(block.getType());
+        totalDbLoss += loss;
+        if (totalDbLoss >= 100.0) {
+          totalDbLoss = 100.0;
+          break;
         }
       }
     } catch (Exception exception) {
@@ -236,11 +235,8 @@ public final class VoiceRayCast {
       return SoundMaterialPolicy.defaults();
     }
 
-    final Codex codex = codexService.getConfig();
-    if (codex.getVoiceWall() == null)
-      return SoundMaterialPolicy.defaults();
-
-    return new SoundMaterialPolicy(codex.getVoiceWall());
+    final var wallConfig = codexService.getWallConfig();
+    return new SoundMaterialPolicy(wallConfig);
   }
 
   private static void logMissingCodexService(final @NotNull String context) {
@@ -253,7 +249,7 @@ public final class VoiceRayCast {
   // ------------------- SOUND MATERIAL POLICY ---------------------
   // ###############################################################
 
-  private record SoundMaterialPolicy(Codex.VoiceWall config) {
+  private record SoundMaterialPolicy(WallConfig config) {
 
     static SoundMaterialPolicy defaults() {
       return new SoundMaterialPolicy(null);

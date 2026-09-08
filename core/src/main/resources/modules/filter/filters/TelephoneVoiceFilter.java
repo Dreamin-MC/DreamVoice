@@ -19,10 +19,6 @@ public final class TelephoneVoiceFilter implements VoiceFilter {
   private static final float SAMPLE_RATE = 48000.0f;
   private final Map<UUID, PhoneState> states = new ConcurrentHashMap<>();
 
-  // ##############################################################
-  // ---------------------- SERVICE METHODS -----------------------
-  // ##############################################################
-
   @Override
   public @NotNull String getId() {
     return "telephone";
@@ -51,17 +47,14 @@ public final class TelephoneVoiceFilter implements VoiceFilter {
     for (int i = 0; i < samples.length; i++) {
       final var input = (float) samples[i];
 
-      // 2nd-order Butterworth bandpass (350Hz - 3400Hz)
       final var hp = state.hp.process(input);
       final var lp = state.lp.process(hp);
 
-      // Carbon capsule asymmetrical soft saturation
       var x = lp / 16000.0f;
-      if (x > 0.0f) {
+      if (x > 0.0f)
         x = x - (0.25f * x * x);
-      } else {
+      else
         x = x + (0.12f * x * x);
-      }
       x = (float) Math.tanh(x * 1.25f) * 0.88f;
 
       final var result = x * 22000.0f;
@@ -76,13 +69,9 @@ public final class TelephoneVoiceFilter implements VoiceFilter {
     this.states.remove(playerUuid);
   }
 
-  // ###############################################################
-  // ----------------------- PRIVATE METHODS -----------------------
-  // ###############################################################
-
   private static final class PhoneState {
-    final RadioVoiceFilter.Biquad hp = new RadioVoiceFilter.Biquad();
-    final RadioVoiceFilter.Biquad lp = new RadioVoiceFilter.Biquad();
+    final Biquad hp = new Biquad();
+    final Biquad lp = new Biquad();
 
     PhoneState() {
       this.hp.setHighPass(350.0f, SAMPLE_RATE, 0.707f);
@@ -90,4 +79,43 @@ public final class TelephoneVoiceFilter implements VoiceFilter {
     }
   }
 
+  static final class Biquad {
+    float b0 = 1.0f, b1 = 0.0f, b2 = 0.0f, a1 = 0.0f, a2 = 0.0f;
+    float x1 = 0.0f, x2 = 0.0f, y1 = 0.0f, y2 = 0.0f;
+
+    void setHighPass(final float freq, final float sampleRate, final float q) {
+      final var w0 = 2.0 * Math.PI * freq / sampleRate;
+      final var cos = Math.cos(w0);
+      final var alpha = Math.sin(w0) / (2.0 * q);
+      final var a0 = 1.0 + alpha;
+      this.b0 = (float) ((1.0 + cos) / (2.0 * a0));
+      this.b1 = (float) (-(1.0 + cos) / a0);
+      this.b2 = (float) ((1.0 + cos) / (2.0 * a0));
+      this.a1 = (float) ((-2.0 * cos) / a0);
+      this.a2 = (float) ((1.0 - alpha) / a0);
+    }
+
+    void setLowPass(final float freq, final float sampleRate, final float q) {
+      final var w0 = 2.0 * Math.PI * freq / sampleRate;
+      final var cos = Math.cos(w0);
+      final var alpha = Math.sin(w0) / (2.0 * q);
+      final var a0 = 1.0 + alpha;
+      this.b0 = (float) ((1.0 - cos) / (2.0 * a0));
+      this.b1 = (float) ((1.0 - cos) / a0);
+      this.b2 = (float) ((1.0 - cos) / (2.0 * a0));
+      this.a1 = (float) ((-2.0 * cos) / a0);
+      this.a2 = (float) ((1.0 - alpha) / a0);
+    }
+
+    float process(final float in) {
+      final var out = this.b0 * in + this.b1 * this.x1 + this.b2 * this.x2 - this.a1 * this.y1 - this.a2 * this.y2;
+      this.x2 = this.x1;
+      this.x1 = in;
+      this.y2 = this.y1;
+      this.y1 = out;
+      return out;
+    }
+  }
+
 }
+

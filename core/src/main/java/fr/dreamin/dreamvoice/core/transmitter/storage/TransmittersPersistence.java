@@ -24,11 +24,15 @@ public final class TransmittersPersistence {
     ) {}
   }
 
+  // ###############################################################
+  // ----------------------- STATIC METHODS ------------------------
+  // ###############################################################
+
   public static void save(final @NotNull VoiceTransmitterService service, final @NotNull File targetDir) {
     if (!targetDir.exists())
       targetDir.mkdirs();
 
-    final var file = new File(targetDir, "transmitters.json");
+    final var file = new File(targetDir, "data.json");
     final var dataList = new ArrayList<TransmitterData>();
 
     for (final var player : Bukkit.getOnlinePlayers()) {
@@ -53,9 +57,12 @@ public final class TransmittersPersistence {
   }
 
   public static void load(final @NotNull VoiceTransmitterService service, final @NotNull File targetDir) {
-    final var file = new File(targetDir, "transmitters.json");
-    if (!file.exists())
-      return;
+    var file = new File(targetDir, "data.json");
+    if (!file.exists()) {
+      file = new File(targetDir, "transmitters.json");
+      if (!file.exists())
+        return;
+    }
 
     try {
       final List<TransmitterData> dataList = Configurations.loadJson(file, new TypeReference<>() {});

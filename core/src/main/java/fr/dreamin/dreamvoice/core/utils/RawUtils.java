@@ -155,7 +155,7 @@ public final class RawUtils {
       );
       pb.redirectErrorStream(true);
 
-      Process process = null;
+      Process process;
       try {
         process = pb.start();
       } catch (IOException e) {

@@ -28,11 +28,15 @@ public final class SpeakersPersistence {
     UUID targetEntityUuid
   ) {}
 
+  // ###############################################################
+  // ----------------------- STATIC METHODS ------------------------
+  // ###############################################################
+
   public static void save(final @NotNull VoiceSpeakerService service, final @NotNull File targetDir) {
     if (!targetDir.exists())
       targetDir.mkdirs();
 
-    final var file = new File(targetDir, "speakers.json");
+    final var file = new File(targetDir, "data.json");
     final var dataList = new ArrayList<SpeakerData>();
 
     for (final var speaker : service.getSpeakers()) {
@@ -62,9 +66,12 @@ public final class SpeakersPersistence {
   }
 
   public static void load(final @NotNull File targetDir) {
-    final var file = new File(targetDir, "speakers.json");
-    if (!file.exists())
-      return;
+    var file = new File(targetDir, "data.json");
+    if (!file.exists()) {
+      file = new File(targetDir, "speakers.json");
+      if (!file.exists())
+        return;
+    }
 
     try {
       final List<SpeakerData> dataList = Configurations.loadJson(file, new TypeReference<>() {});

@@ -5,7 +5,6 @@ import de.maxhenkel.voicechat.api.packets.EntitySoundPacket;
 import fr.dreamin.dreamapi.api.event.ToolsEvent;
 import fr.dreamin.dreamvoice.api.player.model.VPlayer;
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import org.jetbrains.annotations.NotNull;
 
 /**

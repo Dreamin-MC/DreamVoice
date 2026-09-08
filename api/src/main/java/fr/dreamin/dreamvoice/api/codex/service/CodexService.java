@@ -1,6 +1,7 @@
 package fr.dreamin.dreamvoice.api.codex.service;
 
 import fr.dreamin.dreamvoice.api.codex.model.Codex;
+import fr.dreamin.dreamvoice.api.wall.model.WallConfig;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -19,5 +20,22 @@ public interface CodexService {
    * @return the active {@link Codex} instance
    */
   @NotNull Codex getConfig();
+
+  /**
+   * Retrieves the acoustic Wall configuration.
+   *
+   * @return the active {@link WallConfig}
+   */
+  @NotNull WallConfig getWallConfig();
+
+  /**
+   * Checks if a module is enabled.
+   *
+   * @param moduleName the module identifier
+   * @return {@code true} if enabled
+   */
+  default boolean isModuleEnabled(final @NotNull String moduleName) {
+    return getConfig().isModuleEnabled(moduleName);
+  }
 
 }

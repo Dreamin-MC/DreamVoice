@@ -21,11 +21,15 @@ public final class RadiosPersistence {
     String filterId
   ) {}
 
+  // ###############################################################
+  // ----------------------- PUBLIC METHODS ------------------------
+  // ###############################################################
+
   public static void save(final @NotNull VoiceRadioService service, final @NotNull File targetDir) {
     if (!targetDir.exists())
       targetDir.mkdirs();
 
-    final var file = new File(targetDir, "radios.json");
+    final var file = new File(targetDir, "data.json");
     final var dataList = new ArrayList<RadioData>();
 
     for (final var channel : service.getChannels()) {
@@ -45,9 +49,12 @@ public final class RadiosPersistence {
   }
 
   public static void load(final @NotNull VoiceRadioService service, final @NotNull File targetDir) {
-    final var file = new File(targetDir, "radios.json");
-    if (!file.exists())
-      return;
+    var file = new File(targetDir, "data.json");
+    if (!file.exists()) {
+      file = new File(targetDir, "radios.json");
+      if (!file.exists())
+        return;
+    }
 
     try {
       final List<RadioData> dataList = Configurations.loadJson(file, new TypeReference<>() {});

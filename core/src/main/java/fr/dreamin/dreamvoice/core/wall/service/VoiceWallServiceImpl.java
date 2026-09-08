@@ -10,6 +10,7 @@ import fr.dreamin.dreamvoice.api.codex.service.CodexService;
 import fr.dreamin.dreamvoice.api.filter.service.VoiceFilterService;
 import fr.dreamin.dreamvoice.api.player.model.VPlayer;
 import fr.dreamin.dreamvoice.api.player.service.PlayerService;
+import fr.dreamin.dreamvoice.api.room.service.VoiceRoomService;
 import fr.dreamin.dreamvoice.api.wall.model.VoiceWallMode;
 import fr.dreamin.dreamvoice.api.wall.event.VoiceWallOcclusionEvent;
 import fr.dreamin.dreamvoice.api.wall.service.VoiceWallService;
@@ -207,10 +208,17 @@ public final class VoiceWallServiceImpl extends Tick implements VoiceWallService
     final var hasFilters = filterService != null && filterService.hasActiveFilters(senderUuid);
 
     var totalDbLoss = 0.0;
-    if (this.enable) {
+
+    final var roomService = DreamVoice.getService(VoiceRoomService.class);
+    if (roomService != null) {
+      final var roomLoss = roomService.calculateRoomAttenuationDb(senderUuid, vReceiver.getUuid());
+      totalDbLoss += roomLoss;
+    }
+
+    if (this.enable && totalDbLoss < 99.0) {
       final var wallManager = vReceiver.getManager(VoiceWallManager.class);
       if (wallManager != null)
-        totalDbLoss = wallManager.getTotalAttenuationDb(vSender);
+        totalDbLoss += wallManager.getTotalAttenuationDb(vSender);
 
       if (Math.abs(totalDbLoss) > 0.001) {
         final var occlusionEvent = new VoiceWallOcclusionEvent(

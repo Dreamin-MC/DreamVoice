@@ -1,0 +1,60 @@
+{
+  "enabled": true,
+  "persistence": {
+    "saveOnStop": true,
+    "autoSave": true,
+    "autoSaveIntervalSeconds": 300
+  },
+  "presets": {
+    "soundproof": {
+      "id": "soundproof",
+      "name": "Soundproof Booth",
+      "isolationPct": 100,
+      "reverb": {
+        "enabled": false,
+        "decay": 0.1,
+        "roomSizeMs": 50,
+        "wetGain": 0.0
+      },
+      "filters": []
+    },
+    "studio": {
+      "id": "studio",
+      "name": "Recording Studio",
+      "isolationPct": 90,
+      "reverb": {
+        "enabled": true,
+        "decay": 0.2,
+        "roomSizeMs": 80,
+        "wetGain": 0.15
+      },
+      "filters": []
+    },
+    "cathedral": {
+      "id": "cathedral",
+      "name": "Cathedral Hall",
+      "isolationPct": 40,
+      "reverb": {
+        "enabled": true,
+        "decay": 0.8,
+        "roomSizeMs": 350,
+        "wetGain": 0.55
+      },
+      "filters": []
+    },
+    "bunker": {
+      "id": "bunker",
+      "name": "Armored Bunker",
+      "isolationPct": 95,
+      "reverb": {
+        "enabled": true,
+        "decay": 0.4,
+        "roomSizeMs": 100,
+        "wetGain": 0.25
+      },
+      "filters": [
+        "muffled"
+      ]
+    }
+  }
+}

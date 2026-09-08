@@ -11,13 +11,13 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * DSP audio filter simulating a high-pitch helium voice effect (+6.4 semitones) using smooth dual-grain synthesis.
- * Uses 40ms grains with Hann windowing (constant 1.0 sum) and linear interpolation to eliminate 50Hz buzzing and clicks.
+ * DSP audio filter simulating a deep monster / bass voice effect (-6.5 semitones) using smooth dual-grain synthesis.
+ * Uses 40ms grains with Hann windowing (constant 1.0 sum) and linear interpolation to eliminate low-frequency buzz and grain boundary clicks.
  */
-public final class HeliumVoiceFilter implements VoiceFilter {
+public final class DeepVoiceFilter implements VoiceFilter {
 
-  private static final int GRAIN_SIZE = 1920; // 40ms grain at 48kHz (removes 50Hz buzz)
-  private static final float PITCH_RATIO = 1.45f; // +6.4 semitones (high pitch)
+  private static final int GRAIN_SIZE = 1920; // 40ms grain at 48kHz (removes grain buzz)
+  private static final float PITCH_RATIO = 0.68f; // -6.5 semitones (monster / deep voice)
   private static final double TWO_PI = 2.0 * Math.PI;
 
   private final Map<UUID, PitchState> states = new ConcurrentHashMap<>();
@@ -28,12 +28,12 @@ public final class HeliumVoiceFilter implements VoiceFilter {
 
   @Override
   public @NotNull String getId() {
-    return "helium";
+    return "deep";
   }
 
   @Override
   public @NotNull String getName() {
-    return "Helium (High Pitch)";
+    return "Deep Voice (Monster)";
   }
 
   @Override
@@ -110,3 +110,5 @@ public final class HeliumVoiceFilter implements VoiceFilter {
   }
 
 }
+
+

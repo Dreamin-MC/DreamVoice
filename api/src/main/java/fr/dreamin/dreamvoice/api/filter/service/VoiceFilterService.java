@@ -1,5 +1,6 @@
 package fr.dreamin.dreamvoice.api.filter.service;
 
+import fr.dreamin.dreamvoice.api.filter.annotation.AutoVoiceFilter;
 import fr.dreamin.dreamvoice.api.filter.model.VoiceFilter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -104,6 +105,44 @@ public interface VoiceFilterService {
    * @param enabled    whether auto-environment should be enabled
    */
   void setAutoEnvironmentEnabled(final @NotNull UUID playerUuid, final boolean enabled);
+
+  /**
+   * Automatically discovers, instantiates, and registers all {@link VoiceFilter} classes
+   * annotated with {@link AutoVoiceFilter} from the given collection.
+   *
+   * @param classes collection of classes to scan
+   * @return list of successfully instantiated and registered filters
+   */
+  @NotNull List<VoiceFilter> registerAnnotatedFilters(final @NotNull Collection<Class<?>> classes);
+
+  /**
+   * Reloads all filters from the configuration/file filter directory.
+   */
+  void reloadFilters();
+
+  /**
+   * Returns the directory where file-based filters (.yml, .json, .java) are located.
+   *
+   * @return directory file
+   */
+  @NotNull java.io.File getFilterDirectory();
+
+  /**
+   * Loads or compiles a voice filter from a file (.yml, .json, or .java).
+   *
+   * @param file the source file
+   * @return the loaded voice filter, or null if loading failed
+   */
+  @Nullable VoiceFilter loadFilterFromFile(final @NotNull java.io.File file);
+
+  /**
+   * Exports an existing registered filter to disk in the specified format (yml, json, java).
+   *
+   * @param filterId the identifier of the filter to export
+   * @param format   target format ("yml", "json", "java")
+   * @return the exported File on disk, or null if export failed or filter was not found
+   */
+  @Nullable java.io.File exportFilter(final @NotNull String filterId, final @NotNull String format);
 
   /**
    * Passes raw PCM samples through the player's active filter chain and returns processed audio.

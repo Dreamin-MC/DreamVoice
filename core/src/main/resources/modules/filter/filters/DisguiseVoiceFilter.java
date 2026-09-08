@@ -11,16 +11,19 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * DSP audio filter simulating a deep monster / bass voice effect (-6.5 semitones) using smooth dual-grain synthesis.
- * Uses 40ms grains with Hann windowing (constant 1.0 sum) and linear interpolation to eliminate low-frequency buzz and grain boundary clicks.
+ * Disguise / Anonymizer voice filter.
+ * Obscures the speaker's vocal identity and formant timbre using smooth pitch shifting, sideband wobble, and subtle saturation.
+ * Features per-player state, circular buffer, Hann windowing, and linear interpolation.
  */
-public final class DeepVoiceFilter implements VoiceFilter {
+public final class DisguiseVoiceFilter implements VoiceFilter {
 
-  private static final int GRAIN_SIZE = 1920; // 40ms grain at 48kHz (removes grain buzz)
-  private static final float PITCH_RATIO = 0.68f; // -6.5 semitones (monster / deep voice)
+  private static final int SAMPLE_RATE = 48000;
+  private static final int GRAIN_SIZE = 1920; // 40ms grains at 48kHz
+  private static final float PITCH_FACTOR = 0.78f; // Deep anonymizing shift
   private static final double TWO_PI = 2.0 * Math.PI;
+  private static final double LFO_INC = (TWO_PI * 18.0) / SAMPLE_RATE;
 
-  private final Map<UUID, PitchState> states = new ConcurrentHashMap<>();
+  private final Map<UUID, DisguiseState> states = new ConcurrentHashMap<>();
 
   // ##############################################################
   // ---------------------- SERVICE METHODS -----------------------
@@ -28,17 +31,17 @@ public final class DeepVoiceFilter implements VoiceFilter {
 
   @Override
   public @NotNull String getId() {
-    return "deep";
+    return "disguise";
   }
 
   @Override
   public @NotNull String getName() {
-    return "Deep Voice (Monster)";
+    return "Disguise / Anonymizer";
   }
 
   @Override
   public int getPriority() {
-    return 40;
+    return 35;
   }
 
   @Override
@@ -47,7 +50,7 @@ public final class DeepVoiceFilter implements VoiceFilter {
       return samples;
 
     final var uuid = player != null ? player.getUuid() : new UUID(0, 0);
-    final var state = this.states.computeIfAbsent(uuid, _ -> new PitchState());
+    final var state = this.states.computeIfAbsent(uuid, _ -> new DisguiseState());
 
     final var output = new short[samples.length];
 
@@ -59,8 +62,33 @@ public final class DeepVoiceFilter implements VoiceFilter {
       if (state.phase1 >= GRAIN_SIZE)
         state.phase1 -= GRAIN_SIZE;
 
-      final var out = getOut(state);
-      output[i] = (short) Math.clamp(Math.round(out), Short.MIN_VALUE, Short.MAX_VALUE);
+      final var phase2 = (state.phase1 + (GRAIN_SIZE / 2.0f)) % GRAIN_SIZE;
+
+      // Hann windows (constant 1.0 sum)
+      final var w1 = 0.5f * (1.0f - (float) Math.cos(TWO_PI * state.phase1 / GRAIN_SIZE));
+      final var w2 = 0.5f * (1.0f - (float) Math.cos(TWO_PI * phase2 / GRAIN_SIZE));
+
+      final var offset1 = state.phase1 * (PITCH_FACTOR - 1.0f);
+      final var offset2 = phase2 * (PITCH_FACTOR - 1.0f);
+
+      final var s1 = state.readInterpolated(state.writePos - offset1);
+      final var s2 = state.readInterpolated(state.writePos - offset2);
+
+      var blended = (s1 * w1) + (s2 * w2);
+
+      // Subtle pitch wobble (18 Hz)
+      state.lfoPhase += LFO_INC;
+      if (state.lfoPhase >= TWO_PI)
+        state.lfoPhase -= TWO_PI;
+
+      final var wobble = 0.90f + 0.10f * (float) Math.sin(state.lfoPhase);
+      blended *= wobble;
+
+      // Soft saturation to obscure natural harmonic overtone profile
+      var norm = blended / 32768.0f;
+      norm = (float) Math.tanh(norm * 1.35f) * 0.88f;
+
+      output[i] = (short) Math.clamp(Math.round(norm * 32767.0f), Short.MIN_VALUE, Short.MAX_VALUE);
     }
 
     return output;
@@ -75,26 +103,11 @@ public final class DeepVoiceFilter implements VoiceFilter {
   // ----------------------- PRIVATE METHODS -----------------------
   // ###############################################################
 
-  private static float getOut(final PitchState state) {
-    final var phase2 = (state.phase1 + (GRAIN_SIZE / 2.0f)) % GRAIN_SIZE;
-
-    // Hann windows: strictly sums to 1.0 with zero derivative at boundaries
-    final var w1 = 0.5f * (1.0f - (float) Math.cos(TWO_PI * state.phase1 / GRAIN_SIZE));
-    final var w2 = 0.5f * (1.0f - (float) Math.cos(TWO_PI * phase2 / GRAIN_SIZE));
-
-    final var offset1 = state.phase1 * (PITCH_RATIO - 1.0f);
-    final var offset2 = phase2 * (PITCH_RATIO - 1.0f);
-
-    final var s1 = state.readInterpolated(state.writePos - offset1);
-    final var s2 = state.readInterpolated(state.writePos - offset2);
-
-    return (s1 * w1) + (s2 * w2);
-  }
-
-  private static final class PitchState {
+  private static final class DisguiseState {
     final float[] buffer = new float[GRAIN_SIZE];
     int writePos = 0;
     float phase1 = 0.0f;
+    double lfoPhase = 0.0;
 
     float readInterpolated(float readPos) {
       while (readPos < 0.0f)
@@ -110,3 +123,5 @@ public final class DeepVoiceFilter implements VoiceFilter {
   }
 
 }
+
+

@@ -28,11 +28,15 @@ public final class WiretapsPersistence {
     UUID targetEntityUuid
   ) {}
 
+  // ###############################################################
+  // ----------------------- STATIC METHODS ------------------------
+  // ###############################################################
+
   public static void save(final @NotNull VoiceWiretapService service, final @NotNull File targetDir) {
     if (!targetDir.exists())
       targetDir.mkdirs();
 
-    final var file = new File(targetDir, "wiretaps.json");
+    final var file = new File(targetDir, "data.json");
     final var dataList = new ArrayList<WiretapData>();
 
     for (final var wiretap : service.getWiretaps()) {
@@ -63,9 +67,12 @@ public final class WiretapsPersistence {
   }
 
   public static void load(final @NotNull VoiceWiretapService service, final @NotNull File targetDir) {
-    final var file = new File(targetDir, "wiretaps.json");
-    if (!file.exists())
-      return;
+    var file = new File(targetDir, "data.json");
+    if (!file.exists()) {
+      file = new File(targetDir, "wiretaps.json");
+      if (!file.exists())
+        return;
+    }
 
     try {
       final List<WiretapData> dataList = Configurations.loadJson(file, new TypeReference<>() {});

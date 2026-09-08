@@ -30,11 +30,15 @@ public final class ProjectionsPersistence {
     UUID anchorEntityUuid
   ) {}
 
+  // ###############################################################
+  // ----------------------- STATIC METHODS ------------------------
+  // ###############################################################
+
   public static void save(final @NotNull VoiceProjectionService service, final @NotNull File targetDir) {
     if (!targetDir.exists())
       targetDir.mkdirs();
 
-    final var file = new File(targetDir, "projections.json");
+    final var file = new File(targetDir, "data.json");
     final var dataList = new ArrayList<ProjectionData>();
 
     for (final var projection : service.getProjections()) {
@@ -68,9 +72,12 @@ public final class ProjectionsPersistence {
   }
 
   public static void load(final @NotNull VoiceProjectionService service, final @NotNull File targetDir) {
-    final var file = new File(targetDir, "projections.json");
-    if (!file.exists())
-      return;
+    var file = new File(targetDir, "data.json");
+    if (!file.exists()) {
+      file = new File(targetDir, "projections.json");
+      if (!file.exists())
+        return;
+    }
 
     try {
       final List<ProjectionData> dataList = Configurations.loadJson(file, new TypeReference<>() {});
