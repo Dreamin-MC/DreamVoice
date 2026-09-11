@@ -345,6 +345,45 @@ public final class VoiceWallServiceImpl extends Tick implements VoiceWallService
     return player.getUuid().toString().substring(0, 8);
   }
 
+  @Override
+  public double getAttenuationDb(final @NotNull Player speaker, final @NotNull Player listener) {
+    return getAttenuationDb(speaker.getUniqueId(), listener.getUniqueId());
+  }
+
+  @Override
+  public double getAttenuationDb(final @NotNull UUID speakerUuid, final @NotNull UUID listenerUuid) {
+    var totalDbLoss = 0.0;
+
+    final var roomService = DreamVoice.getService(VoiceRoomService.class);
+    if (roomService != null) {
+      final var roomLoss = roomService.calculateRoomAttenuationDb(speakerUuid, listenerUuid);
+      totalDbLoss += roomLoss;
+      if (totalDbLoss >= 99.0)
+        return 100.0;
+    }
+
+    if (this.enable) {
+      final var vReceiver = this.playerService.getPlayer(listenerUuid);
+      final var vSender = this.playerService.getPlayer(speakerUuid);
+      if (vReceiver != null && vSender != null) {
+        final var wallManager = vReceiver.getManager(VoiceWallManager.class);
+        if (wallManager != null) {
+          totalDbLoss += wallManager.getTotalAttenuationDb(vSender);
+        } else {
+          final var pSender = vSender.getBukkitPlayer();
+          final var pReceiver = vReceiver.getBukkitPlayer();
+          if (pSender != null && pReceiver != null && pSender.getWorld().equals(pReceiver.getWorld())) {
+            final var ray = VoiceRayCast.check(pSender, pReceiver);
+            if (!ray.lineOfSight())
+              totalDbLoss += ray.totalAttenuation();
+          }
+        }
+      }
+    }
+
+    return Math.min(100.0, totalDbLoss);
+  }
+
   // ###############################################################
   // ------------------- PRIVATE HELPER METHODS --------------------
   // ###############################################################

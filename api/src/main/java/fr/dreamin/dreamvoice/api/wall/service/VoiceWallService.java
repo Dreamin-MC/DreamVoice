@@ -127,4 +127,22 @@ public interface VoiceWallService {
     final @NotNull VoicechatConnection receiverConn
   );
 
+  /**
+   * Calculates the combined acoustic decibel loss (room isolation + wall material occlusion) between two players.
+   *
+   * @param speaker  the speaking player
+   * @param listener the listening player
+   * @return decibel attenuation in dB (>= 99.0 dB indicates sound is completely blocked)
+   */
+  double getAttenuationDb(final @NotNull Player speaker, final @NotNull Player listener);
+
+  /**
+   * Calculates the combined acoustic decibel loss (room isolation + wall material occlusion) between two players by UUID.
+   *
+   * @param speakerUuid  the speaking player UUID
+   * @param listenerUuid the listening player UUID
+   * @return decibel attenuation in dB (>= 99.0 dB indicates sound is completely blocked)
+   */
+  double getAttenuationDb(final @NotNull UUID speakerUuid, final @NotNull UUID listenerUuid);
+
 }

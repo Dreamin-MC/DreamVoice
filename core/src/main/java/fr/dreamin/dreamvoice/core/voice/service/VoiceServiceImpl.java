@@ -198,6 +198,127 @@ public final class VoiceServiceImpl implements VoiceService, VoicechatPlugin, Li
     return this.encoders.computeIfAbsent(uuid, _ -> this.api.createEncoder());
   }
 
+  @Override
+  public boolean canHear(final @NotNull org.bukkit.entity.Player speaker, final @NotNull org.bukkit.entity.Player listener) {
+    return canHear(speaker.getUniqueId(), listener.getUniqueId());
+  }
+
+  @Override
+  public boolean canHear(final @NotNull UUID speakerUuid, final @NotNull UUID listenerUuid) {
+    if (speakerUuid.equals(listenerUuid))
+      return true;
+
+    // 1. Point-to-point transmitter channel
+    final var transmitterService = DreamVoice.getService(VoiceTransmitterService.class);
+    if (transmitterService != null && transmitterService.isTransmitter(speakerUuid)) {
+      for (final var cfg : transmitterService.getReceivers(speakerUuid)) {
+        if (cfg.getUuid().equals(listenerUuid)) {
+          if (!cfg.hasMaxDistance())
+            return true;
+          final var sp = Bukkit.getPlayer(speakerUuid);
+          final var lp = Bukkit.getPlayer(listenerUuid);
+          if (sp != null && lp != null && sp.isOnline() && lp.isOnline() && sp.getWorld().equals(lp.getWorld())) {
+            if (cfg.getMaxDistance() != null && sp.getLocation().distance(lp.getLocation()) <= cfg.getMaxDistance())
+              return true;
+          }
+        }
+      }
+    }
+
+    // 2. Shared radio channel
+    final var radioService = DreamVoice.getService(VoiceRadioService.class);
+    if (radioService != null) {
+      final var sChan = radioService.getChannelOfPlayer(speakerUuid);
+      final var lChan = radioService.getChannelOfPlayer(listenerUuid);
+      if (sChan != null && lChan != null && sChan.getName().equalsIgnoreCase(lChan.getName()))
+        return true;
+    }
+
+    // 3. Proximity voice chat
+    return canHearProximity(speakerUuid, listenerUuid);
+  }
+
+  @Override
+  public boolean canHearProximity(final @NotNull org.bukkit.entity.Player speaker, final @NotNull org.bukkit.entity.Player listener) {
+    return canHearProximity(speaker.getUniqueId(), listener.getUniqueId());
+  }
+
+  @Override
+  public boolean canHearProximity(final @NotNull UUID speakerUuid, final @NotNull UUID listenerUuid) {
+    if (speakerUuid.equals(listenerUuid))
+      return true;
+
+    final var speakerPlayer = Bukkit.getPlayer(speakerUuid);
+    final var listenerPlayer = Bukkit.getPlayer(listenerUuid);
+    if (speakerPlayer == null || listenerPlayer == null || !speakerPlayer.isOnline() || !listenerPlayer.isOnline())
+      return false;
+
+    // SVC connection check
+    if (this.api != null) {
+      final var senderConn = this.api.getConnectionOf(speakerUuid);
+      final var receiverConn = this.api.getConnectionOf(listenerUuid);
+      if (!hasValidConnections(senderConn, receiverConn))
+        return false;
+    }
+
+    // Dead / Alive / Spectator states
+    final var vSender = this.playerService.getPlayer(speakerUuid);
+    final var vReceiver = this.playerService.getPlayer(listenerUuid);
+    if (vSender == null || vReceiver == null)
+      return false;
+
+    if (!canHear(vSender.getState(), vReceiver.getState()))
+      return false;
+
+    // Body anchor projection constraints
+    final var projectionService = DreamVoice.getService(VoiceProjectionService.class);
+    var effectiveSpeakerLoc = speakerPlayer.getLocation();
+    if (projectionService != null) {
+      final var projection = projectionService.getProjection(speakerUuid);
+      if (projection != null) {
+        if (!projection.isEmitVoiceAtPlayer() && !projection.isEmitVoiceAtAnchor())
+          return false;
+        if (!projection.isEmitVoiceAtPlayer())
+          effectiveSpeakerLoc = projection.getAnchorLocation();
+      }
+
+      final var receiverProjection = projectionService.getProjection(listenerUuid);
+      if (receiverProjection != null && !receiverProjection.isHearPlayerEnvironment())
+        return false;
+    }
+
+    if (!speakerPlayer.getWorld().equals(listenerPlayer.getWorld()) && !effectiveSpeakerLoc.getWorld().equals(listenerPlayer.getWorld()))
+      return false;
+
+    // Distance check
+    final var codexService = DreamVoice.getService(fr.dreamin.dreamvoice.api.codex.service.CodexService.class);
+    final var maxDist = codexService != null ? codexService.getConfig().getEffectiveDistance() : 16.0;
+    final var dist = effectiveSpeakerLoc.distance(listenerPlayer.getLocation());
+    if (dist > maxDist)
+      return false;
+
+    // Acoustic attenuation (VoiceWall & soundproof rooms)
+    final var attenuation = getEffectiveAttenuationDb(speakerUuid, listenerUuid);
+    return attenuation < 99.0;
+  }
+
+  @Override
+  public double getEffectiveAttenuationDb(final @NotNull org.bukkit.entity.Player speaker, final @NotNull org.bukkit.entity.Player listener) {
+    return getEffectiveAttenuationDb(speaker.getUniqueId(), listener.getUniqueId());
+  }
+
+  @Override
+  public double getEffectiveAttenuationDb(final @NotNull UUID speakerUuid, final @NotNull UUID listenerUuid) {
+    if (speakerUuid.equals(listenerUuid))
+      return 0.0;
+
+    final var wallService = DreamVoice.getService(VoiceWallService.class);
+    if (wallService != null)
+      return wallService.getAttenuationDb(speakerUuid, listenerUuid);
+
+    return 0.0;
+  }
+
   // ###############################################################
   // ------------------- PRIVATE HELPER METHODS --------------------
   // ###############################################################

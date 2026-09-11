@@ -5,6 +5,8 @@ import de.maxhenkel.voicechat.api.VolumeCategory;
 import de.maxhenkel.voicechat.api.audiochannel.StaticAudioChannel;
 import de.maxhenkel.voicechat.api.opus.OpusEncoder;
 import fr.dreamin.dreamvoice.api.filter.service.VoiceFilterService;
+import fr.dreamin.dreamvoice.api.projection.model.VoiceProjection;
+import fr.dreamin.dreamvoice.api.projection.service.VoiceProjectionService;
 import fr.dreamin.dreamvoice.api.recording.model.VoiceRecording;
 import fr.dreamin.dreamvoice.api.recording.service.VoiceRecordingService;
 import fr.dreamin.dreamvoice.api.voice.event.MicrophonePacketEvent;
@@ -299,25 +301,26 @@ public final class VoiceWiretapServiceImpl implements VoiceWiretapService, Liste
 
   private void processSingleWiretapCapture(
     final @NotNull VoiceWiretap wiretap,
-    final @NotNull Player senderPlayer,
+    final @NotNull Location emissionLoc,
     final @NotNull UUID senderUuid,
     final byte[] rawOpus,
+    final @Nullable String extraFilterId,
     final @NotNull VoiceService voiceService,
     final @Nullable VoiceWallService wallService,
     final @Nullable VoiceFilterService filterService
   ) {
     final var wtLoc = wiretap.getLocation();
     final var wtWorld = wtLoc.getWorld();
-    if (wtWorld == null || !wtWorld.equals(senderPlayer.getWorld()))
+    if (wtWorld == null || emissionLoc.getWorld() == null || !wtWorld.equals(emissionLoc.getWorld()))
       return;
 
-    final var dist = senderPlayer.getLocation().distance(wtLoc);
+    final var dist = emissionLoc.distance(wtLoc);
     if (dist > wiretap.getDistance())
       return;
 
     var totalDbLoss = 0.0;
     if (wiretap.isApplyVoiceWall() && wallService != null && wallService.isEnable()) {
-      final var ray = VoiceRayCast.check(senderPlayer.getEyeLocation(), wtLoc);
+      final var ray = VoiceRayCast.check(emissionLoc, wtLoc);
       if (ray.isBlocked())
         totalDbLoss = ray.totalAttenuation();
     }
@@ -344,8 +347,13 @@ public final class VoiceWiretapServiceImpl implements VoiceWiretapService, Liste
         final var filter = filterService.getFilter(filterId);
         if (filter != null)
           processed = filter.process(processed, null);
-      } else if (filterService != null && filterService.hasActiveFilters(senderUuid))
+      } else if (extraFilterId != null && filterService != null && !extraFilterId.equalsIgnoreCase("none")) {
+        final var filter = filterService.getFilter(extraFilterId);
+        if (filter != null)
+          processed = filter.process(processed, null);
+      } else if (filterService != null && filterService.hasActiveFilters(senderUuid)) {
         processed = filterService.applyFilters(senderUuid, processed);
+      }
 
       final var wallGain = (float) Math.pow(10.0, -totalDbLoss / 20.0);
       final var combinedGain = wallGain * distGain;
@@ -433,6 +441,7 @@ public final class VoiceWiretapServiceImpl implements VoiceWiretapService, Liste
     final var voiceService = DreamVoice.getService(VoiceService.class);
     final var wallService = DreamVoice.getService(VoiceWallService.class);
     final var filterService = DreamVoice.getService(VoiceFilterService.class);
+    final var projectionService = DreamVoice.getService(VoiceProjectionService.class);
     if (voiceService == null) {
       if (!this.voiceServiceMissingLogged) {
         this.voiceServiceMissingLogged = true;
@@ -441,8 +450,24 @@ public final class VoiceWiretapServiceImpl implements VoiceWiretapService, Liste
       return;
     }
 
-    for (final var wiretap : this.wiretaps.values())
-      processSingleWiretapCapture(wiretap, senderPlayer, senderUuid, rawOpus, voiceService, wallService, filterService);
+    // 1. Direct physical player voice (if no projection or emitVoiceAtPlayer is true)
+    final var projection = projectionService != null ? projectionService.getProjection(senderUuid) : null;
+    final var emitsPhysically = projection == null || projection.isEmitVoiceAtPlayer();
+    if (emitsPhysically) {
+      final var eyeLoc = senderPlayer.getEyeLocation();
+      for (final var wiretap : this.wiretaps.values()) {
+        processSingleWiretapCapture(wiretap, eyeLoc, senderUuid, rawOpus, null, voiceService, wallService, filterService);
+      }
+    }
+
+    // 2. Projected voice at anchor location (if projection is active and emitVoiceAtAnchor is true)
+    if (projection != null && projection.isEmitVoiceAtAnchor()) {
+      final var anchorLoc = projection.getAnchorLocation();
+      final var projFilter = projection.getFilterId();
+      for (final var wiretap : this.wiretaps.values()) {
+        processSingleWiretapCapture(wiretap, anchorLoc, senderUuid, rawOpus, projFilter, voiceService, wallService, filterService);
+      }
+    }
   }
 
   @EventHandler
