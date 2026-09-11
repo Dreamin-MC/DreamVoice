@@ -4,6 +4,7 @@ import de.maxhenkel.voicechat.api.VoicechatServerApi;
 import de.maxhenkel.voicechat.api.opus.OpusDecoder;
 import de.maxhenkel.voicechat.api.opus.OpusEncoder;
 import fr.dreamin.dreamvoice.api.voice.model.VoiceSoundBuilder;
+import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Set;
@@ -110,7 +111,7 @@ public interface VoiceService {
    * @param listener the listening player
    * @return {@code true} if the listener can hear the speaker
    */
-  boolean canHear(final @NotNull org.bukkit.entity.Player speaker, final @NotNull org.bukkit.entity.Player listener);
+  boolean canHear(final @NotNull Player speaker, final @NotNull Player listener);
 
   /**
    * Checks whether a listener can hear a speaker through any voice communication channel by UUID.
@@ -130,7 +131,7 @@ public interface VoiceService {
    * @param listener the listening player
    * @return {@code true} if proximity audio is audible
    */
-  boolean canHearProximity(final @NotNull org.bukkit.entity.Player speaker, final @NotNull org.bukkit.entity.Player listener);
+  boolean canHearProximity(final @NotNull Player speaker, final @NotNull Player listener);
 
   /**
    * Checks whether a listener can hear a speaker specifically in proximity voice chat by UUID.
@@ -148,7 +149,7 @@ public interface VoiceService {
    * @param listener the listening player
    * @return decibel loss in dB (>= 99.0 dB indicates sound is completely blocked)
    */
-  double getEffectiveAttenuationDb(final @NotNull org.bukkit.entity.Player speaker, final @NotNull org.bukkit.entity.Player listener);
+  double getEffectiveAttenuationDb(final @NotNull Player speaker, final @NotNull Player listener);
 
   /**
    * Calculates the effective acoustic attenuation (decibel loss) between two players by UUID.

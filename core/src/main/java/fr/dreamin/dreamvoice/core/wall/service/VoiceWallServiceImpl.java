@@ -367,9 +367,9 @@ public final class VoiceWallServiceImpl extends Tick implements VoiceWallService
       final var vSender = this.playerService.getPlayer(speakerUuid);
       if (vReceiver != null && vSender != null) {
         final var wallManager = vReceiver.getManager(VoiceWallManager.class);
-        if (wallManager != null) {
+        if (wallManager != null)
           totalDbLoss += wallManager.getTotalAttenuationDb(vSender);
-        } else {
+        else {
           final var pSender = vSender.getBukkitPlayer();
           final var pReceiver = vReceiver.getBukkitPlayer();
           if (pSender != null && pReceiver != null && pSender.getWorld().equals(pReceiver.getWorld())) {

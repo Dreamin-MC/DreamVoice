@@ -9,6 +9,7 @@ import de.maxhenkel.voicechat.api.events.SoundPacketEvent;
 import de.maxhenkel.voicechat.api.events.VoicechatServerStartedEvent;
 import de.maxhenkel.voicechat.api.opus.OpusDecoder;
 import de.maxhenkel.voicechat.api.opus.OpusEncoder;
+import fr.dreamin.dreamvoice.api.codex.service.CodexService;
 import fr.dreamin.dreamvoice.api.persistence.service.VoicePersistenceService;
 import fr.dreamin.dreamvoice.api.player.model.PlayerState;
 import fr.dreamin.dreamvoice.api.player.service.PlayerService;
@@ -24,6 +25,7 @@ import fr.dreamin.dreamvoice.api.wall.service.VoiceWallService;
 import fr.dreamin.dreamvoice.api.wiretap.service.VoiceWiretapService;
 import fr.dreamin.dreamvoice.core.DreamVoice;
 import org.bukkit.Bukkit;
+import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerQuitEvent;
@@ -199,7 +201,7 @@ public final class VoiceServiceImpl implements VoiceService, VoicechatPlugin, Li
   }
 
   @Override
-  public boolean canHear(final @NotNull org.bukkit.entity.Player speaker, final @NotNull org.bukkit.entity.Player listener) {
+  public boolean canHear(final @NotNull Player speaker, final @NotNull Player listener) {
     return canHear(speaker.getUniqueId(), listener.getUniqueId());
   }
 
@@ -210,20 +212,17 @@ public final class VoiceServiceImpl implements VoiceService, VoicechatPlugin, Li
 
     // 1. Point-to-point transmitter channel
     final var transmitterService = DreamVoice.getService(VoiceTransmitterService.class);
-    if (transmitterService != null && transmitterService.isTransmitter(speakerUuid)) {
-      for (final var cfg : transmitterService.getReceivers(speakerUuid)) {
+    if (transmitterService != null && transmitterService.isTransmitter(speakerUuid))
+      for (final var cfg : transmitterService.getReceivers(speakerUuid))
         if (cfg.getUuid().equals(listenerUuid)) {
           if (!cfg.hasMaxDistance())
             return true;
           final var sp = Bukkit.getPlayer(speakerUuid);
           final var lp = Bukkit.getPlayer(listenerUuid);
-          if (sp != null && lp != null && sp.isOnline() && lp.isOnline() && sp.getWorld().equals(lp.getWorld())) {
+          if (sp != null && lp != null && sp.isOnline() && lp.isOnline() && sp.getWorld().equals(lp.getWorld()))
             if (cfg.getMaxDistance() != null && sp.getLocation().distance(lp.getLocation()) <= cfg.getMaxDistance())
               return true;
-          }
         }
-      }
-    }
 
     // 2. Shared radio channel
     final var radioService = DreamVoice.getService(VoiceRadioService.class);
@@ -239,7 +238,7 @@ public final class VoiceServiceImpl implements VoiceService, VoicechatPlugin, Li
   }
 
   @Override
-  public boolean canHearProximity(final @NotNull org.bukkit.entity.Player speaker, final @NotNull org.bukkit.entity.Player listener) {
+  public boolean canHearProximity(final @NotNull Player speaker, final @NotNull Player listener) {
     return canHearProximity(speaker.getUniqueId(), listener.getUniqueId());
   }
 
@@ -291,7 +290,7 @@ public final class VoiceServiceImpl implements VoiceService, VoicechatPlugin, Li
       return false;
 
     // Distance check
-    final var codexService = DreamVoice.getService(fr.dreamin.dreamvoice.api.codex.service.CodexService.class);
+    final var codexService = DreamVoice.getService(CodexService.class);
     final var maxDist = codexService != null ? codexService.getConfig().getEffectiveDistance() : 16.0;
     final var dist = effectiveSpeakerLoc.distance(listenerPlayer.getLocation());
     if (dist > maxDist)
@@ -303,7 +302,7 @@ public final class VoiceServiceImpl implements VoiceService, VoicechatPlugin, Li
   }
 
   @Override
-  public double getEffectiveAttenuationDb(final @NotNull org.bukkit.entity.Player speaker, final @NotNull org.bukkit.entity.Player listener) {
+  public double getEffectiveAttenuationDb(final @NotNull Player speaker, final @NotNull Player listener) {
     return getEffectiveAttenuationDb(speaker.getUniqueId(), listener.getUniqueId());
   }
 

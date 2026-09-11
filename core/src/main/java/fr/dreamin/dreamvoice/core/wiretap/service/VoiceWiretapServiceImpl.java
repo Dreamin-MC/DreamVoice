@@ -351,9 +351,8 @@ public final class VoiceWiretapServiceImpl implements VoiceWiretapService, Liste
         final var filter = filterService.getFilter(extraFilterId);
         if (filter != null)
           processed = filter.process(processed, null);
-      } else if (filterService != null && filterService.hasActiveFilters(senderUuid)) {
+      } else if (filterService != null && filterService.hasActiveFilters(senderUuid))
         processed = filterService.applyFilters(senderUuid, processed);
-      }
 
       final var wallGain = (float) Math.pow(10.0, -totalDbLoss / 20.0);
       final var combinedGain = wallGain * distGain;
@@ -455,18 +454,16 @@ public final class VoiceWiretapServiceImpl implements VoiceWiretapService, Liste
     final var emitsPhysically = projection == null || projection.isEmitVoiceAtPlayer();
     if (emitsPhysically) {
       final var eyeLoc = senderPlayer.getEyeLocation();
-      for (final var wiretap : this.wiretaps.values()) {
+      for (final var wiretap : this.wiretaps.values())
         processSingleWiretapCapture(wiretap, eyeLoc, senderUuid, rawOpus, null, voiceService, wallService, filterService);
-      }
     }
 
     // 2. Projected voice at anchor location (if projection is active and emitVoiceAtAnchor is true)
     if (projection != null && projection.isEmitVoiceAtAnchor()) {
       final var anchorLoc = projection.getAnchorLocation();
       final var projFilter = projection.getFilterId();
-      for (final var wiretap : this.wiretaps.values()) {
+      for (final var wiretap : this.wiretaps.values())
         processSingleWiretapCapture(wiretap, anchorLoc, senderUuid, rawOpus, projFilter, voiceService, wallService, filterService);
-      }
     }
   }
 
