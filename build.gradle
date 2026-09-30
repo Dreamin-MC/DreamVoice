@@ -20,7 +20,7 @@ subprojects {
   }
 
   group = "fr.dreamin"
-  version = rootProject.findProperty("version") && rootProject.findProperty("version") != "unspecified" ? rootProject.findProperty("version") : "2.0.0"
+  version = rootProject.findProperty("version") && rootProject.findProperty("version") != "unspecified" ? rootProject.findProperty("version") : "2.0.1"
   description = "DreamVoice"
 
   repositories {
