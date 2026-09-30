@@ -2,8 +2,26 @@ base {
   archivesName.set("dreamvoice-api")
 }
 
+dependencies {
+  compileOnlyApi("org.jetbrains:annotations:${project.annotations_version}")
+  compileOnlyApi("de.maxhenkel.voicechat:voicechat-api:${project.voicechat_api_version}")
+  compileOnlyApi("com.fasterxml.jackson.core:jackson-databind:${project.jackson_version}")
+}
+
 java {
   withSourcesJar()
+  withJavadocJar()
+}
+
+javadoc {
+  options.encoding = 'UTF-8'
+  options.charSet = 'UTF-8'
+  options.windowTitle = "DreamVoice API ${project.version}"
+  options.docTitle = "DreamVoice API Documentation (${project.version})"
+  options.addStringOption('Xdoclint:none', '-quiet')
+  if (JavaVersion.current().isJava9Compatible()) {
+    options.addBooleanOption('html5', true)
+  }
 }
 
 publishing {

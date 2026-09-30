@@ -1,10 +1,9 @@
 package fr.dreamin.dreamvoice.api.projection.service;
 
 import de.maxhenkel.voicechat.api.VoicechatServerApi;
+import de.maxhenkel.voicechat.api.VolumeCategory;
+import fr.dreamin.dreamvoice.api.model.VoiceLocation;
 import fr.dreamin.dreamvoice.api.projection.model.VoiceProjection;
-import org.bukkit.Location;
-import org.bukkit.entity.Entity;
-import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -31,30 +30,28 @@ public interface VoiceProjectionService {
   VoicechatServerApi getAPI();
 
   /**
+   * Retrieves the VolumeCategory used for projection channels.
+   */
+  VolumeCategory getVolumeCategory();
+
+  /**
    * Creates a static voice projection point for a player.
    *
    * @param playerUuid     the player UUID
    * @param anchorLocation the static location of the anchor
    * @return the created {@link VoiceProjection}
    */
-  @NotNull VoiceProjection createProjection(final @NotNull UUID playerUuid, final @NotNull Location anchorLocation);
-
-  default @NotNull VoiceProjection createProjection(final @NotNull Player player, final @NotNull Location anchorLocation) {
-    return createProjection(player.getUniqueId(), anchorLocation);
-  }
+  @NotNull VoiceProjection createProjection(final @NotNull UUID playerUuid, final @NotNull VoiceLocation anchorLocation);
 
   /**
    * Creates a dynamic voice projection bound to a moving entity.
    *
-   * @param playerUuid   the player UUID
-   * @param anchorEntity the entity to attach the projection to
+   * @param playerUuid       the player UUID
+   * @param anchorLocation   the initial location
+   * @param anchorEntityUuid the entity UUID to attach the projection to
    * @return the created {@link VoiceProjection}
    */
-  @NotNull VoiceProjection createProjection(final @NotNull UUID playerUuid, final @NotNull Entity anchorEntity);
-
-  default @NotNull VoiceProjection createProjection(final @NotNull Player player, final @NotNull Entity anchorEntity) {
-    return createProjection(player.getUniqueId(), anchorEntity);
-  }
+  @NotNull VoiceProjection createProjection(final @NotNull UUID playerUuid, final @NotNull VoiceLocation anchorLocation, final @Nullable UUID anchorEntityUuid);
 
   /**
    * Registers an existing projection into the service.
@@ -63,16 +60,16 @@ public interface VoiceProjectionService {
    */
   void register(final @NotNull VoiceProjection projection);
 
+  default void registerProjection(final @NotNull VoiceProjection projection) {
+    register(projection);
+  }
+
   /**
    * Removes a player's active voice projection.
    *
    * @param playerUuid the player UUID
    */
   void removeProjection(final @NotNull UUID playerUuid);
-
-  default void removeProjection(final @NotNull Player player) {
-    removeProjection(player.getUniqueId());
-  }
 
   default void removeProjection(final @NotNull VoiceProjection projection) {
     removeProjection(projection.getPlayerUuid());
@@ -85,10 +82,6 @@ public interface VoiceProjectionService {
    * @return the {@link VoiceProjection}, or {@code null} if none active
    */
   @Nullable VoiceProjection getProjection(final @NotNull UUID playerUuid);
-
-  default @Nullable VoiceProjection getProjection(final @NotNull Player player) {
-    return getProjection(player.getUniqueId());
-  }
 
   /**
    * Retrieves a projection by its unique ID.
@@ -105,10 +98,6 @@ public interface VoiceProjectionService {
    * @return {@code true} if an active projection exists
    */
   boolean hasProjection(final @NotNull UUID playerUuid);
-
-  default boolean hasProjection(final @NotNull Player player) {
-    return hasProjection(player.getUniqueId());
-  }
 
   /**
    * Returns all active voice projections.
@@ -128,7 +117,7 @@ public interface VoiceProjectionService {
    * @param playerUuid  the player UUID
    * @param newLocation the updated location
    */
-  void updateLocation(final @NotNull UUID playerUuid, final @NotNull Location newLocation);
+  void updateLocation(final @NotNull UUID playerUuid, final @NotNull VoiceLocation newLocation);
 
   /**
    * Saves all active projections to disk.

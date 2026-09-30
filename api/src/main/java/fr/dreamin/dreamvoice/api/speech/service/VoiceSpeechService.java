@@ -1,12 +1,10 @@
 package fr.dreamin.dreamvoice.api.speech.service;
 
+import fr.dreamin.dreamvoice.api.model.VoiceLocation;
 import fr.dreamin.dreamvoice.api.recording.model.VoiceRecording;
 import fr.dreamin.dreamvoice.api.speech.model.KeywordDefinition;
 import fr.dreamin.dreamvoice.api.speech.model.SpeechModelInfo;
 import fr.dreamin.dreamvoice.api.speech.model.SpeechTranscriptionResult;
-import org.bukkit.block.Block;
-import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -78,30 +76,21 @@ public interface VoiceSpeechService {
   boolean setActiveModel(final @NotNull String modelId);
 
   /**
-   * Checks whether a given block is configured as a transcription station.
+   * Checks whether a block identifier is configured as a transcription station.
    *
-   * @param block target block
+   * @param blockId target block identifier / material
    * @return {@code true} if allowed
    */
-  boolean isStationBlock(final @NotNull Block block);
+  boolean isStationBlock(final @NotNull String blockId);
 
   /**
    * Starts the transcription process at a physical station block.
    *
-   * @param player       interacting player
-   * @param stationBlock the station block
-   * @param cassetteItem the cassette item in hand
+   * @param playerUuid      interacting player UUID
+   * @param stationLocation the station location
+   * @param recording       the recording to transcribe
    */
-  void startStationProcess(final @NotNull Player player, final @NotNull Block stationBlock, final @NotNull ItemStack cassetteItem);
-
-  /**
-   * Creates a Minecraft {@code WRITTEN_BOOK} containing the formatted transcription report.
-   *
-   * @param player interacting or receiving player (for locale resolution)
-   * @param result transcription result
-   * @return configured written book item
-   */
-  @NotNull ItemStack createReportBook(final @NotNull Player player, final @NotNull SpeechTranscriptionResult result);
+  void startStationProcess(final @NotNull UUID playerUuid, final @NotNull VoiceLocation stationLocation, final @NotNull VoiceRecording recording);
 
   /**
    * Retrieves the active list of registered keywords.

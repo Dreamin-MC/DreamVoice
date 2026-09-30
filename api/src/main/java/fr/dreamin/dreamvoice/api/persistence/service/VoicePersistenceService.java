@@ -111,4 +111,14 @@ public interface VoicePersistenceService {
    */
   void loadRooms();
 
+  /**
+   * Saves all broadcast points to disk.
+   */
+  void saveBroadcasts();
+
+  /**
+   * Loads all broadcast points from disk.
+   */
+  void loadBroadcasts();
+
 }

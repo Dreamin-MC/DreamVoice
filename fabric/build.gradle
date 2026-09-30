@@ -1,0 +1,74 @@
+plugins {
+  id 'net.fabricmc.fabric-loom'
+}
+
+base {
+  archivesName = "DreamVoice-fabric"
+}
+
+loom {
+  runs {
+    client {
+      programArgs "--msa"
+    }
+  }
+  mods {
+    "dreamvoice" {
+      sourceSet sourceSets.main
+    }
+  }
+}
+
+dependencies {
+  minecraft "com.mojang:minecraft:${project.minecraft_version}"
+
+  // DevLogin
+  implementation("com.ptsmods:devlogin:${project.devlogin_version}:fabric")
+
+  implementation "net.fabricmc:fabric-loader:${project.loader_version}"
+  implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+
+  compileOnly "de.maxhenkel.voicechat:voicechat-api:${project.voicechat_api_version}"
+  runtimeOnly "maven.modrinth:simple-voice-chat:${project.voicechat_modrinth_version}"
+
+  implementation project(":api")
+  include project(":api")
+
+  implementation project(":common")
+  include project(":common")
+
+  // Jackson
+  implementation "com.fasterxml.jackson.core:jackson-annotations:${project.jackson_version}"
+  include "com.fasterxml.jackson.core:jackson-annotations:${project.jackson_version}"
+  implementation "com.fasterxml.jackson.core:jackson-databind:${project.jackson_version}"
+  include "com.fasterxml.jackson.core:jackson-databind:${project.jackson_version}"
+  implementation "com.fasterxml.jackson.core:jackson-core:${project.jackson_version}"
+  include "com.fasterxml.jackson.core:jackson-core:${project.jackson_version}"
+
+  // Vosk / JNA
+  implementation "net.java.dev.jna:jna:${project.jna_version}"
+  include "net.java.dev.jna:jna:${project.jna_version}"
+  implementation "com.alphacephei:vosk:${project.vosk_version}"
+  include "com.alphacephei:vosk:${project.vosk_version}"
+
+  // Annotations
+  implementation "org.jetbrains:annotations:${project.annotations_version}"
+  include "org.jetbrains:annotations:${project.annotations_version}"
+
+  // Cloud Framework
+  implementation "org.incendo:cloud-fabric:${project.cloud_fabric_version}"
+  include "org.incendo:cloud-fabric:${project.cloud_fabric_version}"
+  implementation "org.incendo:cloud-annotations:${project.cloud_core_version}"
+  include "org.incendo:cloud-annotations:${project.cloud_core_version}"
+}
+
+processResources {
+  inputs.property "version", project.version
+  filesMatching("fabric.mod.json") {
+    expand "version": project.version
+  }
+}
+
+tasks.withType(JavaCompile).configureEach {
+  it.options.release = project.property("java_version") as int
+}

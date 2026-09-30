@@ -25,6 +25,10 @@ public final class VoiceRecording {
   private final @NotNull List<TimedAudioFrame> audioFrames = new ArrayList<>();
   private transient volatile short[] cachedPcm = null;
 
+  public @NotNull List<TimedAudioFrame> getFrames() {
+    return this.audioFrames;
+  }
+
   // ###############################################################
   // --------------------- CONSTRUCTOR METHODS ---------------------
   // ###############################################################

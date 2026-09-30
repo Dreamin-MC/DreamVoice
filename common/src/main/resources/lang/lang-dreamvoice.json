@@ -1,0 +1,5376 @@
+{
+  "namespace": "dreamvoice",
+  "value": "messages",
+  "default": "EN",
+  "keys": [
+    {
+      "key": "prefix",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> "
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> "
+        }
+      ]
+    },
+    {
+      "key": "common.player_only",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <red>This command can only be executed by a player.</red>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <red>Cette commande ne peut être exécutée que par un joueur.</red>"
+        }
+      ]
+    },
+    {
+      "key": "common.service_unavailable",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <red>Voice service is currently unavailable.</red>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <red>Le service vocal est actuellement indisponible.</red>"
+        }
+      ]
+    },
+    {
+      "key": "common.specify_player",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <red>Please specify a player.</red>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <red>Veuillez specifier un joueur.</red>"
+        }
+      ]
+    },
+    {
+      "key": "speaker.created",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Speaker '<aqua><arg:0></aqua>' created (range: <yellow><arg:1></yellow>m).</green>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Haut-parleur '<aqua><arg:0></aqua>' créé (portée: <yellow><arg:1></yellow>m).</green>"
+        }
+      ]
+    },
+    {
+      "key": "speaker.removed",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <red>Speaker '<aqua><arg:0></aqua>' removed.</red>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <red>Haut-parleur '<aqua><arg:0></aqua>' supprimé.</red>"
+        }
+      ]
+    },
+    {
+      "key": "speaker.not_found",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <red>Speaker '<aqua><arg:0></aqua>' not found.</red>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <red>Haut-parleur '<aqua><arg:0></aqua>' introuvable.</red>"
+        }
+      ]
+    },
+    {
+      "key": "speaker.already_exists",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <red>A speaker named '<aqua><arg:0></aqua>' already exists.</red>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <red>Un haut-parleur nommé '<aqua><arg:0></aqua>' existe déjà.</red>"
+        }
+      ]
+    },
+    {
+      "key": "broadcast.created",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Broadcast point '<aqua><arg:0></aqua>' created (radius: <yellow><arg:1></yellow>m).</green>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Point de broadcast '<aqua><arg:0></aqua>' créé (rayon: <yellow><arg:1></yellow>m).</green>"
+        }
+      ]
+    },
+    {
+      "key": "broadcast.removed",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <red>Broadcast point '<aqua><arg:0></aqua>' removed.</red>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <red>Point de broadcast '<aqua><arg:0></aqua>' supprimé.</red>"
+        }
+      ]
+    },
+    {
+      "key": "broadcast.not_found",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <red>Broadcast point '<aqua><arg:0></aqua>' not found.</red>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <red>Point de broadcast '<aqua><arg:0></aqua>' introuvable.</red>"
+        }
+      ]
+    },
+    {
+      "key": "broadcast.already_exists",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <red>A broadcast point named '<aqua><arg:0></aqua>' already exists.</red>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <red>Un point de broadcast nommé '<aqua><arg:0></aqua>' existe déjà.</red>"
+        }
+      ]
+    },
+    {
+      "key": "broadcast.toggled",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <yellow>Broadcast point '<aqua><arg:0></aqua>' is now <gold><arg:1></gold>.</yellow>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <yellow>Le point de broadcast '<aqua><arg:0></aqua>' est maintenant <gold><arg:1></gold>.</yellow>"
+        }
+      ]
+    },
+    {
+      "key": "broadcast.linked",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Linked speaker '<aqua><arg:1></aqua>' to broadcast '<aqua><arg:0></aqua>'.</green>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Haut-parleur '<aqua><arg:1></aqua>' lié au broadcast '<aqua><arg:0></aqua>'.</green>"
+        }
+      ]
+    },
+    {
+      "key": "broadcast.unlinked",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <yellow>Unlinked speaker '<aqua><arg:1></aqua>' from broadcast '<aqua><arg:0></aqua>'.</yellow>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <yellow>Haut-parleur '<aqua><arg:1></aqua>' délié du broadcast '<aqua><arg:0></aqua>'.</yellow>"
+        }
+      ]
+    },
+    {
+      "key": "broadcast.all_speakers",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <yellow>Broadcast '<aqua><arg:0></aqua>' all-speakers routing: <gold><arg:1></gold>.</yellow>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <yellow>Routage tous haut-parleurs du broadcast '<aqua><arg:0></aqua>' : <gold><arg:1></gold>.</yellow>"
+        }
+      ]
+    },
+    {
+      "key": "broadcast.filter_set",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Filter for broadcast '<aqua><arg:0></aqua>' set to '<gold><arg:1></gold>'.</green>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Filtre du broadcast '<aqua><arg:0></aqua>' défini sur '<gold><arg:1></gold>'.</green>"
+        }
+      ]
+    },
+    {
+      "key": "broadcast.filter_cleared",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <yellow>Audio filter removed from broadcast '<aqua><arg:0></aqua>'.</yellow>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <yellow>Filtre audio retiré du broadcast '<aqua><arg:0></aqua>'.</yellow>"
+        }
+      ]
+    },
+    {
+      "key": "broadcast.list_empty",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <yellow>No broadcast points registered.</yellow>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <yellow>Aucun point de broadcast enregistré.</yellow>"
+        }
+      ]
+    },
+    {
+      "key": "broadcast.list_header",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <gold>=== Broadcast Points (<arg:0>) ===</gold>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <gold>=== Points de Broadcast (<arg:0>) ===</gold>"
+        }
+      ]
+    },
+    {
+      "key": "broadcast.list_item",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": " - <aqua><arg:0></aqua> [<green><arg:1></green>] (radius: <yellow><arg:2></yellow>m, targets: <gold><arg:3></gold>, filter: <light_purple><arg:4></light_purple>)"
+        },
+        {
+          "locale": "FR",
+          "value": " - <aqua><arg:0></aqua> [<green><arg:1></green>] (rayon: <yellow><arg:2></yellow>m, cibles: <gold><arg:3></gold>, filtre: <light_purple><arg:4></light_purple>)"
+        }
+      ]
+    },
+    {
+      "key": "broadcast.info_header",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <gold>=== Broadcast Point: <aqua><arg:0></aqua> ===</gold>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <gold>=== Point de Broadcast : <aqua><arg:0></aqua> ===</gold>"
+        }
+      ]
+    },
+    {
+      "key": "broadcast.info_state",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gray>Status: </gray><green><arg:0></green>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gray>Statut : </gray><green><arg:0></green>"
+        }
+      ]
+    },
+    {
+      "key": "broadcast.info_location",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gray>Location: </gray><white><arg:0></white>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gray>Position : </gray><white><arg:0></white>"
+        }
+      ]
+    },
+    {
+      "key": "broadcast.info_radius",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gray>Radius: </gray><yellow><arg:0></yellow>m"
+        },
+        {
+          "locale": "FR",
+          "value": "<gray>Rayon : </gray><yellow><arg:0></yellow>m"
+        }
+      ]
+    },
+    {
+      "key": "broadcast.info_speakers",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gray>Target Speakers: </gray><gold><arg:0></gold>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gray>Haut-parleurs cibles : </gray><gold><arg:0></gold>"
+        }
+      ]
+    },
+    {
+      "key": "broadcast.info_filter",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gray>Audio Filter: </gray><light_purple><arg:0></light_purple>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gray>Filtre audio : </gray><light_purple><arg:0></light_purple>"
+        }
+      ]
+    },
+    {
+      "key": "broadcast.info_entity",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gray>Attached Entity: </gray><aqua><arg:0></aqua>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gray>Entité attachée : </gray><aqua><arg:0></aqua>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.title",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "Voice Configuration"
+        },
+        {
+          "locale": "FR",
+          "value": "Configuration Vocale"
+        }
+      ]
+    },
+    {
+      "key": "config.tool_given",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Configuration tool given! Click blocks, entities, or air to configure audio devices.</green>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Outil de configuration obtenu ! Cliquez sur un bloc, une entité ou dans l'air pour configurer les périphériques audio.</green>"
+        }
+      ]
+    },
+    {
+      "key": "config.target_selected",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <aqua>Selected audio target at <yellow><arg:0></yellow>.</aqua>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <aqua>Cible audio sélectionnée à <yellow><arg:0></yellow>.</aqua>"
+        }
+      ]
+    },
+    {
+      "key": "cassette.name",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><bold><gold>Voice Cassette</gold></bold>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><bold><gold>Cassette Vocale</gold></bold>"
+        }
+      ]
+    },
+    {
+      "key": "cassette.lore.author",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><gray>Author: <yellow><arg:0></yellow></gray>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><gray>Auteur : <yellow><arg:0></yellow></gray>"
+        }
+      ]
+    },
+    {
+      "key": "cassette.lore.duration",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><gray>Duration: <aqua><arg:0>s</aqua></gray>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><gray>Durée : <aqua><arg:0>s</aqua></gray>"
+        }
+      ]
+    },
+    {
+      "key": "cassette.lore.id",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><dark_gray>ID: <arg:0>...</dark_gray>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><dark_gray>ID : <arg:0>...</dark_gray>"
+        }
+      ]
+    },
+    {
+      "key": "cassette.lore.play",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><green>Right-Click to play</green>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><green>Clic droit pour écouter</green>"
+        }
+      ]
+    },
+    {
+      "key": "config.tool.name",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><bold><gold>Voice Config Tool</gold></bold>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><bold><gold>Outil de Configuration Vocale</gold></bold>"
+        }
+      ]
+    },
+    {
+      "key": "config.tool.lore_desc",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><gray>Acoustic setup and routing tool.</gray>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><gray>Outil de routage et de configuration acoustique.</gray>"
+        }
+      ]
+    },
+    {
+      "key": "config.tool.lore_action1",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><yellow>Right-Click block or entity to configure.</yellow>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><yellow>Clic droit sur un bloc ou une entité pour configurer.</yellow>"
+        }
+      ]
+    },
+    {
+      "key": "config.tool.lore_action2",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><aqua>Right-Click air to configure your location.</aqua>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><aqua>Clic droit dans l'air pour configurer votre position.</aqua>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.main.speakers.name",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><bold><gold>Speakers</gold></bold>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><bold><gold>Haut-parleurs</gold></bold>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.main.speakers.lore1",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><gray>Manage locational audio speakers.</gray>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><gray>Gérer les haut-parleurs audio positionnels.</gray>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.main.speakers.lore2",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><yellow>Click to view, configure, or create.</yellow>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><yellow>Cliquer pour voir, configurer ou créer.</yellow>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.main.broadcast.name",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><bold><aqua>Broadcast Points</aqua></bold>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><bold><aqua>Points de Broadcast</aqua></bold>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.main.broadcast.lore1",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><gray>Manage microphone & intercom points.</gray>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><gray>Gérer les microphones et points d'interphone.</gray>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.main.broadcast.lore2",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><yellow>Click to view, configure, or create.</yellow>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><yellow>Cliquer pour voir, configurer ou créer.</yellow>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.main.wiretaps.name",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><bold><dark_aqua>Wiretaps</dark_aqua></bold>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><bold><dark_aqua>Micro-espions</dark_aqua></bold>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.main.wiretaps.lore1",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><gray>Manage acoustic wiretaps.</gray>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><gray>Gérer les micros d'écoute clandestine.</gray>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.main.wiretaps.lore2",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><yellow>Click to view, configure, or create.</yellow>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><yellow>Cliquer pour voir, configurer ou créer.</yellow>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.main.rooms.name",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><bold><green>Acoustic Rooms</green></bold>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><bold><green>Salles Acoustiques</green></bold>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.main.rooms.lore1",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><gray>Inspect room reverberation and isolation.</gray>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><gray>Inspecter la réverbération et l'isolation des salles.</gray>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.main.rooms.lore2",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><yellow>Click to view registered rooms.</yellow>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><yellow>Cliquer pour voir les salles enregistrées.</yellow>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.main.radio.name",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><bold><gold>Radio Channels</gold></bold>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><bold><gold>Canaux Radio</gold></bold>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.main.radio.lore1",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><gray>Manage and tune into radio frequencies.</gray>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><gray>Gérer et écouter les fréquences radio.</gray>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.main.radio.lore2",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><yellow>Click to browse active frequencies.</yellow>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><yellow>Cliquer pour parcourir les fréquences actives.</yellow>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.main.transmitters.name",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><bold><red>Transmitters</red></bold>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><bold><red>Émetteurs</red></bold>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.main.transmitters.lore1",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><gray>Direct point-to-point voice broadcasting.</gray>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><gray>Diffusion vocale point à point directe.</gray>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.main.transmitters.lore2",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><yellow>Click to configure receivers.</yellow>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><yellow>Cliquer pour configurer les récepteurs.</yellow>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.main.projections.name",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><bold><light_purple>Voice Projections</light_purple></bold>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><bold><light_purple>Projections Vocales</light_purple></bold>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.main.projections.lore1",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><gray>Body anchors and remote voice projection.</gray>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><gray>Ancrages corporels et projection vocale à distance.</gray>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.main.projections.lore2",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><yellow>Click to inspect active projections.</yellow>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><yellow>Cliquer pour inspecter les projections actives.</yellow>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.main.acoustic.name",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><bold><white>Acoustic & Wall Engine</white></bold>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><bold><white>Moteur Acoustique & Murs</white></bold>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.main.acoustic.lore1",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><gray>Material soundproofing, occlusion & air damping.</gray>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><gray>Insonorisation des matériaux, occlusion & atténuation de l'air.</gray>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.main.acoustic.lore2",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><yellow>Click to configure engine & debug rays.</yellow>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><yellow>Cliquer pour configurer le moteur & les rayons visuels.</yellow>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.main.target.name",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><bold><light_purple>Current Target</light_purple></bold>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><bold><light_purple>Cible Actuelle</light_purple></bold>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.main.target.lore1",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><gray>Target: <white><arg:0></white></gray>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><gray>Cible : <white><arg:0></white></gray>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.main.target.lore2",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><dark_gray>Click to refresh to current gaze/position.</dark_gray>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><dark_gray>Cliquer pour réinitialiser sur le regard/position actuelle.</dark_gray>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.speaker.title",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "Speakers Manager"
+        },
+        {
+          "locale": "FR",
+          "value": "Gestion des Haut-parleurs"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.speaker.item.name",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><bold><gold><arg:0></gold></bold>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><bold><gold><arg:0></gold></bold>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.speaker.item.lore_range",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><gray>Range: <yellow><arg:0>m</yellow></gray>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><gray>Portée : <yellow><arg:0>m</yellow></gray>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.speaker.item.lore_mode",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><gray>Mode: <aqua><arg:0></aqua></gray>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><gray>Mode : <aqua><arg:0></aqua></gray>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.speaker.item.lore_location",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><gray>Location: <white><arg:0></white></gray>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><gray>Position : <white><arg:0></white></gray>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.speaker.item.lore_click",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><green>Click to configure / delete</green>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><green>Cliquer pour configurer / supprimer</green>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.speaker.create.name",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><bold><green>Create Speaker Here</green></bold>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><bold><green>Créer un Haut-parleur ici</green></bold>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.speaker.create.lore_target",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><gray>Target: <white><arg:0></white></gray>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><gray>Cible : <white><arg:0></white></gray>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.speaker.create.lore_click",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><yellow>Click to create a new speaker at target.</yellow>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><yellow>Cliquer pour créer un nouveau haut-parleur à la cible.</yellow>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.speaker.edit_title",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "Edit Speaker: <arg:0>"
+        },
+        {
+          "locale": "FR",
+          "value": "Modifier Haut-parleur : <arg:0>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.speaker.edit.range",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><bold><yellow>Range: <arg:0>m</yellow></bold>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><bold><yellow>Portée : <arg:0>m</yellow></bold>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.speaker.edit.range_lore",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><gray>Audio broadcast radius in blocks.</gray>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><gray>Rayon de diffusion audio en blocs.</gray>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.speaker.edit.minus_range",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><bold><red>-5m Range</red></bold>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><bold><red>-5m Portée</red></bold>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.speaker.edit.plus_range",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><bold><green>+5m Range</green></bold>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><bold><green>+5m Portée</green></bold>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.speaker.edit.mode",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><bold><aqua>Mode: <arg:0></aqua></bold>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><bold><aqua>Mode : <arg:0></aqua></bold>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.speaker.edit.mode_lore",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><gray>Click to toggle between GLOBAL and RESTRICTED.</gray>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><gray>Cliquer pour basculer entre GLOBAL et RESTRICTED.</gray>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.speaker.edit.teleport",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><bold><light_purple>Teleport to Speaker</light_purple></bold>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><bold><light_purple>Se téléporter au Haut-parleur</light_purple></bold>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.speaker.edit.delete",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><bold><red>Delete Speaker</red></bold>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><bold><red>Supprimer le Haut-parleur</red></bold>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.speaker.edit.delete_lore",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><dark_red>Permanently deletes this speaker.</dark_red>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><dark_red>Supprime définitivement ce haut-parleur.</dark_red>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.broadcast.title",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "Broadcast Points Manager"
+        },
+        {
+          "locale": "FR",
+          "value": "Gestion des Points de Broadcast"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.broadcast.item.name",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><bold><aqua><arg:0></aqua></bold>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><bold><aqua><arg:0></aqua></bold>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.broadcast.item.lore_status_enabled",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><gray>Status: <green>ENABLED</green></gray>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><gray>Statut : <green>ACTIVÉ</green></gray>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.broadcast.item.lore_status_disabled",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><gray>Status: <red>DISABLED</red></gray>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><gray>Statut : <red>DÉSACTIVÉ</red></gray>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.broadcast.item.lore_radius",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><gray>Radius: <yellow><arg:0>m</yellow></gray>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><gray>Rayon : <yellow><arg:0>m</yellow></gray>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.broadcast.item.lore_speakers",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><gray>Speakers: <gold><arg:0></gold></gray>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><gray>Haut-parleurs : <gold><arg:0></gold></gray>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.broadcast.item.lore_filter",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><gray>Filter: <light_purple><arg:0></light_purple></gray>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><gray>Filtre : <light_purple><arg:0></light_purple></gray>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.broadcast.item.lore_location",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><gray>Location: <white><arg:0></white></gray>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><gray>Position : <white><arg:0></white></gray>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.broadcast.item.lore_click",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><green>Click to configure / toggle</green>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><green>Cliquer pour configurer / basculer</green>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.broadcast.create.name",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><bold><green>Create Broadcast Point Here</green></bold>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><bold><green>Créer un Point de Broadcast ici</green></bold>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.broadcast.create.lore_target",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><gray>Target: <white><arg:0></white></gray>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><gray>Cible : <white><arg:0></white></gray>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.broadcast.create.lore_click",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><yellow>Click to create a microphone/podium point.</yellow>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><yellow>Cliquer pour créer un point micro/podium.</yellow>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.broadcast.edit_title",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "Edit Broadcast: <arg:0>"
+        },
+        {
+          "locale": "FR",
+          "value": "Modifier Broadcast : <arg:0>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.broadcast.edit.state_enabled",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><bold><green>State: ENABLED (ON)</green></bold>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><bold><green>État : ACTIVÉ (ON)</green></bold>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.broadcast.edit.state_disabled",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><bold><red>State: DISABLED (OFF)</red></bold>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><bold><red>État : DÉSACTIVÉ (OFF)</red></bold>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.broadcast.edit.state_lore",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><gray>Click to toggle on/off.</gray>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><gray>Cliquer pour activer/désactiver.</gray>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.broadcast.edit.radius",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><bold><yellow>Radius: <arg:0>m</yellow></bold>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><bold><yellow>Rayon : <arg:0>m</yellow></bold>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.broadcast.edit.radius_lore",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><gray>Voice capture radius around this point.</gray>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><gray>Rayon de capture de la voix autour de ce point.</gray>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.broadcast.edit.minus_radius",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><bold><red>-1m Radius</red></bold>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><bold><red>-1m Rayon</red></bold>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.broadcast.edit.plus_radius",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><bold><green>+1m Radius</green></bold>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><bold><green>+1m Rayon</green></bold>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.broadcast.edit.targets_all",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><bold><gold>Targets: ALL SPEAKERS</gold></bold>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><bold><gold>Cibles : TOUS LES HAUT-PARLEURS</gold></bold>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.broadcast.edit.targets_specific",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><bold><aqua>Targets: SPECIFIC SPEAKERS (<arg:0>)</aqua></bold>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><bold><aqua>Cibles : HAUT-PARLEURS SPÉCIFIQUES (<arg:0>)</aqua></bold>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.broadcast.edit.targets_lore",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><gray>Click to toggle between ALL and specific speakers.</gray>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><gray>Cliquer pour basculer entre TOUS et des haut-parleurs spécifiques.</gray>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.broadcast.edit.link_speakers",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><bold><aqua>Configure Linked Speakers</aqua></bold>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><bold><aqua>Configurer Haut-parleurs Liés</aqua></bold>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.broadcast.edit.link_speakers_lore1",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><yellow>Active linked: <arg:0></yellow>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><yellow>Liés actifs : <arg:0></yellow>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.broadcast.edit.link_speakers_lore2",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><gray>Click to select individual speakers.</gray>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><gray>Cliquer pour sélectionner des haut-parleurs individuels.</gray>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.broadcast.edit.filter",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><bold><light_purple>Filter: <arg:0></light_purple></bold>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><bold><light_purple>Filtre : <arg:0></light_purple></bold>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.broadcast.edit.filter_lore",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><gray>Click to cycle audio filters.</gray>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><gray>Cliquer pour changer de filtre audio.</gray>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.broadcast.edit.teleport",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><bold><light_purple>Teleport to Broadcast Point</light_purple></bold>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><bold><light_purple>Se téléporter au Point de Broadcast</light_purple></bold>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.broadcast.edit.delete",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><bold><red>Delete Broadcast Point</red></bold>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><bold><red>Supprimer le Point de Broadcast</red></bold>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.broadcast.edit.delete_lore",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><dark_red>Permanently deletes this broadcast point.</dark_red>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><dark_red>Supprime définitivement ce point de broadcast.</dark_red>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.broadcast.link.title",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "Link Speakers: <arg:0>"
+        },
+        {
+          "locale": "FR",
+          "value": "Lier Haut-parleurs : <arg:0>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.broadcast.link.item.lore_linked",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><gray>Status: <green>LINKED</green></gray>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><gray>Statut : <green>LIÉ</green></gray>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.broadcast.link.item.lore_unlinked",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><gray>Status: <red>UNLINKED</red></gray>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><gray>Statut : <red>NON LIÉ</red></gray>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.broadcast.link.item.lore_click",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><yellow>Click to toggle link</yellow>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><yellow>Cliquer pour basculer la liaison</yellow>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.wiretap.title",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "Wiretaps Manager"
+        },
+        {
+          "locale": "FR",
+          "value": "Gestion des Micro-espions"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.wiretap.item.name",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><bold><dark_aqua><arg:0></dark_aqua></bold>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><bold><dark_aqua><arg:0></dark_aqua></bold>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.wiretap.item.lore_listeners",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><gray>Listeners: <yellow><arg:0></yellow></gray>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><gray>Auditeurs : <yellow><arg:0></yellow></gray>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.wiretap.item.lore_entity",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><gray>Entity: <aqua><arg:0></aqua></gray>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><gray>Entité : <aqua><arg:0></aqua></gray>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.wiretap.item.lore_location",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><gray>Location: <white><arg:0></white></gray>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><gray>Position : <white><arg:0></white></gray>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.wiretap.item.lore_click",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><green>Click to configure / delete</green>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><green>Cliquer pour configurer / supprimer</green>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.wiretap.create.name",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><bold><green>Create Wiretap Here</green></bold>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><bold><green>Créer un Micro-espion ici</green></bold>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.wiretap.create.lore_target",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><gray>Target: <white><arg:0></white></gray>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><gray>Cible : <white><arg:0></white></gray>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.wiretap.create.lore_click",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><yellow>Click to place a covert microphone bug.</yellow>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><yellow>Cliquer pour placer un micro d'écoute clandestine.</yellow>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.wiretap.edit_title",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "Edit Wiretap: <arg:0>"
+        },
+        {
+          "locale": "FR",
+          "value": "Modifier Micro-espion : <arg:0>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.wiretap.edit.stop_listen",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><bold><yellow>Stop Eavesdropping</yellow></bold>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><bold><yellow>Arrêter l'Écoute</yellow></bold>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.wiretap.edit.start_listen",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><bold><green>Start Eavesdropping</green></bold>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><bold><green>Commencer l'Écoute</green></bold>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.wiretap.edit.listen_lore",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><gray>Listen to live audio captured by this bug.</gray>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><gray>Écouter l'audio en direct capté par ce micro.</gray>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.wiretap.edit.teleport",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><bold><light_purple>Teleport to Wiretap</light_purple></bold>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><bold><light_purple>Se téléporter au Micro-espion</light_purple></bold>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.wiretap.edit.delete",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><bold><red>Delete Wiretap</red></bold>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><bold><red>Supprimer le Micro-espion</red></bold>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.wiretap.edit.delete_lore",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><dark_red>Permanently deletes this wiretap bug.</dark_red>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><dark_red>Supprime définitivement ce micro-espion.</dark_red>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.room.title",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "Acoustic Rooms"
+        },
+        {
+          "locale": "FR",
+          "value": "Salles Acoustiques"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.room.item.name",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><bold><green><arg:0></green></bold>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><bold><green><arg:0></green></bold>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.room.item.lore_id",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><gray>ID: <aqua><arg:0></aqua></gray>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><gray>ID : <aqua><arg:0></aqua></gray>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.room.item.lore_preset",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><gray>Preset: <yellow><arg:0></yellow></gray>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><gray>Preset : <yellow><arg:0></yellow></gray>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.room.item.lore_isolation",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><gray>Isolation: <gold><arg:0>%</gold></gray>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><gray>Isolation : <gold><arg:0>%</gold></gray>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.room.item.lore_cuboids",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><gray>Cuboids: <white><arg:0></white></gray>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><gray>Cuboides : <white><arg:0></white></gray>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.radio.title",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "Radio Channels"
+        },
+        {
+          "locale": "FR",
+          "value": "Canaux Radio"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.radio.item.name",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><bold><gold>Channel: <arg:0></gold></bold>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><bold><gold>Canal : <arg:0></gold></bold>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.radio.item.lore_current",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><gray>Status: <green>CURRENT CHANNEL</green></gray>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><gray>Statut : <green>CANAL ACTUEL</green></gray>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.radio.item.lore_tune",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><gray>Status: <yellow>CLICK TO TUNE IN</yellow></gray>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><gray>Statut : <yellow>CLIQUER POUR ÉCOUTER</yellow></gray>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.radio.item.lore_listeners",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><gray>Listeners: <aqua><arg:0></aqua></gray>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><gray>Auditeurs : <aqua><arg:0></aqua></gray>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.radio.leave.name",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><bold><red>Disconnect from Radio</red></bold>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><bold><red>Se déconnecter de la Radio</red></bold>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.radio.leave.lore",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><gray>Leave your current radio channel.</gray>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><gray>Quitter votre canal radio actuel.</gray>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.transmitter.title",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "Transmitter Configuration"
+        },
+        {
+          "locale": "FR",
+          "value": "Configuration de l'Émetteur"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.transmitter.receiver.name",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><bold><aqua>Receiver: <arg:0></aqua></bold>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><bold><aqua>Récepteur : <arg:0></aqua></bold>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.transmitter.receiver.lore_range",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><gray>Hearing range: <yellow><arg:0></yellow></gray>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><gray>Portée d'écoute : <yellow><arg:0></yellow></gray>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.transmitter.receiver.lore_unlink",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><red>Click to unlink receiver</red>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><red>Cliquer pour délier le récepteur</red>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.transmitter.toggle_enabled",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><bold><green>TRANSMITTER: ENABLED</green></bold>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><bold><green>ÉMETTEUR : ACTIVÉ</green></bold>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.transmitter.toggle_disabled",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><bold><red>TRANSMITTER: DISABLED</red></bold>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><bold><red>ÉMETTEUR : DÉSACTIVÉ</red></bold>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.transmitter.toggle_lore",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><gray>Click to toggle your transmitter broadcast.</gray>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><gray>Cliquer pour basculer l'émission de votre émetteur.</gray>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.transmitter.link_target_player",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><bold><green>Link Target Player (<arg:0>)</green></bold>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><bold><green>Lier le Joueur Ciblé (<arg:0>)</green></bold>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.transmitter.link_no_target",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><bold><gray>Aim at a player to link</gray></bold>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><bold><gray>Visez un joueur pour le lier</gray></bold>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.transmitter.link_lore",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><gray>Links targeted player to receive your transmitter voice.</gray>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><gray>Permet au joueur ciblé d'entendre la voix de votre émetteur.</gray>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.projection.title",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "Active Projections"
+        },
+        {
+          "locale": "FR",
+          "value": "Projections Actives"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.projection.item.name",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><bold><light_purple>Projection: <arg:0></light_purple></bold>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><bold><light_purple>Projection : <arg:0></light_purple></bold>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.projection.item.lore_speaker",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><gray>Speaker: <yellow><arg:0></yellow></gray>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><gray>Locuteur : <yellow><arg:0></yellow></gray>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.projection.item.lore_anchor",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><gray>Anchor: <white><arg:0></white></gray>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><gray>Ancre : <white><arg:0></white></gray>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.projection.item.lore_emit_anchor",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><gray>Emit at Anchor: <aqua><arg:0></aqua></gray>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><gray>Émettre à l'Ancre : <aqua><arg:0></aqua></gray>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.projection.item.lore_emit_body",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><gray>Emit at Body: <aqua><arg:0></aqua></gray>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><gray>Émettre au Corps : <aqua><arg:0></aqua></gray>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.projection.item.lore_teleport",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><green>Click to teleport to anchor</green>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><green>Cliquer pour se téléporter à l'ancre</green>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.wall.title",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "Acoustic & Wall Engine"
+        },
+        {
+          "locale": "FR",
+          "value": "Moteur Acoustique & Murs"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.wall.engine_enabled",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><bold><green>Acoustic Engine: ENABLED</green></bold>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><bold><green>Moteur Acoustique : ACTIVÉ</green></bold>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.wall.engine_disabled",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><bold><red>Acoustic Engine: DISABLED</red></bold>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><bold><red>Moteur Acoustique : DÉSACTIVÉ</red></bold>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.wall.engine_lore1",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><gray>Simulates material soundproofing & occlusion.</gray>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><gray>Simule l'insonorisation et l'occlusion des matériaux.</gray>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.wall.engine_lore2",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><yellow>Click to toggle globally.</yellow>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><yellow>Cliquer pour activer/désactiver globalement.</yellow>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.wall.mode",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><bold><aqua>Mode: <arg:0></aqua></bold>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><bold><aqua>Mode : <arg:0></aqua></bold>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.wall.mode_lore",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><gray>Click to cycle occlusion modes.</gray>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><gray>Cliquer pour changer de mode d'occlusion.</gray>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.wall.particles_active",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><bold><green>Visual Particle Rays: ACTIVE</green></bold>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><bold><green>Rayons Visuels : ACTIFS</green></bold>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.wall.particles_off",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><bold><gray>Visual Particle Rays: OFF</gray></bold>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><bold><gray>Rayons Visuels : DÉSACTIVÉS</gray></bold>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.wall.particles_lore1",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><gray>Renders sound raycast particles in real-time.</gray>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><gray>Affiche les rayons sonores sous forme de particules en direct.</gray>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.wall.particles_lore2",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><yellow>Click to toggle for your view.</yellow>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><yellow>Cliquer pour activer/désactiver pour votre vue.</yellow>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.wall.air_active",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><bold><green>Air Damping: ACTIVE</green></bold>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><bold><green>Atténuation de l'Air : ACTIVE</green></bold>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.wall.air_off",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><bold><gray>Air Damping: OFF</gray></bold>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><bold><gray>Atténuation de l'Air : DÉSACTIVÉE</gray></bold>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.wall.air_lore1",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><gray>Dampens high frequencies over distance.</gray>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><gray>Atténue les hautes fréquences avec la distance.</gray>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.wall.air_lore2",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><yellow>Click to toggle globally.</yellow>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><yellow>Cliquer pour activer/désactiver globalement.</yellow>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.wall.target_name",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><bold><gold>Target Inspection</gold></bold>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><bold><gold>Inspection de la Cible</gold></bold>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.wall.target_lore1",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><gray>Target: <white><arg:0></white></gray>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><gray>Cible : <white><arg:0></white></gray>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.wall.target_lore2",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><gray>World: <yellow><arg:0></yellow></gray>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><gray>Monde : <yellow><arg:0></yellow></gray>"
+        }
+      ]
+    },
+    {
+      "key": "wiretap.created",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Wiretap bug '<aqua><arg:0></aqua>' created.</green>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Micro-espion '<aqua><arg:0></aqua>' créé.</green>"
+        }
+      ]
+    },
+    {
+      "key": "wiretap.removed",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <red>Wiretap bug '<aqua><arg:0></aqua>' removed.</red>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <red>Micro-espion '<aqua><arg:0></aqua>' supprimé.</red>"
+        }
+      ]
+    },
+    {
+      "key": "wiretap.not_found",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <red>Wiretap bug '<aqua><arg:0></aqua>' not found.</red>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <red>Micro-espion '<aqua><arg:0></aqua>' introuvable.</red>"
+        }
+      ]
+    },
+    {
+      "key": "wiretap.no_recordings",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <red>No recordings available for this wiretap.</red>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <red>Aucun enregistrement disponible pour ce micro-espion.</red>"
+        }
+      ]
+    },
+    {
+      "key": "radio.connected",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Connected to radio frequency <gold><arg:0></gold>.</green>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Connecté à la fréquence radio <gold><arg:0></gold>.</green>"
+        }
+      ]
+    },
+    {
+      "key": "radio.disconnected",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <yellow>Disconnected from radio.</yellow>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <yellow>Déconnecté de la radio.</yellow>"
+        }
+      ]
+    },
+    {
+      "key": "radio.created",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Radio channel '<aqua><arg:0></aqua>' created.</green>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Canal radio '<aqua><arg:0></aqua>' créé.</green>"
+        }
+      ]
+    },
+    {
+      "key": "radio.removed",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <red>Radio channel '<aqua><arg:0></aqua>' removed.</red>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <red>Canal radio '<aqua><arg:0></aqua>' supprimé.</red>"
+        }
+      ]
+    },
+    {
+      "key": "radio.not_found",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <red>Radio channel '<aqua><arg:0></aqua>' not found.</red>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <red>Canal radio '<aqua><arg:0></aqua>' introuvable.</red>"
+        }
+      ]
+    },
+    {
+      "key": "radio.saved",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>All radio channels successfully saved.</green>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Tous les canaux radio ont été sauvegardés.</green>"
+        }
+      ]
+    },
+    {
+      "key": "radio.reloaded",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Radio channels successfully reloaded (<aqua><arg:0></aqua> active).</green>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Canaux radio rechargés avec succès (<aqua><arg:0></aqua> actifs).</green>"
+        }
+      ]
+    },
+    {
+      "key": "radio.kicked",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Player <yellow><arg:0></yellow> removed from channel <gold><arg:1></gold>!</green>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Joueur <yellow><arg:0></yellow> retiré du canal <gold><arg:1></gold> !</green>"
+        }
+      ]
+    },
+    {
+      "key": "radio.target_kicked",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <yellow>You were removed from channel <gold><arg:0></gold>.</yellow>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <yellow>Vous avez été retiré du canal <gold><arg:0></gold>.</yellow>"
+        }
+      ]
+    },
+    {
+      "key": "radio.not_connected",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <yellow>You are not connected to any radio frequency.</yellow>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <yellow>Vous n'êtes connecté à aucune fréquence radio.</yellow>"
+        }
+      ]
+    },
+    {
+      "key": "radio.target_not_connected",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <gray>This player is not connected to this channel.</gray>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <gray>Ce joueur n'est pas connecté à ce canal.</gray>"
+        }
+      ]
+    },
+    {
+      "key": "radio.list_empty",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <gray>No active radio frequencies.</gray>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <gray>Aucune fréquence radio active.</gray>"
+        }
+      ]
+    },
+    {
+      "key": "radio.list_header",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <gold>=== Active Frequencies (<arg:0>) ===</gold>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <gold>=== Fréquences Actives (<arg:0>) ===</gold>"
+        }
+      ]
+    },
+    {
+      "key": "radio.list_item",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": " - Channel <aqua><arg:0></aqua>: <yellow><arg:1> player(s)</yellow> <dark_gray>[RogerBeep=<arg:2>, Filter=<arg:3>]</dark_gray>"
+        },
+        {
+          "locale": "FR",
+          "value": " - Canal <aqua><arg:0></aqua> : <yellow><arg:1> joueur(s)</yellow> <dark_gray>[RogerBeep=<arg:2>, Filtre=<arg:3>]</dark_gray>"
+        }
+      ]
+    },
+    {
+      "key": "radio.rogerbeep_set",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Roger Beep for channel <aqua><arg:0></aqua>: <yellow><arg:1></yellow>.</green>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Roger Beep pour le canal <aqua><arg:0></aqua> : <yellow><arg:1></yellow>.</green>"
+        }
+      ]
+    },
+    {
+      "key": "radio.filter_set",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Filter for channel <aqua><arg:0></aqua> set to <yellow><arg:1></yellow>.</green>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Filtre pour le canal <aqua><arg:0></aqua> défini sur <yellow><arg:1></yellow>.</green>"
+        }
+      ]
+    },
+    {
+      "key": "room.not_found",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <red>Acoustic room '<aqua><arg:0></aqua>' not found.</red>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <red>Pièce acoustique '<aqua><arg:0></aqua>' introuvable.</red>"
+        }
+      ]
+    },
+    {
+      "key": "room.deleted",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Acoustic room '<aqua><arg:0></aqua>' deleted.</green>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Pièce acoustique '<aqua><arg:0></aqua>' supprimée.</green>"
+        }
+      ]
+    },
+    {
+      "key": "room.reloaded",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Acoustic rooms and presets reloaded from configuration.</green>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Pièces et préréglages acoustiques rechargés depuis la configuration.</green>"
+        }
+      ]
+    },
+    {
+      "key": "room.empty",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <yellow>No acoustic rooms registered.</yellow>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <yellow>Aucune pièce acoustique enregistrée.</yellow>"
+        }
+      ]
+    },
+    {
+      "key": "room.list_header",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <gold>=== Acoustic Rooms (<arg:0>) ===</gold>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <gold>=== Pièces Acoustiques (<arg:0>) ===</gold>"
+        }
+      ]
+    },
+    {
+      "key": "room.list_item",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": " - <aqua><arg:0></aqua> (\"<white><arg:1></white>\") <green>[Preset: <arg:2>, Isolation: <arg:3>%]</green>"
+        },
+        {
+          "locale": "FR",
+          "value": " - <aqua><arg:0></aqua> (\"<white><arg:1></white>\") <green>[Préréglage : <arg:2>, Isolation : <arg:3>%]</green>"
+        }
+      ]
+    },
+    {
+      "key": "room.info_header",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <gold>Room Info: <aqua><arg:0></aqua> (<arg:1>)</gold>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <gold>Infos Pièce : <aqua><arg:0></aqua> (<arg:1>)</gold>"
+        }
+      ]
+    },
+    {
+      "key": "room.info_preset",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gray>Preset: </gray><aqua><arg:0></aqua>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gray>Préréglage : </gray><aqua><arg:0></aqua>"
+        }
+      ]
+    },
+    {
+      "key": "room.info_isolation",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gray>Effective Isolation: </gray><yellow><arg:0>%</yellow>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gray>Isolation effective : </gray><yellow><arg:0>%</yellow>"
+        }
+      ]
+    },
+    {
+      "key": "room.info_cuboids",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gray>Boundaries (Cuboids): </gray><white><arg:0></white>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gray>Limites (Cubiques) : </gray><white><arg:0></white>"
+        }
+      ]
+    },
+    {
+      "key": "wall.unknown_mode",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <red>Unknown mode. Choices: strict, realistic, off</red>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <red>Mode inconnu. Choix : strict, realistic, off</red>"
+        }
+      ]
+    },
+    {
+      "key": "wall.mode_set",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Wall occlusion mode set to: <yellow><arg:0></yellow>.</green>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Mode d'occlusion murale défini sur : <yellow><arg:0></yellow>.</green>"
+        }
+      ]
+    },
+    {
+      "key": "wall.toggle",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Wall occlusion system: <yellow><arg:0></yellow>.</green>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Système d'occlusion murale : <yellow><arg:0></yellow>.</green>"
+        }
+      ]
+    },
+    {
+      "key": "wall.airdamping",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Air damping: <yellow><arg:0></yellow>.</green>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Amortissement de l'air : <yellow><arg:0></yellow>.</green>"
+        }
+      ]
+    },
+    {
+      "key": "wall.specify_player",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <red>Specify a player to toggle visual debug!</red>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <red>Précisez un joueur pour basculer le débogage visuel !</red>"
+        }
+      ]
+    },
+    {
+      "key": "wall.debug",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Particle raycast debug for <yellow><arg:0></yellow>: <gold><arg:1></gold>.</green>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Débogage particules pour <yellow><arg:0></yellow> : <gold><arg:1></gold>.</green>"
+        }
+      ]
+    },
+    {
+      "key": "wall.info_header",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <gold>==== [VOICEWALL SETTINGS] ====</gold>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <gold>==== [PARAMÈTRES VOICEWALL] ====</gold>"
+        }
+      ]
+    },
+    {
+      "key": "wall.info_active",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gray>Active: </gray><yellow><arg:0></yellow>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gray>Actif : </gray><yellow><arg:0></yellow>"
+        }
+      ]
+    },
+    {
+      "key": "wall.info_mode",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gray>Current Mode: </gray><yellow><arg:0></yellow>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gray>Mode actuel : </gray><yellow><arg:0></yellow>"
+        }
+      ]
+    },
+    {
+      "key": "wall.info_distance",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gray>Max Distance: </gray><yellow><arg:0>m</yellow>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gray>Distance max : </gray><yellow><arg:0>m</yellow>"
+        }
+      ]
+    },
+    {
+      "key": "wall.info_airdamping",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gray>Air Damping: </gray><aqua><arg:0></aqua>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gray>Amortissement air : </gray><aqua><arg:0></aqua>"
+        }
+      ]
+    },
+    {
+      "key": "projection.created",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Voice anchor created for <yellow><arg:0></yellow> at (<arg:1>, <arg:2>, <arg:3>)!</green>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Ancre vocale créée pour <yellow><arg:0></yellow> en (<arg:1>, <arg:2>, <arg:3>) !</green>"
+        }
+      ]
+    },
+    {
+      "key": "projection.removed",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Voice anchor removed for <yellow><arg:0></yellow>.</green>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Ancre vocale retirée pour <yellow><arg:0></yellow>.</green>"
+        }
+      ]
+    },
+    {
+      "key": "projection.none",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <yellow>No active projection for this player.</yellow>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <yellow>Aucune projection active pour ce joueur.</yellow>"
+        }
+      ]
+    },
+    {
+      "key": "projection.target_none",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <red>No active anchor for <yellow><arg:0></yellow>.</red>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <red>Aucune ancre active pour <yellow><arg:0></yellow>.</red>"
+        }
+      ]
+    },
+    {
+      "key": "projection.no_entity_nearby",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <red>No entity found nearby to attach anchor.</red>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <red>Aucune entité trouvée à proximité pour attacher l'ancre.</red>"
+        }
+      ]
+    },
+    {
+      "key": "projection.attached",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Anchor of <yellow><arg:0></yellow> attached to <aqua><arg:1></aqua>!</green>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Ancre de <yellow><arg:0></yellow> attachée à <aqua><arg:1></aqua> !</green>"
+        }
+      ]
+    },
+    {
+      "key": "projection.detached",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Anchor of <yellow><arg:0></yellow> detached from entity.</green>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Ancre de <yellow><arg:0></yellow> détachée de l'entité.</green>"
+        }
+      ]
+    },
+    {
+      "key": "projection.distance_set",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Distance set to <yellow><arg:0>m</yellow> for <aqua><arg:1></aqua>.</green>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Distance définie sur <yellow><arg:0>m</yellow> pour <aqua><arg:1></aqua>.</green>"
+        }
+      ]
+    },
+    {
+      "key": "projection.filter_set",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Filter set to <yellow><arg:0></yellow> for <aqua><arg:1></aqua>.</green>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Filtre défini sur <yellow><arg:0></yellow> pour <aqua><arg:1></aqua>.</green>"
+        }
+      ]
+    },
+    {
+      "key": "projection.emit_anchor",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <yellow>Voice emission at anchor: <gold><arg:0></gold>.</yellow>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <yellow>Émission vocale à l'ancre : <gold><arg:0></gold>.</yellow>"
+        }
+      ]
+    },
+    {
+      "key": "projection.emit_player",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <yellow>Voice emission at player/camera: <gold><arg:0></gold>.</yellow>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <yellow>Émission vocale au joueur/caméra : <gold><arg:0></gold>.</yellow>"
+        }
+      ]
+    },
+    {
+      "key": "projection.hear_anchor",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <yellow>Listening around anchor: <gold><arg:0></gold>.</yellow>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <yellow>Écoute autour de l'ancre : <gold><arg:0></gold>.</yellow>"
+        }
+      ]
+    },
+    {
+      "key": "projection.hear_player",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <yellow>Listening around player/camera: <gold><arg:0></gold>.</yellow>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <yellow>Écoute autour du joueur/caméra : <gold><arg:0></gold>.</yellow>"
+        }
+      ]
+    },
+    {
+      "key": "projection.wall",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <yellow>VoiceWall for anchor: <gold><arg:0></gold>.</yellow>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <yellow>VoiceWall pour l'ancre : <gold><arg:0></gold>.</yellow>"
+        }
+      ]
+    },
+    {
+      "key": "projection.list_empty",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <gray>No active voice anchors.</gray>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <gray>Aucune ancre vocale active.</gray>"
+        }
+      ]
+    },
+    {
+      "key": "projection.list_header",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <gold>=== Active Anchors (<arg:0>) ===</gold>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <gold>=== Ancres Actives (<arg:0>) ===</gold>"
+        }
+      ]
+    },
+    {
+      "key": "projection.specify_player",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <red>Specify a player!</red>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <red>Précisez un joueur !</red>"
+        }
+      ]
+    },
+    {
+      "key": "transmitter.enabled",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Transmitter mode enabled.</green>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Mode émetteur activé.</green>"
+        }
+      ]
+    },
+    {
+      "key": "transmitter.disabled",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <red>Transmitter mode disabled.</red>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <red>Mode émetteur désactivé.</red>"
+        }
+      ]
+    },
+    {
+      "key": "transmitter.not_active",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <red>You are not in transmitter mode. Enable it first with /transmitter enable.</red>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <red>Vous n'êtes pas en mode émetteur. Activez-le avec /transmitter enable.</red>"
+        }
+      ]
+    },
+    {
+      "key": "transmitter.receiver_added",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Added receiver: <aqua><arg:0></aqua> (infinite range).</green>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Récepteur ajouté : <aqua><arg:0></aqua> (portée infinie).</green>"
+        }
+      ]
+    },
+    {
+      "key": "transmitter.receiver_added_range",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Added receiver: <aqua><arg:0></aqua> (range: <yellow><arg:1>m</yellow>).</green>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Récepteur ajouté : <aqua><arg:0></aqua> (portée : <yellow><arg:1>m</yellow>).</green>"
+        }
+      ]
+    },
+    {
+      "key": "transmitter.receiver_removed",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <yellow>Removed receiver: <aqua><arg:0></aqua>.</yellow>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <yellow>Récepteur retiré : <aqua><arg:0></aqua>.</yellow>"
+        }
+      ]
+    },
+    {
+      "key": "transmitter.distance_positive",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <red>Distance must be > 0.</red>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <red>La distance doit être > 0.</red>"
+        }
+      ]
+    },
+    {
+      "key": "transmitter.list_empty",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <gray>No active receivers configured.</gray>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <gray>Aucun récepteur actif configuré.</gray>"
+        }
+      ]
+    },
+    {
+      "key": "transmitter.list_header",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <gold>=== Configured Receivers (<arg:0>) ===</gold>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <gold>=== Récepteurs Configurés (<arg:0>) ===</gold>"
+        }
+      ]
+    },
+    {
+      "key": "transmitter.cleared",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <yellow>All receivers cleared.</yellow>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <yellow>Tous les récepteurs ont été effacés.</yellow>"
+        }
+      ]
+    },
+    {
+      "key": "filter.applied",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Voice filter applied: <gold><arg:0></gold>.</green>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Filtre vocal appliqué : <gold><arg:0></gold>.</green>"
+        }
+      ]
+    },
+    {
+      "key": "filter.applied_to",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Filter <gold><arg:0></gold> applied to <aqua><arg:1></aqua>.</green>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Filtre <gold><arg:0></gold> appliqué à <aqua><arg:1></aqua>.</green>"
+        }
+      ]
+    },
+    {
+      "key": "filter.removed",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <yellow>Voice filter removed.</yellow>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <yellow>Filtre vocal retiré.</yellow>"
+        }
+      ]
+    },
+    {
+      "key": "filter.removed_from",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <yellow>Filter <gold><arg:0></gold> removed from <aqua><arg:1></aqua>.</yellow>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <yellow>Filtre <gold><arg:0></gold> retiré de <aqua><arg:1></aqua>.</yellow>"
+        }
+      ]
+    },
+    {
+      "key": "filter.not_found",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <red>Unknown voice filter: <aqua><arg:0></aqua>.</red>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <red>Filtre vocal inconnu : <aqua><arg:0></aqua>.</red>"
+        }
+      ]
+    },
+    {
+      "key": "filter.cleared",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>All voice filters cleared for <aqua><arg:0></aqua>.</green>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Tous les filtres vocaux effacés pour <aqua><arg:0></aqua>.</green>"
+        }
+      ]
+    },
+    {
+      "key": "filter.auto",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Automatic environment filters <yellow><arg:0></yellow> for <aqua><arg:1></aqua>.</green>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Filtres environnementaux automatiques <yellow><arg:0></yellow> pour <aqua><arg:1></aqua>.</green>"
+        }
+      ]
+    },
+    {
+      "key": "filter.reloaded",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Filters reloaded from modules/filter/filters/.</green>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Filtres rechargés depuis modules/filter/filters/.</green>"
+        }
+      ]
+    },
+    {
+      "key": "filter.list_header",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <gold>=== Available Voice Filters (<arg:0>) ===</gold>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <gold>=== Filtres Vocaux Disponibles (<arg:0>) ===</gold>"
+        }
+      ]
+    },
+    {
+      "key": "filter.export_success",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Filter '<aqua><arg:0></aqua>' exported successfully to: <yellow><arg:1></yellow>.</green>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Filtre '<aqua><arg:0></aqua>' exporté avec succès vers : <yellow><arg:1></yellow>.</green>"
+        }
+      ]
+    },
+    {
+      "key": "filter.export_fail",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <red>Failed to export filter '<aqua><arg:0></aqua>'.</red>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <red>Échec de l'exportation du filtre '<aqua><arg:0></aqua>'.</red>"
+        }
+      ]
+    },
+    {
+      "key": "record.started",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Voice recording started: <yellow><arg:0></yellow>.</green>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Enregistrement vocal démarré : <yellow><arg:0></yellow>.</green>"
+        }
+      ]
+    },
+    {
+      "key": "record.stopped",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <yellow>Voice recording stopped: <aqua><arg:0></aqua>.</yellow>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <yellow>Enregistrement vocal arrêté : <aqua><arg:0></aqua>.</yellow>"
+        }
+      ]
+    },
+    {
+      "key": "speech.analyzing",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <yellow>Analyzing audio tape...</yellow>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <yellow>Analyse de la bande audio en cours...</yellow>"
+        }
+      ]
+    },
+    {
+      "key": "speech.analyzing_subtitle",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gray>Please wait...</gray>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gray>Veuillez patienter...</gray>"
+        }
+      ]
+    },
+    {
+      "key": "speech.book_title",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "Report: {id}"
+        },
+        {
+          "locale": "FR",
+          "value": "Rapport : {id}"
+        }
+      ]
+    },
+    {
+      "key": "speech.book_header",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<bold><gold>=== AUDIO REPORT ===</gold></bold>\n<gray>Tape:</gray> <yellow>{id}</yellow>\n<gray>Duration:</gray> <aqua>{duration}s</aqua>\n<gray>Speaker:</gray> <yellow>{author}</yellow>\n-------------------"
+        },
+        {
+          "locale": "FR",
+          "value": "<bold><gold>=== RAPPORT D'ÉCOUTE ===</gold></bold>\n<gray>Bande :</gray> <yellow>{id}</yellow>\n<gray>Durée :</gray> <aqua>{duration}s</aqua>\n<gray>Locuteur :</gray> <yellow>{author}</yellow>\n-------------------"
+        }
+      ]
+    },
+    {
+      "key": "persistence.speakers_saved",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Speakers successfully saved.</green>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Haut-parleurs sauvegardés avec succès.</green>"
+        }
+      ]
+    },
+    {
+      "key": "persistence.wiretaps_saved",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Wiretaps successfully saved.</green>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Micro-espions sauvegardés avec succès.</green>"
+        }
+      ]
+    },
+    {
+      "key": "persistence.projections_saved",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Voice projections successfully saved.</green>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Projections vocales sauvegardées avec succès.</green>"
+        }
+      ]
+    },
+    {
+      "key": "persistence.radios_saved",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Radio channels successfully saved.</green>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Canaux radio sauvegardés avec succès.</green>"
+        }
+      ]
+    },
+    {
+      "key": "persistence.transmitters_saved",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Transmitters successfully saved.</green>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Émetteurs sauvegardés avec succès.</green>"
+        }
+      ]
+    },
+    {
+      "key": "persistence.broadcasts_saved",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Broadcast points successfully saved.</green>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Points de broadcast sauvegardés avec succès.</green>"
+        }
+      ]
+    },
+    {
+      "key": "persistence.all_saved",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>All persistent data successfully saved.</green>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Toutes les données ont été sauvegardées avec succès.</green>"
+        }
+      ]
+    },
+    {
+      "key": "persistence.speakers_reloaded",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Speakers successfully reloaded.</green>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Haut-parleurs rechargés avec succès.</green>"
+        }
+      ]
+    },
+    {
+      "key": "persistence.wiretaps_reloaded",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Wiretaps successfully reloaded.</green>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Micro-espions rechargés avec succès.</green>"
+        }
+      ]
+    },
+    {
+      "key": "persistence.projections_reloaded",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Voice projections successfully reloaded.</green>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Projections vocales rechargées avec succès.</green>"
+        }
+      ]
+    },
+    {
+      "key": "persistence.radios_reloaded",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Radio channels successfully reloaded.</green>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Canaux radio rechargés avec succès.</green>"
+        }
+      ]
+    },
+    {
+      "key": "persistence.transmitters_reloaded",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Transmitters successfully reloaded.</green>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Émetteurs rechargés avec succès.</green>"
+        }
+      ]
+    },
+    {
+      "key": "persistence.broadcasts_reloaded",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Broadcast points successfully reloaded.</green>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Points de broadcast rechargés avec succès.</green>"
+        }
+      ]
+    },
+    {
+      "key": "persistence.all_reloaded",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>All persistent data successfully reloaded.</green>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Toutes les données ont été rechargées avec succès.</green>"
+        }
+      ]
+    },
+    {
+      "key": "persistence.unknown_module",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <red>Unknown persistence module: <aqua><arg:0></aqua>.</red>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <red>Module de persistance inconnu : <aqua><arg:0></aqua>.</red>"
+        }
+      ]
+    },
+    {
+      "key": "persistence.config_reloaded",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Configuration file reloaded.</green>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Fichier de configuration rechargé.</green>"
+        }
+      ]
+    },
+    {
+      "key": "speaker.list_header",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <gold>=== Active Speakers (<arg:0>) ===</gold>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <gold>=== Haut-parleurs Actifs (<arg:0>) ===</gold>"
+        }
+      ]
+    },
+    {
+      "key": "speaker.list_item",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gray> - </gray><aqua><arg:0></aqua><gray> | Range: <yellow><arg:1>m</yellow> | Mode: <yellow><arg:2></yellow> | Pos: <dark_gray><arg:3></dark_gray></gray>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gray> - </gray><aqua><arg:0></aqua><gray> | Portee : <yellow><arg:1>m</yellow> | Mode : <yellow><arg:2></yellow> | Pos : <dark_gray><arg:3></dark_gray></gray>"
+        }
+      ]
+    },
+    {
+      "key": "speaker.distance_set",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Distance of speaker '<aqua><arg:0></aqua>' set to <yellow><arg:1>m</yellow>.</green>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Portee du haut-parleur '<aqua><arg:0></aqua>' definie a <yellow><arg:1>m</yellow>.</green>"
+        }
+      ]
+    },
+    {
+      "key": "speaker.mode_set",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Mode of speaker '<aqua><arg:0></aqua>' set to <yellow><arg:1></yellow>.</green>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Mode du haut-parleur '<aqua><arg:0></aqua>' defini a <yellow><arg:1></yellow>.</green>"
+        }
+      ]
+    },
+    {
+      "key": "speaker.linked",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Speaker '<aqua><arg:0></aqua>' linked to player <yellow><arg:1></yellow>.</green>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Haut-parleur '<aqua><arg:0></aqua>' lie au joueur <yellow><arg:1></yellow>.</green>"
+        }
+      ]
+    },
+    {
+      "key": "speaker.unlinked",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <yellow>Speaker '<aqua><arg:0></aqua>' unlinked.</yellow>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <yellow>Haut-parleur '<aqua><arg:0></aqua>' delie.</yellow>"
+        }
+      ]
+    },
+    {
+      "key": "speaker.playing",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Playing sound '<yellow><arg:0></yellow>' on speaker '<aqua><arg:1></aqua>'.</green>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Lecture du son '<yellow><arg:0></yellow>' sur le haut-parleur '<aqua><arg:1></aqua>'.</green>"
+        }
+      ]
+    },
+    {
+      "key": "speaker.stopped",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <yellow>Stopped sound on speaker '<aqua><arg:0></aqua>'.</yellow>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <yellow>Arret du son sur le haut-parleur '<aqua><arg:0></aqua>'.</yellow>"
+        }
+      ]
+    },
+    {
+      "key": "wiretap.list_header",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <gold>=== Active Wiretaps (<arg:0>) ===</gold>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <gold>=== Mouchards Actifs (<arg:0>) ===</gold>"
+        }
+      ]
+    },
+    {
+      "key": "wiretap.list_item",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": " - <aqua><arg:0></aqua> (radius: <yellow><arg:1>m</yellow>, listeners: <yellow><arg:2></yellow>)"
+        },
+        {
+          "locale": "FR",
+          "value": " - <aqua><arg:0></aqua> (rayon: <yellow><arg:1>m</yellow>, auditeurs: <yellow><arg:2></yellow>)"
+        }
+      ]
+    },
+    {
+      "key": "wiretap.subscribed",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Subscribed <yellow><arg:0></yellow> to wiretap '<aqua><arg:1></aqua>'.</green>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green><yellow><arg:0></yellow> abonne au mouchard '<aqua><arg:1></aqua>'.</green>"
+        }
+      ]
+    },
+    {
+      "key": "wiretap.unsubscribed",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <yellow>Unsubscribed <yellow><arg:0></yellow> from wiretap '<aqua><arg:1></aqua>'.</yellow>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <yellow><yellow><arg:0></yellow> desabonne du mouchard '<aqua><arg:1></aqua>'.</yellow>"
+        }
+      ]
+    },
+    {
+      "key": "projection.list_item",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": " - <yellow><arg:0></yellow> (distance: <aqua><arg:1>m</aqua>)"
+        },
+        {
+          "locale": "FR",
+          "value": " - <yellow><arg:0></yellow> (distance: <aqua><arg:1>m</aqua>)"
+        }
+      ]
+    },
+    {
+      "key": "transmitter.list_item",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": " - <yellow><arg:0></yellow> (range: <aqua><arg:1></aqua>)"
+        },
+        {
+          "locale": "FR",
+          "value": " - <yellow><arg:0></yellow> (portee: <aqua><arg:1></aqua>)"
+        }
+      ]
+    },
+    {
+      "key": "filter.list_item",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": " - <gold><arg:0></gold> (<yellow><arg:1></yellow>, priority: <aqua><arg:2></aqua>)"
+        },
+        {
+          "locale": "FR",
+          "value": " - <gold><arg:0></gold> (<yellow><arg:1></yellow>, priorite: <aqua><arg:2></aqua>)"
+        }
+      ]
+    },
+    {
+      "key": "record.list_header",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <gold>=== Recordings (<arg:0>) ===</gold>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <gold>=== Enregistrements (<arg:0>) ===</gold>"
+        }
+      ]
+    },
+    {
+      "key": "record.list_empty",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gray>No recordings found.</gray>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gray>Aucun enregistrement trouve.</gray>"
+        }
+      ]
+    },
+    {
+      "key": "record.list_item",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": " - <yellow><arg:0></yellow> (<arg:1>)"
+        },
+        {
+          "locale": "FR",
+          "value": " - <yellow><arg:0></yellow> (<arg:1>)"
+        }
+      ]
+    },
+    {
+      "key": "record.list_item_done",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<green>[DONE]</green> <aqua><arg:2></aqua> <yellow><arg:0></yellow> <gray>(<arg:1>)</gray>"
+        },
+        {
+          "locale": "FR",
+          "value": "<green>[DONE]</green> <aqua><arg:2></aqua> <yellow><arg:0></yellow> <gray>(<arg:1>)</gray>"
+        }
+      ]
+    },
+    {
+      "key": "record.list_item_live",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<red>[LIVE]</red> <yellow><arg:0></yellow> <gray>(<arg:1>)</gray>"
+        },
+        {
+          "locale": "FR",
+          "value": "<red>[LIVE]</red> <yellow><arg:0></yellow> <gray>(<arg:1>)</gray>"
+        }
+      ]
+    },
+    {
+      "key": "record.list_item_wait",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gray>[WAIT] <yellow><arg:0></yellow> (<arg:1>)</gray>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gray>[WAIT] <yellow><arg:0></yellow> (<arg:1>)</gray>"
+        }
+      ]
+    },
+    {
+      "key": "record.cassette_given",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Voice cassette (<yellow><arg:0></yellow>) given to <aqua><arg:1></aqua>!</green>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Cassette vocale (<yellow><arg:0></yellow>) donnee a <aqua><arg:1></aqua> !</green>"
+        }
+      ]
+    },
+    {
+      "key": "record.not_found",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <red>Recording '<yellow><arg:0></yellow>' not found.</red>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <red>Enregistrement '<yellow><arg:0></yellow>' introuvable.</red>"
+        }
+      ]
+    },
+    {
+      "key": "record.not_finished",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <red>Recording is not finished yet.</red>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <red>L'enregistrement n'est pas encore termine.</red>"
+        }
+      ]
+    },
+    {
+      "key": "record.player_not_connected",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <red>Player '<aqua><arg:0></aqua>' is not connected to voice chat.</red>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <red>Le joueur '<aqua><arg:0></aqua>' n'est pas connecte au chat vocal.</red>"
+        }
+      ]
+    },
+    {
+      "key": "record.player_not_found",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <red>Player '<aqua><arg:0></aqua>' not found.</red>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <red>Joueur '<aqua><arg:0></aqua>' introuvable.</red>"
+        }
+      ]
+    },
+    {
+      "key": "record.playing",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Playing recording '<yellow><arg:0></yellow>' to <aqua><arg:1></aqua>.</green>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Lecture de l'enregistrement '<yellow><arg:0></yellow>' pour <aqua><arg:1></aqua>.</green>"
+        }
+      ]
+    },
+    {
+      "key": "record.deleted",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Recording '<yellow><arg:0></yellow>' deleted.</green>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Enregistrement '<yellow><arg:0></yellow>' supprime.</green>"
+        }
+      ]
+    },
+    {
+      "key": "record.failed",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <red>Recording error: <arg:0></red>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <red>Erreur d'enregistrement : <arg:0></red>"
+        }
+      ]
+    },
+    {
+      "key": "record.none_active",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <red>No active recording.</red>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <red>Aucun enregistrement actif.</red>"
+        }
+      ]
+    },
+    {
+      "key": "record.segment_sliced",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Segment extracted: <yellow><arg:0></yellow> (<aqua><arg:1>s</aqua>)</green>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Segment extrait : <yellow><arg:0></yellow> (<aqua><arg:1>s</aqua>)</green>"
+        }
+      ]
+    },
+    {
+      "key": "record.segment_cassette_given",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Segment cassette added to your inventory!</green>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Cassette du segment ajoutee a votre inventaire !</green>"
+        }
+      ]
+    },
+    {
+      "key": "record.converting_file",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <gray>Converting audio file <yellow><arg:0></yellow>...</gray>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <gray>Conversion du fichier audio <yellow><arg:0></yellow>...</gray>"
+        }
+      ]
+    },
+    {
+      "key": "record.converting_url",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <gray>Downloading and converting audio from URL...</gray>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <gray>Telechargement et conversion audio depuis l'URL...</gray>"
+        }
+      ]
+    },
+    {
+      "key": "record.invalid_format",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <red>Invalid format '<arg:0>'. Supported: mp3, ogg, wav</red>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <red>Format invalide '<arg:0>'. Formats supportes : mp3, ogg, wav</red>"
+        }
+      ]
+    },
+    {
+      "key": "record.exporting",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <gray>Exporting recording <yellow><arg:0></yellow> to <arg:1>...</gray>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <gray>Exportation de l'enregistrement <yellow><arg:0></yellow> en <arg:1>...</gray>"
+        }
+      ]
+    },
+    {
+      "key": "record.exported",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Successfully exported: <yellow><arg:0></yellow> (<aqua><arg:1></aqua>)</green>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Exportation reussie : <yellow><arg:0></yellow> (<aqua><arg:1></aqua>)</green>"
+        }
+      ]
+    },
+    {
+      "key": "speaker.list_empty",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <gray>No active speakers.</gray>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <gray>Aucun haut-parleur actif.</gray>"
+        }
+      ]
+    },
+    {
+      "key": "speaker.reserved_name",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <red>'all' is a reserved keyword and cannot be used as a speaker name!</red>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <red>'all' est un mot-cle reserve et ne peut pas etre utilise comme nom de haut-parleur !</red>"
+        }
+      ]
+    },
+    {
+      "key": "speaker.all_removed",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <yellow>Successfully removed all <aqua><arg:0></aqua> speaker(s)!</yellow>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <yellow>Tous les <aqua><arg:0></aqua> haut-parleur(s) ont ete supprimes avec succes !</yellow>"
+        }
+      ]
+    },
+    {
+      "key": "speaker.loading_audio",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <gray>Loading audio stream...</gray>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <gray>Chargement du flux audio...</gray>"
+        }
+      ]
+    },
+    {
+      "key": "speaker.loading_audio_all",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <gray>Loading audio stream for all speakers...</gray>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <gray>Chargement du flux audio pour tous les haut-parleurs...</gray>"
+        }
+      ]
+    },
+    {
+      "key": "wiretap.list_empty",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <gray>No active wiretaps.</gray>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <gray>Aucun mouchard actif.</gray>"
+        }
+      ]
+    },
+    {
+      "key": "wiretap.already_recording",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <red>This wiretap is already recording!</red>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <red>Ce mouchard est deja en cours d'enregistrement !</red>"
+        }
+      ]
+    },
+    {
+      "key": "wiretap.not_recording",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <gray>No active recording on this wiretap.</gray>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <gray>Aucun enregistrement actif sur ce mouchard.</gray>"
+        }
+      ]
+    },
+    {
+      "key": "wiretap.record_started",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Recording started on '<yellow><arg:0></yellow>'.</green>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Enregistrement demarre sur '<yellow><arg:0></yellow>'.</green>"
+        }
+      ]
+    },
+    {
+      "key": "wiretap.record_stopped",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Recording stopped on '<yellow><arg:0></yellow>' (<aqua><arg:1>s</aqua>, ID: <arg:2>).</green>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Enregistrement arrete sur '<yellow><arg:0></yellow>' (<aqua><arg:1>s</aqua>, ID : <arg:2>).</green>"
+        }
+      ]
+    },
+    {
+      "key": "wiretap.no_entity_nearby",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <red>No entity found nearby (5 blocks) to attach wiretap.</red>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <red>Aucune entite trouvee a proximite (5 blocs) pour attacher le mouchard.</red>"
+        }
+      ]
+    },
+    {
+      "key": "wiretap.not_attached",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <gray>This wiretap is not attached to any entity.</gray>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <gray>Ce mouchard n'est attache a aucune entite.</gray>"
+        }
+      ]
+    },
+    {
+      "key": "speech.status_header",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <gold>=== Speech Service ===</gold>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <gold>=== Service Vocal (Speech) ===</gold>"
+        }
+      ]
+    },
+    {
+      "key": "speech.active_model",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gray>Active Model: </gray><yellow><arg:0></yellow>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gray>Modele Actif : </gray><yellow><arg:0></yellow>"
+        }
+      ]
+    },
+    {
+      "key": "speech.installed_models",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gray>Installed Models: </gray><aqua><arg:0></aqua>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gray>Modeles Installes : </gray><aqua><arg:0></aqua>"
+        }
+      ]
+    },
+    {
+      "key": "speech.keywords_header",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <gold>=== Keywords (<arg:0>) ===</gold>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <gold>=== Mots-cles (<arg:0>) ===</gold>"
+        }
+      ]
+    },
+    {
+      "key": "speech.keywords_entry",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": " - <aqua><arg:0></aqua>: <yellow><arg:1></yellow>"
+        },
+        {
+          "locale": "FR",
+          "value": " - <aqua><arg:0></aqua> : <yellow><arg:1></yellow>"
+        }
+      ]
+    },
+    {
+      "key": "dreamvoice.status_header",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <gold>=== DreamVoice Global Status ===</gold>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <gold>=== Statut Global DreamVoice ===</gold>"
+        }
+      ]
+    },
+    {
+      "key": "dreamvoice.status_speakers",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gray>Speakers: </gray><aqua><arg:0></aqua>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gray>Haut-parleurs : </gray><aqua><arg:0></aqua>"
+        }
+      ]
+    },
+    {
+      "key": "dreamvoice.status_wiretaps",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gray>Wiretaps: </gray><aqua><arg:0></aqua>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gray>Mouchards : </gray><aqua><arg:0></aqua>"
+        }
+      ]
+    },
+    {
+      "key": "dreamvoice.status_projections",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gray>Projections: </gray><aqua><arg:0></aqua>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gray>Projections : </gray><aqua><arg:0></aqua>"
+        }
+      ]
+    },
+    {
+      "key": "dreamvoice.status_radios",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gray>Radio Channels: </gray><aqua><arg:0></aqua>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gray>Canaux Radio : </gray><aqua><arg:0></aqua>"
+        }
+      ]
+    },
+    {
+      "key": "dreamvoice.status_transmitters",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gray>Transmitters: </gray><aqua><arg:0></aqua>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gray>Emetteurs : </gray><aqua><arg:0></aqua>"
+        }
+      ]
+    },
+    {
+      "key": "dreamvoice.status_broadcasts",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gray>Broadcast Points: </gray><aqua><arg:0></aqua>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gray>Points de Diffusion : </gray><aqua><arg:0></aqua>"
+        }
+      ]
+    },
+    {
+      "key": "debug.status_header",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <gold>=== DreamVoice Debug Status ===</gold>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <gold>=== Debogage DreamVoice ===</gold>"
+        }
+      ]
+    },
+    {
+      "key": "debug.platform",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gray>Platform: </gray><aqua><arg:0></aqua>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gray>Plateforme : </gray><aqua><arg:0></aqua>"
+        }
+      ]
+    },
+    {
+      "key": "debug.players_online",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gray>Players Online: </gray><yellow><arg:0></yellow>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gray>Joueurs en ligne : </gray><yellow><arg:0></yellow>"
+        }
+      ]
+    },
+    {
+      "key": "debug.raycast_origin",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Raycast origin at: <yellow>(<arg:0>, <arg:1>, <arg:2>)</yellow></green>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Origine du trace a : <yellow>(<arg:0>, <arg:1>, <arg:2>)</yellow></green>"
+        }
+      ]
+    },
+    {
+      "key": "wiretap.attached",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Wiretap '<yellow><arg:0></yellow>' attached to entity <aqua><arg:1></aqua>!</green>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Mouchard '<yellow><arg:0></yellow>' attache a l'entite <aqua><arg:1></aqua> !</green>"
+        }
+      ]
+    },
+    {
+      "key": "wiretap.detached",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Wiretap '<yellow><arg:0></yellow>' detached from entity.</green>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Mouchard '<yellow><arg:0></yellow>' detache de l'entite.</green>"
+        }
+      ]
+    },
+    {
+      "key": "speaker.info_header",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gold>==== [SPEAKER: <yellow><arg:0></yellow>] ====</gold>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gold>==== [HAUT-PARLEUR : <yellow><arg:0></yellow>] ====</gold>"
+        }
+      ]
+    },
+    {
+      "key": "speaker.info_position",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gray>Position: </gray><aqua><arg:0></aqua>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gray>Position : </gray><aqua><arg:0></aqua>"
+        }
+      ]
+    },
+    {
+      "key": "speaker.info_attached",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gray>Attached Entity: </gray><light_purple><arg:0></light_purple>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gray>Entite Attachee : </gray><light_purple><arg:0></light_purple>"
+        }
+      ]
+    },
+    {
+      "key": "speaker.info_range",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gray>Range: </gray><yellow><arg:0>m</yellow>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gray>Portee : </gray><yellow><arg:0>m</yellow>"
+        }
+      ]
+    },
+    {
+      "key": "speaker.info_mode",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gray>Mode: </gray><yellow><arg:0></yellow>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gray>Mode : </gray><yellow><arg:0></yellow>"
+        }
+      ]
+    },
+    {
+      "key": "speaker.info_playing",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gray>Playing: </gray><green><arg:0></green>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gray>En lecture : </gray><green><arg:0></green>"
+        }
+      ]
+    },
+    {
+      "key": "speaker.info_allowed",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gray>Allowed Players: </gray><aqua><arg:0></aqua>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gray>Joueurs autorises : </gray><aqua><arg:0></aqua>"
+        }
+      ]
+    },
+    {
+      "key": "wiretap.info_header",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gold>==== [WIRETAP: <yellow><arg:0></yellow>] ====</gold>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gold>==== [MOUCHARD : <yellow><arg:0></yellow>] ====</gold>"
+        }
+      ]
+    },
+    {
+      "key": "wiretap.info_position",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gray>Position: </gray><aqua><arg:0></aqua>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gray>Position : </gray><aqua><arg:0></aqua>"
+        }
+      ]
+    },
+    {
+      "key": "wiretap.info_attached",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gray>Attached Entity: </gray><light_purple><arg:0></light_purple>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gray>Entite Attachee : </gray><light_purple><arg:0></light_purple>"
+        }
+      ]
+    },
+    {
+      "key": "wiretap.info_range",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gray>Range: </gray><yellow><arg:0>m</yellow>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gray>Portee : </gray><yellow><arg:0>m</yellow>"
+        }
+      ]
+    },
+    {
+      "key": "wiretap.info_filter",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gray>Filter: </gray><aqua><arg:0></aqua>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gray>Filtre : </gray><aqua><arg:0></aqua>"
+        }
+      ]
+    },
+    {
+      "key": "wiretap.info_recording",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gray>Recording: </gray><yellow><arg:0></yellow>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gray>Enregistrement : </gray><yellow><arg:0></yellow>"
+        }
+      ]
+    },
+    {
+      "key": "wiretap.info_recordings_count",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gray>Recordings Count: </gray><yellow><arg:0></yellow>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gray>Nombre d'enregistrements : </gray><yellow><arg:0></yellow>"
+        }
+      ]
+    },
+    {
+      "key": "wiretap.info_listeners",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gray>Connected Listeners: </gray><aqua><arg:0></aqua>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gray>Auditeurs connectes : </gray><aqua><arg:0></aqua>"
+        }
+      ]
+    },
+    {
+      "key": "radio.info_header",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gold>==== [RADIO: <yellow><arg:0></yellow>] ====</gold>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gold>==== [RADIO : <yellow><arg:0></yellow>] ====</gold>"
+        }
+      ]
+    },
+    {
+      "key": "radio.info_filter",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gray>Filter: </gray><aqua><arg:0></aqua>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gray>Filtre : </gray><aqua><arg:0></aqua>"
+        }
+      ]
+    },
+    {
+      "key": "radio.info_rogerbeep",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gray>Roger Beep: </gray><yellow><arg:0></yellow>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gray>Bip de Fin (Roger Beep) : </gray><yellow><arg:0></yellow>"
+        }
+      ]
+    },
+    {
+      "key": "radio.info_members",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gray>Members (<arg:0>): </gray>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gray>Membres (<arg:0>) : </gray>"
+        }
+      ]
+    },
+    {
+      "key": "radio.info_member_item",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": " - <yellow><arg:0></yellow>"
+        },
+        {
+          "locale": "FR",
+          "value": " - <yellow><arg:0></yellow>"
+        }
+      ]
+    },
+    {
+      "key": "speech.downloading",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gray>Downloading speech model <yellow><arg:0></yellow> (~<arg:1>MB)...</gray>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gray>Telechargement du modele vocal <yellow><arg:0></yellow> (~<arg:1>Mo)...</gray>"
+        }
+      ]
+    },
+    {
+      "key": "speech.model_installed",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<green>Model successfully installed: <yellow><arg:0></yellow></green>"
+        },
+        {
+          "locale": "FR",
+          "value": "<green>Modele installe avec succes : <yellow><arg:0></yellow></green>"
+        }
+      ]
+    },
+    {
+      "key": "speech.model_set",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<green>Active model set to: <yellow><arg:0></yellow></green>"
+        },
+        {
+          "locale": "FR",
+          "value": "<green>Modele actif defini sur : <yellow><arg:0></yellow></green>"
+        }
+      ]
+    },
+    {
+      "key": "speech.reloaded",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<green>Speech configuration and keywords reloaded.</green>"
+        },
+        {
+          "locale": "FR",
+          "value": "<green>Configuration vocale et mots-cles recharges.</green>"
+        }
+      ]
+    },
+    {
+      "key": "speech.unknown_model",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<red>Unknown model or language code '<arg:0>'. Use tab-completion or check '/voice speech models'.</red>"
+        },
+        {
+          "locale": "FR",
+          "value": "<red>Modele ou code langue inconnu '<arg:0>'. Utilisez l'autocompletion ou '/voice speech models'.</red>"
+        }
+      ]
+    },
+    {
+      "key": "speech.no_models",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gray>No models installed in plugins/DreamVoice/modules/speech/models/.</gray>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gray>Aucun modele installe dans plugins/DreamVoice/modules/speech/models/.</gray>"
+        }
+      ]
+    },
+    {
+      "key": "speech.no_keywords",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gray>No keywords registered in modules/speech/keywords.json.</gray>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gray>Aucun mot-cle enregistre dans modules/speech/keywords.json.</gray>"
+        }
+      ]
+    },
+    {
+      "key": "speech.transcribing",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gray>Transcribing recording <yellow><arg:0></yellow>...</gray>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gray>Transcription de l'enregistrement <yellow><arg:0></yellow>...</gray>"
+        }
+      ]
+    },
+    {
+      "key": "speech.transcription_book_generated",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<green>Transcription book generated and added to inventory!</green>"
+        },
+        {
+          "locale": "FR",
+          "value": "<green>Livre de transcription genere et ajoute a votre inventaire !</green>"
+        }
+      ]
+    },
+    {
+      "key": "speech.debug_activated",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<green>[Speech Debug] Mode activated! You will receive notifications when keywords are spoken.</green>"
+        },
+        {
+          "locale": "FR",
+          "value": "<green>[Speech Debug] Mode active ! Vous recevrez des notifications lors de la prononciation des mots-cles.</green>"
+        }
+      ]
+    },
+    {
+      "key": "speech.debug_deactivated",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<yellow>[Speech Debug] Mode deactivated.</yellow>"
+        },
+        {
+          "locale": "FR",
+          "value": "<yellow>[Speech Debug] Mode desactive.</yellow>"
+        }
+      ]
+    },
+    {
+      "key": "dreamvoice.status_voicewall",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gray>VoiceWall: </gray><aqua><arg:0></aqua>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gray>VoiceWall : </gray><aqua><arg:0></aqua>"
+        }
+      ]
+    },
+    {
+      "key": "projection.info_header",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <gold>=== Projection Info: <aqua><arg:0></aqua> ===</gold>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <gold>=== Infos Projection : <aqua><arg:0></aqua> ===</gold>"
+        }
+      ]
+    },
+    {
+      "key": "projection.info_player",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gray>Player: </gray><yellow><arg:0></yellow>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gray>Joueur : </gray><yellow><arg:0></yellow>"
+        }
+      ]
+    },
+    {
+      "key": "projection.info_position",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gray>Anchor Position: </gray><aqua><arg:0></aqua>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gray>Position d'Ancre : </gray><aqua><arg:0></aqua>"
+        }
+      ]
+    },
+    {
+      "key": "projection.info_attached",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gray>Attached Entity: </gray><light_purple><arg:0></light_purple>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gray>Entite Attachee : </gray><light_purple><arg:0></light_purple>"
+        }
+      ]
+    },
+    {
+      "key": "projection.info_range",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gray>Range: </gray><yellow><arg:0>m</yellow>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gray>Portee : </gray><yellow><arg:0>m</yellow>"
+        }
+      ]
+    },
+    {
+      "key": "projection.info_filter",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gray>Filter: </gray><aqua><arg:0></aqua>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gray>Filtre : </gray><aqua><arg:0></aqua>"
+        }
+      ]
+    },
+    {
+      "key": "projection.info_emission",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gray>Emission Anchor / Player: </gray><green><arg:0></green>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gray>Emission Ancre / Joueur : </gray><green><arg:0></green>"
+        }
+      ]
+    },
+    {
+      "key": "projection.info_listening",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gray>Listening Anchor / Player: </gray><green><arg:0></green>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gray>Ecoute Ancre / Joueur : </gray><green><arg:0></green>"
+        }
+      ]
+    },
+    {
+      "key": "projection.info_voicewall",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gray>VoiceWall: </gray><yellow><arg:0></yellow>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gray>VoiceWall : </gray><yellow><arg:0></yellow>"
+        }
+      ]
+    },
+    {
+      "key": "speech.download_progress",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<dark_aqua>Download progress: <arg:0>%</dark_aqua>"
+        },
+        {
+          "locale": "FR",
+          "value": "<dark_aqua>Progression du telechargement : <arg:0>%</dark_aqua>"
+        }
+      ]
+    },
+    {
+      "key": "speech.report_header",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <gold>=== Transcription Report: <aqua><arg:0></aqua> ===</gold>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <gold>=== Rapport de Transcription : <aqua><arg:0></aqua> ===</gold>"
+        }
+      ]
+    },
+    {
+      "key": "speech.no_words_detected",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gray>(No words detected)</gray>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gray>(Aucun mot detecte)</gray>"
+        }
+      ]
+    },
+    {
+      "key": "speech.segment_item",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<dark_gray>[<arg:0>s] </dark_gray><yellow><arg:1>: </yellow><white><arg:2></white>"
+        },
+        {
+          "locale": "FR",
+          "value": "<dark_gray>[<arg:0>s] </dark_gray><yellow><arg:1>: </yellow><white><arg:2></white>"
+        }
+      ]
+    },
+    {
+      "key": "debug.invalid_state",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <red>Invalid state.</red>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <red>Etat invalide.</red>"
+        }
+      ]
+    },
+    {
+      "key": "debug.state_set",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Voice state set to <yellow><arg:0></yellow>.</green>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Etat vocal defini sur <yellow><arg:0></yellow>.</green>"
+        }
+      ]
+    },
+    {
+      "key": "debug.state_player_set",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Voice state of <yellow><arg:0></yellow> set to <yellow><arg:1></yellow>.</green>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Etat vocal de <yellow><arg:0></yellow> defini sur <yellow><arg:1></yellow>.</green>"
+        }
+      ]
+    },
+    {
+      "key": "debug.state_reset",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Voice state reset for <yellow><arg:0></yellow>.</green>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Etat vocal reinitialise pour <yellow><arg:0></yellow>.</green>"
+        }
+      ]
+    },
+    {
+      "key": "debug.state_get",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <gray>Voice state of <yellow><arg:0></yellow>: </gray><aqua><arg:1></aqua>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <gray>Etat vocal de <yellow><arg:0></yellow> : </gray><aqua><arg:1></aqua>"
+        }
+      ]
+    },
+    {
+      "key": "debug.downloading_converting",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <gray>Downloading and converting audio...</gray>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <gray>Telechargement et conversion audio en cours...</gray>"
+        }
+      ]
+    },
+    {
+      "key": "debug.sound_finished",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <gray>Finished: <yellow><arg:0></yellow></gray>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <gray>Termine : <yellow><arg:0></yellow></gray>"
+        }
+      ]
+    },
+    {
+      "key": "speech.model_item_active",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<green> * <arg:0></green>"
+        },
+        {
+          "locale": "FR",
+          "value": "<green> * <arg:0></green>"
+        }
+      ]
+    },
+    {
+      "key": "speech.model_item",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gray> - <white><arg:0></white></gray>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gray> - <white><arg:0></white></gray>"
+        }
+      ]
+    },
+    {
+      "key": "config.visualizer.enabled",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Audio visualizer activated! Spheres and device ranges are visible.</green>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <green>Visualiseur audio active ! Les spheres et portees sont visibles.</green>"
+        }
+      ]
+    },
+    {
+      "key": "config.visualizer.disabled",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <yellow>Audio visualizer deactivated.</yellow>"
+        },
+        {
+          "locale": "FR",
+          "value": "<gradient:#38ef7d:#11998e>[DreamVoice]</gradient> <yellow>Visualiseur audio desactive.</yellow>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.main.visualizer.name",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><bold><aqua>Device Visualizer</aqua></bold>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><bold><aqua>Visualiseur de Portees</aqua></bold>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.main.visualizer.lore_active",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><gray>Status: <green>ACTIVE</green></gray>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><gray>Statut : <green>ACTIF</green></gray>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.main.visualizer.lore_inactive",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><gray>Status: <red>INACTIVE</red></gray>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><gray>Statut : <red>INACTIF</red></gray>"
+        }
+      ]
+    },
+    {
+      "key": "config.gui.main.visualizer.lore_click",
+      "lang": [
+        {
+          "locale": "EN",
+          "value": "<!italic><yellow>Click to toggle sphere and range particles.</yellow>"
+        },
+        {
+          "locale": "FR",
+          "value": "<!italic><yellow>Cliquer pour activer/desactiver les spheres de particules.</yellow>"
+        }
+      ]
+    }
+  ]
+}

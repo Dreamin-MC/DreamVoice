@@ -3,7 +3,6 @@ package fr.dreamin.dreamvoice.api.player.service;
 import fr.dreamin.dreamvoice.api.player.model.PlayerManager;
 import fr.dreamin.dreamvoice.api.player.model.PlayerState;
 import fr.dreamin.dreamvoice.api.player.model.VPlayer;
-import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -21,14 +20,6 @@ public interface PlayerService {
    * @return collection of {@link VPlayer}s
    */
   Collection<VPlayer> getPlayers();
-
-  /**
-   * Retrieves a wrapped voice player from a Bukkit player.
-   *
-   * @param player the Bukkit player
-   * @return the {@link VPlayer}, or {@code null} if not connected
-   */
-  @Nullable VPlayer getPlayer(final @NotNull Player player);
 
   /**
    * Retrieves a wrapped voice player by their UUID.
@@ -51,14 +42,6 @@ public interface PlayerService {
    * @param vPlayer the voice player wrapper
    */
   void removePlayer(final @NotNull VPlayer vPlayer);
-
-  /**
-   * Sets the voice state (ALIVE, DEAD, SPECTATE) of a player.
-   *
-   * @param state  the new {@link PlayerState}
-   * @param player the Bukkit player
-   */
-  void setState(final @NotNull PlayerState state, final @NotNull Player player);
 
   /**
    * Sets the voice state of a player by their UUID.

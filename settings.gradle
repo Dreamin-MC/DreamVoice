@@ -1,2 +1,18 @@
+pluginManagement {
+  plugins {
+    id 'com.gradleup.shadow' version "${shadow_version}"
+    id 'net.fabricmc.fabric-loom' version "${loom_version}"
+    id 'xyz.jpenilla.run-paper' version "${run_paper_version}"
+  }
+  repositories {
+    maven {
+      name = 'Fabric'
+      url = 'https://maven.fabricmc.net/'
+    }
+    mavenCentral()
+    gradlePluginPortal()
+  }
+}
+
 rootProject.name = 'DreamVoice'
-include("api", "core")
+include("api", "common", "paper", "fabric")

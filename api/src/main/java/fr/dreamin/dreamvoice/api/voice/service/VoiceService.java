@@ -4,7 +4,6 @@ import de.maxhenkel.voicechat.api.VoicechatServerApi;
 import de.maxhenkel.voicechat.api.opus.OpusDecoder;
 import de.maxhenkel.voicechat.api.opus.OpusEncoder;
 import fr.dreamin.dreamvoice.api.voice.model.VoiceSoundBuilder;
-import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Set;
@@ -104,16 +103,6 @@ public interface VoiceService {
   OpusEncoder getEncoder(final @NotNull UUID uuid);
 
   /**
-   * Checks whether a listener can hear a speaker through any voice communication channel
-   * (proximity voice chat, shared radio frequency, or directed point-to-point transmitter).
-   *
-   * @param speaker  the speaking player
-   * @param listener the listening player
-   * @return {@code true} if the listener can hear the speaker
-   */
-  boolean canHear(final @NotNull Player speaker, final @NotNull Player listener);
-
-  /**
    * Checks whether a listener can hear a speaker through any voice communication channel by UUID.
    *
    * @param speakerUuid  the speaking player UUID
@@ -123,17 +112,6 @@ public interface VoiceService {
   boolean canHear(final @NotNull UUID speakerUuid, final @NotNull UUID listenerUuid);
 
   /**
-   * Checks whether a listener can hear a speaker specifically in proximity voice chat.
-   * Takes into account SVC connection status, alive/dead/spectator states, maximum voice distance,
-   * active body anchor projections, and acoustic soundproofing (rooms & VoiceWall).
-   *
-   * @param speaker  the speaking player
-   * @param listener the listening player
-   * @return {@code true} if proximity audio is audible
-   */
-  boolean canHearProximity(final @NotNull Player speaker, final @NotNull Player listener);
-
-  /**
    * Checks whether a listener can hear a speaker specifically in proximity voice chat by UUID.
    *
    * @param speakerUuid  the speaking player UUID
@@ -141,15 +119,6 @@ public interface VoiceService {
    * @return {@code true} if proximity audio is audible
    */
   boolean canHearProximity(final @NotNull UUID speakerUuid, final @NotNull UUID listenerUuid);
-
-  /**
-   * Calculates the effective acoustic attenuation (decibel loss) between two players.
-   *
-   * @param speaker  the speaking player
-   * @param listener the listening player
-   * @return decibel loss in dB (>= 99.0 dB indicates sound is completely blocked)
-   */
-  double getEffectiveAttenuationDb(final @NotNull Player speaker, final @NotNull Player listener);
 
   /**
    * Calculates the effective acoustic attenuation (decibel loss) between two players by UUID.

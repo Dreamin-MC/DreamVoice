@@ -54,23 +54,21 @@ jobs:
           repo = os.environ.get("REPO", "Dreamin-MC/DreamVoice")
           server_url = os.environ.get("SERVER_URL", "https://github.com")
 
-          # Extract versions from build.gradle if available
-          mc_ver = "1.21.4"
-          vc_ver = "2.6.x"
+          # Extract versions from gradle.properties if available
+          mc_ver = "26.1.2"
+          vc_ver = "2.6.20"
           java_ver = "25"
 
-          if os.path.isfile("build.gradle"):
-              with open("build.gradle", "r", encoding="utf-8") as f:
-                  bg_content = f.read()
-                  mc_match = re.search(r'def\s+mcVersion\s*=\s*"([^"]+)"', bg_content)
-                  if mc_match:
-                      mc_ver = mc_match.group(1)
-                  vc_match = re.search(r'def\s+voiceChatVersion\s*=\s*"([^"]+)"', bg_content)
-                  if vc_match:
-                      vc_ver = vc_match.group(1)
-                  java_match = re.search(r'languageVersion\s*=\s*JavaLanguageVersion\.of\(([0-9]+)\)', bg_content)
-                  if java_match:
-                      java_ver = java_match.group(1)
+          if os.path.isfile("gradle.properties"):
+              with open("gradle.properties", "r", encoding="utf-8") as f:
+                  for line in f:
+                      line = line.strip()
+                      if line.startswith("minecraft_version"):
+                          mc_ver = line.split("=", 1)[1].strip()
+                      elif line.startswith("voicechat_api_version"):
+                          vc_ver = line.split("=", 1)[1].strip()
+                      elif line.startswith("java_version"):
+                          java_ver = line.split("=", 1)[1].strip()
 
           release_url = f"{server_url}/{repo}/releases/tag/{tag}"
           modrinth_url = "https://modrinth.com/plugin/dreamvoice"
@@ -124,7 +122,7 @@ jobs:
                               "content": (
                                   f"# 🚀 DreamVoice `v{clean_version}`\n"
                                   f"> *Acoustic Soundproofing, Diffraction & 3D Spatial Audio for Minecraft*\n\n"
-                                  f"🎮 **Minecraft :** `{mc_ver}`   •   🔊 **VoiceChat :** `{vc_ver}`   •   ☕ **Java :** `{java_ver}`"
+                                  f"🎮 **Minecraft :** `{mc_ver}`   •   🔊 **VoiceChat :** `{vc_ver}`   •   ☕ **Java :** `{java_ver}`   •   🧱 **Platforms :** `Paper / Fabric`"
                               )
                           },
                           {
@@ -185,6 +183,7 @@ jobs:
                           {"name": "🎮 Minecraft", "value": f"`{mc_ver}`", "inline": True},
                           {"name": "🔊 VoiceChat", "value": f"`{vc_ver}`", "inline": True},
                           {"name": "☕ Java", "value": f"`{java_ver}`", "inline": True},
+                          {"name": "🧱 Platforms", "value": "`Paper / Fabric`", "inline": True},
                       ],
                       "footer": {
                           "text": "Dreamin' Studios • DreamVoice"

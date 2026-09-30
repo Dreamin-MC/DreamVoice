@@ -1,0 +1,13 @@
+{
+  "modules": {
+    "wall": true,
+    "speaker": true,
+    "record": true,
+    "radio": true,
+    "wiretap": true,
+    "projection": true,
+    "transmitter": true,
+    "room": true,
+    "filter": true
+  }
+}

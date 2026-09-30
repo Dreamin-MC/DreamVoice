@@ -1,0 +1,51 @@
+plugins {
+  id 'xyz.jpenilla.run-paper'
+}
+
+repositories {
+  mavenCentral()
+}
+
+dependencies {
+  api project(":api")
+  api project(":common")
+
+  compileOnly("io.papermc.paper:paper-api:${project.paper_api_version}")
+  compileOnly("de.maxhenkel.voicechat:voicechat-api:${project.voicechat_api_version}")
+  compileOnly("net.luckperms:api:${project.luckperms_version}")
+  compileOnly("com.fasterxml.jackson.core:jackson-databind:${project.jackson_version}")
+
+  implementation("cloud.commandframework:cloud-paper:${project.cloud_legacy_version}")
+  implementation("cloud.commandframework:cloud-annotations:${project.cloud_legacy_version}")
+  implementation("com.github.Dreamin-MC:DreamAPI:${project.dream_api_version}:all")
+}
+
+base {
+  archivesName.set("dreamvoice-core")
+}
+
+tasks {
+  shadowJar {
+    archiveFileName = "DreamVoice.jar"
+    manifest {
+      attributes["Main-Class"] = "fr.dreamin.dreamvoice.core.DreamVoice"
+    }
+  }
+
+  runServer {
+    minecraftVersion("${project.minecraft_version}")
+  }
+}
+
+processResources {
+  def props = [
+    'version': version,
+    'description': description,
+    'apiVersion': '26.1'
+  ]
+  inputs.properties(props)
+  filteringCharset 'UTF-8'
+  filesMatching('paper-plugin.yml') {
+    expand(props)
+  }
+}

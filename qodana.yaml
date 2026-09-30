@@ -41,8 +41,11 @@ projectJDK: "25" #(Applied in CI/CD pipeline)
 linter: jetbrains/qodana-jvm:2026.1
 include:
   - name: NotNullFieldNotInitialized
-  - name: Deprecation
   - name: FieldMayBeFinal
   - name: SwitchStatementWithTooFewBranches
   - name: UnnecessarySemicolon
   - name: UNUSED_IMPORT
+exclude:
+  - name: UnstableApiUsage
+  - name: Deprecation
+  - name: IgnoreResultOfCall

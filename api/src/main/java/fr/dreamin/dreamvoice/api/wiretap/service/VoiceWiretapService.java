@@ -1,11 +1,10 @@
 package fr.dreamin.dreamvoice.api.wiretap.service;
 
 import de.maxhenkel.voicechat.api.VoicechatServerApi;
+import de.maxhenkel.voicechat.api.VolumeCategory;
+import fr.dreamin.dreamvoice.api.model.VoiceLocation;
 import fr.dreamin.dreamvoice.api.recording.model.VoiceRecording;
 import fr.dreamin.dreamvoice.api.wiretap.model.VoiceWiretap;
-import org.bukkit.Location;
-import org.bukkit.entity.Entity;
-import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -39,24 +38,25 @@ public interface VoiceWiretapService {
    * @param location the location in world
    * @return the created {@link VoiceWiretap}
    */
-  @NotNull VoiceWiretap createWiretap(final @NotNull String name, final @NotNull Location location);
+  @NotNull VoiceWiretap createWiretap(final @NotNull String name, final @NotNull VoiceLocation location);
 
   /**
    * Creates a mobile wiretap bug attached to an entity.
    *
-   * @param name   the wiretap identifier
-   * @param entity the entity to attach to
+   * @param name             the wiretap identifier
+   * @param location         the initial location
+   * @param targetEntityUuid the entity UUID to attach to
    * @return the created {@link VoiceWiretap}
    */
-  @NotNull VoiceWiretap createWiretap(final @NotNull String name, final @NotNull Entity entity);
+  @NotNull VoiceWiretap createWiretap(final @NotNull String name, final @NotNull VoiceLocation location, final @Nullable UUID targetEntityUuid);
 
   /**
    * Attaches an existing wiretap to a target entity.
    *
-   * @param name   the wiretap name
-   * @param entity the entity to attach to
+   * @param name             the wiretap name
+   * @param targetEntityUuid the entity UUID to attach to
    */
-  void attachToEntity(final @NotNull String name, final @NotNull Entity entity);
+  void attachToEntity(final @NotNull String name, final @NotNull UUID targetEntityUuid);
 
   /**
    * Detaches a wiretap from its entity, freezing its current coordinates.
@@ -68,23 +68,45 @@ public interface VoiceWiretapService {
   /**
    * Registers a wiretap into the service registry.
    *
+  /**
+   * Retrieves the VolumeCategory used for wiretap channels.
+   */
+  VolumeCategory getVolumeCategory();
+
+  /**
+   * Registers a wiretap into the service registry.
+   *
    * @param wiretap the wiretap instance
    */
   void register(final @NotNull VoiceWiretap wiretap);
+
+  /**
+   * Unregisters a wiretap by its unique name.
+   */
+  void unregister(final @NotNull String name);
+
+  /**
+   * Unregisters a wiretap by its UUID.
+   */
+  void unregister(final @NotNull UUID uuid);
 
   /**
    * Removes a wiretap by its name.
    *
    * @param name the wiretap name
    */
-  void removeWiretap(final @NotNull String name);
+  default void removeWiretap(final @NotNull String name) {
+    unregister(name);
+  }
 
   /**
    * Removes a wiretap by its UUID.
    *
    * @param uuid the wiretap UUID
    */
-  void removeWiretap(final @NotNull UUID uuid);
+  default void removeWiretap(final @NotNull UUID uuid) {
+    unregister(uuid);
+  }
 
   /**
    * Retrieves a wiretap by name.
@@ -114,24 +136,23 @@ public interface VoiceWiretapService {
    *
    * @param name       the wiretap name
    * @param playerUuid the player UUID
+   * @return true if added
    */
-  void addListener(final @NotNull String name, final @NotNull UUID playerUuid);
-
-  default void addListener(final @NotNull String name, final @NotNull Player player) {
-    addListener(name, player.getUniqueId());
-  }
+  boolean addListener(final @NotNull String name, final @NotNull UUID playerUuid);
 
   /**
    * Unsubscribes a player from live eavesdropping.
    *
    * @param name       the wiretap name
    * @param playerUuid the player UUID
+   * @return true if removed
    */
-  void removeListener(final @NotNull String name, final @NotNull UUID playerUuid);
+  boolean removeListener(final @NotNull String name, final @NotNull UUID playerUuid);
 
-  default void removeListener(final @NotNull String name, final @NotNull Player player) {
-    removeListener(name, player.getUniqueId());
-  }
+  /**
+   * Clears all listeners for a wiretap.
+   */
+  void clearListeners(final @NotNull String name);
 
   /**
    * Unsubscribes a player from all active wiretaps.

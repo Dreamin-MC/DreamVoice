@@ -5,14 +5,13 @@ import de.maxhenkel.voicechat.api.ServerLevel;
 import de.maxhenkel.voicechat.api.ServerPlayer;
 import de.maxhenkel.voicechat.api.audiochannel.AudioPlayer;
 import de.maxhenkel.voicechat.api.audiochannel.LocationalAudioChannel;
-import fr.dreamin.dreamapi.api.DreamAPI;
+import fr.dreamin.dreamvoice.api.DreamVoiceAPI;
+import fr.dreamin.dreamvoice.api.model.VoiceLocation;
 import fr.dreamin.dreamvoice.api.speaker.event.SpeakerLinkPlayerEvent;
 import fr.dreamin.dreamvoice.api.speaker.event.SpeakerUnlinkPlayerEvent;
 import fr.dreamin.dreamvoice.api.speaker.service.VoiceSpeakerService;
 import lombok.Getter;
 import lombok.Setter;
-import org.bukkit.Location;
-import org.bukkit.entity.Entity;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -30,14 +29,12 @@ import java.util.function.Predicate;
 @Getter
 public final class Speaker {
 
-  private final @Nullable VoiceSpeakerService speakerService = DreamAPI.getAPI().getService(VoiceSpeakerService.class);
-
   private final @NotNull UUID uuid;
   private final @NotNull String name;
-  private @NotNull Location location;
+  private @NotNull VoiceLocation location;
 
   @Setter
-  private @NotNull SpeakerMode mode = SpeakerMode.GLOBAL;
+  private @NotNull SpeakerMode mode;
   private final @NotNull Set<UUID> allowedSpeakers = ConcurrentHashMap.newKeySet();
 
   @Setter
@@ -51,14 +48,15 @@ public final class Speaker {
   private final @NotNull LocationalAudioChannel speakerChannel;
   private final @Nullable LocationalAudioChannel voiceChannel;
   @Setter
-  private @Nullable Entity targetEntity = null;
+  private @Nullable UUID targetEntityUuid;
 
   // ###############################################################
   // --------------------- CONSTRUCTOR METHODS ---------------------
   // ###############################################################
 
-  private @NotNull VoiceSpeakerService speakerService() {
-    return Objects.requireNonNull(this.speakerService, "VoiceSpeakerService is unavailable");
+  private static @NotNull VoiceSpeakerService speakerService() {
+    final var api = DreamVoiceAPI.get();
+    return Objects.requireNonNull(api.speakerService(), "VoiceSpeakerService is unavailable");
   }
 
   private Speaker(final @NotNull Builder builder) {
@@ -70,13 +68,14 @@ public final class Speaker {
     this.distance = builder.distance;
     this.filter = builder.filter;
     this.mode = builder.mode != null ? builder.mode : SpeakerMode.GLOBAL;
+    this.targetEntityUuid = builder.targetEntityUuid;
     this.allowedSpeakers.addAll(builder.allowedSpeakers);
 
-    this.serverLevel = speakerService.getAPI().fromServerLevel(location.getWorld());
+    this.serverLevel = speakerService.getServerLevel(location.world());
     this.position = speakerService.getAPI().createPosition(
-      location.getX(),
-      location.getY(),
-      location.getZ()
+      location.x(),
+      location.y(),
+      location.z()
     );
 
     final var channel = speakerService.getAPI()
@@ -121,23 +120,12 @@ public final class Speaker {
   // ----------------------- PUBLIC METHODS ------------------------
   // ###############################################################
 
-  /**
-   * Checks whether a player is authorized to broadcast their voice through this speaker.
-   *
-   * @param speakerUuid the player UUID
-   * @return {@code true} if allowed
-   */
   public boolean isSpeakerAllowed(final @NotNull UUID speakerUuid) {
     if (this.mode == SpeakerMode.GLOBAL)
       return true;
     return this.allowedSpeakers.contains(speakerUuid);
   }
 
-  /**
-   * Authorizes a player to broadcast their voice in RESTRICTED mode.
-   *
-   * @param playerUuid the player UUID
-   */
   public void linkSpeaker(final @NotNull UUID playerUuid) {
     final var event = new SpeakerLinkPlayerEvent(this, playerUuid);
     if (!event.callEvent())
@@ -145,35 +133,19 @@ public final class Speaker {
     this.allowedSpeakers.add(playerUuid);
   }
 
-  /**
-   * Revokes broadcasting permission from a player.
-   *
-   * @param playerUuid the player UUID
-   */
   public void unlinkSpeaker(final @NotNull UUID playerUuid) {
     if (this.allowedSpeakers.remove(playerUuid))
       new SpeakerUnlinkPlayerEvent(this, playerUuid).callEvent();
   }
 
-  /**
-   * Clears all authorized speakers.
-   */
   public void clearAllowedSpeakers() {
     this.allowedSpeakers.clear();
   }
 
-  /**
-   * Returns an unmodifiable view of authorized speaker UUIDs.
-   *
-   * @return set of authorized player UUIDs
-   */
   public @NotNull Set<UUID> getAllowedSpeakers() {
     return Collections.unmodifiableSet(this.allowedSpeakers);
   }
 
-  /**
-   * Stops any currently active audio playback on this speaker.
-   */
   public void stopPlaying() {
     if (this.activeAudioPlayer != null) {
       this.activeAudioPlayer.stopPlaying();
@@ -181,49 +153,23 @@ public final class Speaker {
     }
   }
 
-  /**
-   * Checks whether audio is currently playing through this speaker.
-   *
-   * @return {@code true} if active playback in progress
-   */
   public boolean isPlaying() {
     return this.activeAudioPlayer != null && this.activeAudioPlayer.isPlaying();
   }
 
-  /**
-   * Resolves the current location of the speaker, updating coordinates if attached to an entity.
-   *
-   * @return current {@link Location}
-   */
-  public @NotNull Location getLocation() {
-    if (this.targetEntity != null && this.targetEntity.isValid()) {
-      final var loc = this.targetEntity.getLocation();
-      if (!loc.equals(this.location))
-        updatePosition(loc);
-      return loc;
-    }
+  public @NotNull VoiceLocation getLocation() {
     return this.location;
   }
 
-  /**
-   * Updates the speaker position in world space and notifies SVC audio channels.
-   *
-   * @param location the new location
-   */
-  public void updatePosition(final @NotNull Location location) {
+  public void updatePosition(final @NotNull VoiceLocation location) {
     this.location = location;
     this.position = speakerService().getAPI()
-      .createPosition(location.getBlockX(), location.getBlockY(), location.getBlockZ());
+      .createPosition(location.x(), location.y(), location.z());
     this.speakerChannel.updateLocation(this.position);
     if (this.voiceChannel != null)
       this.voiceChannel.updateLocation(this.position);
   }
 
-  /**
-   * Updates the audio falloff distance of the speaker.
-   *
-   * @param distance new distance in blocks
-   */
   public void updateDistance(final @NotNull Float distance) {
     this.distance = distance;
     this.speakerChannel.setDistance(distance);
@@ -231,11 +177,6 @@ public final class Speaker {
       this.voiceChannel.setDistance(distance);
   }
 
-  /**
-   * Updates the listener filter predicate of the speaker.
-   *
-   * @param filter listener predicate
-   */
   public void updateFilter(final @Nullable Predicate<ServerPlayer> filter) {
     this.filter = filter;
     this.speakerChannel.setFilter(filter);
@@ -251,16 +192,14 @@ public final class Speaker {
     return new Builder();
   }
 
-  /**
-   * Builder class for {@link Speaker}.
-   */
   public static class Builder {
     private UUID uuid;
     private String name;
-    private Location location;
+    private VoiceLocation location;
     private Float distance = null;
     private Predicate<ServerPlayer> filter = null;
     private SpeakerMode mode = SpeakerMode.GLOBAL;
+    private UUID targetEntityUuid = null;
     private final Set<UUID> allowedSpeakers = ConcurrentHashMap.newKeySet();
 
     public Builder uuid(final @NotNull UUID uuid) {
@@ -273,7 +212,7 @@ public final class Speaker {
       return this;
     }
 
-    public Builder location(final @NotNull Location location) {
+    public Builder location(final @NotNull VoiceLocation location) {
       this.location = location;
       return this;
     }
@@ -290,6 +229,11 @@ public final class Speaker {
 
     public Builder mode(final @NotNull SpeakerMode mode) {
       this.mode = mode;
+      return this;
+    }
+
+    public Builder targetEntity(final @Nullable UUID entityUuid) {
+      this.targetEntityUuid = entityUuid;
       return this;
     }
 

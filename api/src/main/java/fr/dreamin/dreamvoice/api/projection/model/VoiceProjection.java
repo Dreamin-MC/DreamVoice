@@ -1,9 +1,8 @@
 package fr.dreamin.dreamvoice.api.projection.model;
 
+import fr.dreamin.dreamvoice.api.model.VoiceLocation;
 import lombok.Getter;
 import lombok.Setter;
-import org.bukkit.Location;
-import org.bukkit.entity.Entity;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -19,9 +18,9 @@ public final class VoiceProjection {
   private final @NotNull UUID uuid;
   private final @NotNull UUID playerUuid;
   @Setter
-  private @NotNull Location anchorLocation;
+  private @NotNull VoiceLocation anchorLocation;
   @Setter
-  private @Nullable Entity anchorEntity;
+  private @Nullable UUID anchorEntityUuid;
 
   @Setter
   private double distance = 16.0;
@@ -44,30 +43,19 @@ public final class VoiceProjection {
   @Setter
   private @Nullable String filterId = null;
 
-  public VoiceProjection(final @NotNull UUID playerUuid, final @NotNull Location anchorLocation) {
+  public VoiceProjection(final @NotNull UUID playerUuid, final @NotNull VoiceLocation anchorLocation) {
     this(UUID.randomUUID(), playerUuid, anchorLocation);
   }
 
-  public VoiceProjection(final @NotNull UUID playerUuid, final @NotNull Entity anchorEntity) {
-    this(UUID.randomUUID(), playerUuid, anchorEntity.getLocation());
-    this.anchorEntity = anchorEntity;
+  public VoiceProjection(final @NotNull UUID playerUuid, final @NotNull VoiceLocation anchorLocation, final @Nullable UUID anchorEntityUuid) {
+    this(UUID.randomUUID(), playerUuid, anchorLocation);
+    this.anchorEntityUuid = anchorEntityUuid;
   }
 
-  public VoiceProjection(final @NotNull UUID uuid, final @NotNull UUID playerUuid, final @NotNull Location anchorLocation) {
+  public VoiceProjection(final @NotNull UUID uuid, final @NotNull UUID playerUuid, final @NotNull VoiceLocation anchorLocation) {
     this.uuid = uuid;
     this.playerUuid = playerUuid;
     this.anchorLocation = anchorLocation;
-  }
-
-  /**
-   * Resolves the current anchor coordinates, dynamically tracking the attached entity if valid.
-   *
-   * @return the active location of the anchor
-   */
-  public @NotNull Location getAnchorLocation() {
-    if (this.anchorEntity != null && this.anchorEntity.isValid())
-      return this.anchorEntity.getLocation();
-    return this.anchorLocation;
   }
 
 }

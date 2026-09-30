@@ -3,9 +3,9 @@ package fr.dreamin.dreamvoice.api.wall.service;
 import de.maxhenkel.voicechat.api.VoicechatConnection;
 import de.maxhenkel.voicechat.api.VoicechatServerApi;
 import de.maxhenkel.voicechat.api.events.EntitySoundPacketEvent;
+import fr.dreamin.dreamvoice.api.model.VoiceLocation;
 import fr.dreamin.dreamvoice.api.player.model.VPlayer;
 import fr.dreamin.dreamvoice.api.wall.model.VoiceWallMode;
-import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.UUID;
@@ -89,12 +89,12 @@ public interface VoiceWallService {
   void setDebug(final boolean value);
 
   /**
-   * Toggles visual particle raycast debugging and Action Bar diagnostics for a player.
+   * Toggles visual particle raycast debugging and Action Bar diagnostics for a player by UUID.
    *
-   * @param player the player
+   * @param playerUuid the player UUID
    * @return new debugging state ({@code true} if enabled)
    */
-  boolean toggleDebugPlayer(final @NotNull Player player);
+  boolean toggleDebugPlayer(final @NotNull UUID playerUuid);
 
   /**
    * Checks whether a player has visual particle debugging enabled.
@@ -128,13 +128,13 @@ public interface VoiceWallService {
   );
 
   /**
-   * Calculates the combined acoustic decibel loss (room isolation + wall material occlusion) between two players.
+   * Calculates the combined acoustic decibel loss between two locations.
    *
-   * @param speaker  the speaking player
-   * @param listener the listening player
+   * @param from start location
+   * @param to   target location
    * @return decibel attenuation in dB (>= 99.0 dB indicates sound is completely blocked)
    */
-  double getAttenuationDb(final @NotNull Player speaker, final @NotNull Player listener);
+  double getAttenuationDb(final @NotNull VoiceLocation from, final @NotNull VoiceLocation to);
 
   /**
    * Calculates the combined acoustic decibel loss (room isolation + wall material occlusion) between two players by UUID.

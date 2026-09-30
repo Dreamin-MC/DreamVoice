@@ -1,6 +1,5 @@
 package fr.dreamin.dreamvoice.api.room.model;
 
-import fr.dreamin.dreamapi.api.cuboid.Cuboid;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -12,7 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Represents an active acoustic zone or soundproof room bounded by one or more {@link Cuboid}s.
+ * Represents an active acoustic zone or soundproof room bounded by one or more {@link VoiceCuboid}s.
  */
 @Data
 @Builder
@@ -47,9 +46,9 @@ public class AcousticRoom {
   private @NotNull List<String> additionalFilters = new ArrayList<>();
 
   /**
-   * DreamAPI Cuboids defining the bounding volume of this acoustic room.
+   * VoiceCuboids defining the bounding volume of this acoustic room.
    */
   @Builder.Default
-  private @NotNull List<Cuboid> cuboids = new ArrayList<>();
+  private @NotNull List<VoiceCuboid> cuboids = new ArrayList<>();
 
 }

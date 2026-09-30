@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "id": "dreamvoice",
+  "version": "${version}",
+  "name": "DreamVoice",
+  "description": "DreamVoice server audio engine for Fabric.",
+  "authors": [
+    "Dreamin"
+  ],
+  "license": "MIT",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "fr.dreamin.dreamvoice.fabric.DreamVoiceFabric"
+    ],
+    "voicechat": [
+      "fr.dreamin.dreamvoice.fabric.DreamVoiceVoicechatPlugin"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=0.19.3",
+    "minecraft": "~26.1.2",
+    "java": ">=25",
+    "fabric-api": "*",
+    "voicechat": "*"
+  }
+}

@@ -1,6 +1,6 @@
 package fr.dreamin.dreamvoice.api.player.event;
 
-import fr.dreamin.dreamapi.api.event.ToolsEvent;
+import fr.dreamin.dreamvoice.api.event.VoiceEvent;
 import fr.dreamin.dreamvoice.api.player.model.VPlayer;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -11,7 +11,7 @@ import org.jetbrains.annotations.NotNull;
  */
 @Getter
 @RequiredArgsConstructor
-public final class PlayerLeaveVoiceEvent extends ToolsEvent {
+public final class PlayerLeaveVoiceEvent extends VoiceEvent {
 
   private final @NotNull VPlayer vPlayer;
 

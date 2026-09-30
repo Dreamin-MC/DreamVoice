@@ -1,6 +1,6 @@
 package fr.dreamin.dreamvoice.api.wall.event;
 
-import fr.dreamin.dreamapi.api.event.ToolsCancelEvent;
+import fr.dreamin.dreamvoice.api.event.VoiceCancelEvent;
 import fr.dreamin.dreamvoice.api.player.model.VPlayer;
 import lombok.Getter;
 import lombok.Setter;
@@ -12,7 +12,7 @@ import org.jetbrains.annotations.NotNull;
  */
 @Getter
 @Setter
-public final class VoiceWallOcclusionEvent extends ToolsCancelEvent {
+public final class VoiceWallOcclusionEvent extends VoiceCancelEvent {
 
   private final @NotNull VPlayer sender;
   private final @NotNull VPlayer receiver;
@@ -27,7 +27,6 @@ public final class VoiceWallOcclusionEvent extends ToolsCancelEvent {
     final double lossDb,
     final boolean blocked
   ) {
-    super(true);
     this.sender = sender;
     this.receiver = receiver;
     this.originalLossDb = originalLossDb;

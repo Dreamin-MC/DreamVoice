@@ -1,0 +1,19 @@
+base {
+  archivesName.set("dreamvoice-common")
+}
+
+dependencies {
+  api project(":api")
+
+  compileOnly("org.projectlombok:lombok:${project.lombok_version}")
+  annotationProcessor("org.projectlombok:lombok:${project.lombok_version}")
+
+  compileOnly("com.fasterxml.jackson.core:jackson-databind:${project.jackson_version}")
+  compileOnly("de.maxhenkel.voicechat:voicechat-api:${project.voicechat_api_version}")
+
+  implementation("com.alphacephei:vosk:${project.vosk_version}")
+  implementation("org.yaml:snakeyaml:${project.snakeyaml_version}")
+  implementation("com.googlecode.soundlibs:mp3spi:${project.mp3spi_version}")
+  implementation("com.googlecode.soundlibs:jlayer:${project.jlayer_version}")
+  implementation("com.googlecode.soundlibs:tritonus-share:${project.tritonus_version}")
+}

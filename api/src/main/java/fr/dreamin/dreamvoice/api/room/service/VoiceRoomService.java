@@ -1,15 +1,11 @@
 package fr.dreamin.dreamvoice.api.room.service;
 
-import fr.dreamin.dreamapi.api.cuboid.Cuboid;
+import fr.dreamin.dreamvoice.api.model.VoiceLocation;
 import fr.dreamin.dreamvoice.api.room.model.AcousticRoom;
 import fr.dreamin.dreamvoice.api.room.model.RoomPreset;
-import org.bukkit.Location;
-import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.Collection;
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -53,7 +49,7 @@ public interface VoiceRoomService {
    * @param location world location
    * @return optional room
    */
-  @NotNull Optional<AcousticRoom> getRoomAt(final @NotNull Location location);
+  @NotNull Optional<AcousticRoom> getRoomAt(final @NotNull VoiceLocation location);
 
   /**
    * Finds the acoustic room a player is currently located in.

@@ -4,7 +4,6 @@ import de.maxhenkel.voicechat.api.VoicechatConnection;
 import de.maxhenkel.voicechat.api.VoicechatServerApi;
 import fr.dreamin.dreamvoice.api.recording.model.AudioExportFormat;
 import fr.dreamin.dreamvoice.api.recording.model.VoiceRecording;
-import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -17,7 +16,7 @@ import java.util.concurrent.CompletableFuture;
 
 /**
  * Service managing live voice recording capture, playback to connections, audio file/URL conversion,
- * segment slicing, and interactive physical Cassette item creation.
+ * segment slicing, and storage.
  */
 public interface VoiceRecordingService {
 
@@ -108,32 +107,6 @@ public interface VoiceRecordingService {
    * @param uuid the UUID of the speaker
    */
   void stopRecording(final @NotNull UUID uuid);
-
-  /**
-   * Binds an existing ItemStack to a voice recording.
-   *
-   * @param item      the item stack to modify
-   * @param recording the recording instance
-   * @return the modified ItemStack
-   */
-  @NotNull ItemStack linkItem(final @NotNull ItemStack item, final @NotNull VoiceRecording recording);
-
-  /**
-   * Binds an existing ItemStack to a voice recording UUID.
-   *
-   * @param item          the item stack to modify
-   * @param recordingUuid the recording UUID
-   * @return the modified ItemStack
-   */
-  @NotNull ItemStack linkItem(final @NotNull ItemStack item, final @NotNull UUID recordingUuid);
-
-  /**
-   * Generates a physical playable Cassette item for a recording.
-   *
-   * @param recording the recording instance
-   * @return the created Cassette ItemStack
-   */
-  @NotNull ItemStack createCassette(final @NotNull VoiceRecording recording);
 
   /**
    * Converts raw PCM audio samples into an Opus-encoded {@link VoiceRecording}.

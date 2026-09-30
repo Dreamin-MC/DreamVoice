@@ -1,5 +1,6 @@
 package fr.dreamin.dreamvoice.api.speaker.service;
 
+import de.maxhenkel.voicechat.api.ServerLevel;
 import de.maxhenkel.voicechat.api.VoicechatServerApi;
 import de.maxhenkel.voicechat.api.VolumeCategory;
 import fr.dreamin.dreamvoice.api.recording.model.VoiceRecording;
@@ -29,6 +30,14 @@ public interface VoiceSpeakerService {
    * @param api the VoicechatServerApi instance
    */
   void init(final @NotNull VoicechatServerApi api);
+
+  /**
+   * Retrieves the SVC ServerLevel for a world name.
+   *
+   * @param worldName the world name
+   * @return the ServerLevel instance
+   */
+  ServerLevel getServerLevel(final @NotNull String worldName);
 
   /**
    * Returns all active 3D speakers.
@@ -66,6 +75,13 @@ public interface VoiceSpeakerService {
    * @param uuid the speaker UUID
    */
   void unregister(final @NotNull UUID uuid);
+
+  /**
+   * Unregisters a speaker by its unique name.
+   *
+   * @param name the speaker name
+   */
+  void unregister(final @NotNull String name);
 
   /**
    * Unregisters a speaker instance.
@@ -206,5 +222,20 @@ public interface VoiceSpeakerService {
    * @param uuid the speaker UUID
    */
   void save(final @NotNull UUID uuid);
+
+  /**
+   * Broadcasts real-time voice audio from a player through a collection of speakers.
+   *
+   * @param speakers      the target speakers
+   * @param senderUuid    the speaker player UUID
+   * @param rawOpus       raw Opus audio packet
+   * @param extraFilterId optional filter ID to apply
+   */
+  void broadcastVoice(
+    final @NotNull Collection<Speaker> speakers,
+    final @NotNull UUID senderUuid,
+    final byte[] rawOpus,
+    final @Nullable String extraFilterId
+  );
 
 }

@@ -1,0 +1,33 @@
+{
+  "keywords": [
+    {
+      "id": "hello",
+      "words": [
+        "hello",
+        "bonjour",
+        "hey",
+        "salut"
+      ]
+    },
+    {
+      "id": "help",
+      "words": [
+        "help",
+        "help me",
+        "aide",
+        "au secours",
+        "mayday"
+      ],
+      "permission": "dreamvoice.keyword.help"
+    },
+    {
+      "id": "open",
+      "words": [
+        "open sesame",
+        "open door",
+        "ouvre toi",
+        "ouvre la porte"
+      ]
+    }
+  ]
+}

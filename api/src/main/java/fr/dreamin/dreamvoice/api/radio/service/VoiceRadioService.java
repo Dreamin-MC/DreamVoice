@@ -52,12 +52,38 @@ public interface VoiceRadioService {
   @Nullable RadioChannel getChannelOfPlayer(final @NotNull UUID playerUuid);
 
   /**
+   * Gets the underlying VoicechatServerApi instance.
+   */
+  VoicechatServerApi getAPI();
+
+  /**
+   * Registers a radio channel.
+   */
+  void register(final @NotNull RadioChannel radioChannel);
+
+  /**
+   * Unregisters a radio channel by name.
+   */
+  void unregister(final @NotNull String name);
+
+  /**
+   * Checks whether a player is connected to any radio channel.
+   */
+  boolean isInChannel(final @NotNull UUID playerUuid);
+
+  /**
+   * Unregisters all radio channels.
+   */
+  void unregisterAll();
+
+  /**
    * Tunes a player into a radio frequency channel.
    *
    * @param playerUuid  the player UUID
    * @param channelName the channel name
+   * @return true if joined successfully
    */
-  void joinChannel(final @NotNull UUID playerUuid, final @NotNull String channelName);
+  boolean joinChannel(final @NotNull UUID playerUuid, final @NotNull String channelName);
 
   /**
    * Disconnects a player from their active radio frequency channel.
@@ -71,7 +97,9 @@ public interface VoiceRadioService {
    *
    * @param name the channel name
    */
-  void removeChannel(final @NotNull String name);
+  default void removeChannel(final @NotNull String name) {
+    unregister(name);
+  }
 
   /**
    * Saves all radio channels to disk.

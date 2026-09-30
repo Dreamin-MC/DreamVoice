@@ -36,10 +36,10 @@ jobs:
           echo "VERSION=${CLEAN_VERSION}" >> $GITHUB_ENV
           echo "TAG=${TAG}" >> $GITHUB_ENV
           
-          # Extract mcVersion, voiceChatVersion and Java languageVersion directly from build.gradle
-          MC_VER=$(sed -nE 's/.*def mcVersion\s*=\s*"([^"]+)".*/\1/p' build.gradle)
-          VC_VER=$(sed -nE 's/.*def voiceChatVersion\s*=\s*"([^"]+)".*/\1/p' build.gradle)
-          JAVA_VER=$(sed -nE 's/.*languageVersion\s*=\s*JavaLanguageVersion\.of\(([0-9]+)\).*/\1/p' build.gradle | head -n 1)
+          # Extract minecraft_version, voicechat_api_version and java_version directly from gradle.properties
+          MC_VER=$(sed -nE 's/^minecraft_version\s*=\s*(.+)/\1/p' gradle.properties | tr -d '\r')
+          VC_VER=$(sed -nE 's/^voicechat_api_version\s*=\s*(.+)/\1/p' gradle.properties | tr -d '\r')
+          JAVA_VER=$(sed -nE 's/^java_version\s*=\s*(.+)/\1/p' gradle.properties | tr -d '\r')
           JAVA_VER=${JAVA_VER:-25}
           
           echo "MC_VERSION=${MC_VER}" >> $GITHUB_ENV
@@ -74,30 +74,52 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_ACTOR: ${{ github.actor }}
         run: |
-          ./gradlew :api:publish -Pversion="${{ env.VERSION }}" --no-daemon
+          ./gradlew :api:build :api:publish -Pversion="${{ env.VERSION }}" --no-daemon
 
-      - name: Build Plugin ShadowJar
+      - name: Build Paper Plugin ShadowJar
         run: |
-          ./gradlew :core:shadowJar -Pversion="${{ env.VERSION }}" --no-daemon
+          ./gradlew :paper:shadowJar -Pversion="${{ env.VERSION }}" --no-daemon
 
-      - name: Publish to Modrinth
+      - name: Build Fabric Mod Jar
+        run: |
+          ./gradlew :fabric:build -Pversion="${{ env.VERSION }}" --no-daemon
+
+      - name: Publish Paper to Modrinth
         uses: Kir-Antipov/mc-publish@v3.3
         with:
           modrinth-id: ${{ secrets.MODRINTH_PROJECT_ID || vars.MODRINTH_PROJECT_ID || 'dreamvoice' }}
           modrinth-token: ${{ secrets.MODRINTH_TOKEN }}
-          files: core/build/libs/DreamVoice.jar
-          name: DreamVoice ${{ env.VERSION }}
-          version: ${{ env.VERSION }}
+          files: paper/build/libs/DreamVoice.jar
+          name: DreamVoice Paper ${{ env.VERSION }}
+          version: ${{ env.VERSION }}+paper
           version-type: release
           changelog-file: ${{ env.CHANGELOG_FILE }}
           loaders: |
-            spigot
             paper
             purpur
+            spigot
           game-versions: |
             ${{ env.MC_VERSION }}
           dependencies: |
             simple-voice-chat@bukkit-${{ env.VOICECHAT_VERSION }}(required)
+
+      - name: Publish Fabric to Modrinth
+        uses: Kir-Antipov/mc-publish@v3.3
+        with:
+          modrinth-id: ${{ secrets.MODRINTH_PROJECT_ID || vars.MODRINTH_PROJECT_ID || 'dreamvoice' }}
+          modrinth-token: ${{ secrets.MODRINTH_TOKEN }}
+          files: fabric/build/libs/DreamVoice-fabric-${{ env.VERSION }}.jar
+          name: DreamVoice Fabric ${{ env.VERSION }}
+          version: ${{ env.VERSION }}+fabric
+          version-type: release
+          changelog-file: ${{ env.CHANGELOG_FILE }}
+          loaders: |
+            fabric
+          game-versions: |
+            ${{ env.MC_VERSION }}
+          dependencies: |
+            fabric-api(required)
+            simple-voice-chat(required)
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
@@ -108,8 +130,11 @@ jobs:
           draft: false
           prerelease: false
           files: |
-            core/build/libs/DreamVoice.jar
+            paper/build/libs/DreamVoice.jar
+            fabric/build/libs/DreamVoice-fabric-${{ env.VERSION }}.jar
             api/build/libs/dreamvoice-api-${{ env.VERSION }}.jar
+            api/build/libs/dreamvoice-api-${{ env.VERSION }}-sources.jar
+            api/build/libs/dreamvoice-api-${{ env.VERSION }}-javadoc.jar
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -186,7 +211,7 @@ jobs:
             
             # 1. Update Home.md (Minecraft, Simple Voice Chat, Java, and Plugin versions)
             if [ -f "Home.md" ]; then
-              sed -i -E "s/(Paper \/ Purpur )[0-9]+(\.[0-9]+)*\+/\1${{ env.MC_VERSION }}+/" Home.md
+              sed -i -E "s/(Paper \/ Purpur( \/ Fabric)? )[0-9]+(\.[0-9]+)*\+/\1${{ env.MC_VERSION }}+/" Home.md
               sed -i -E "s/(Simple Voice Chat \(SVC\) )[0-9]+(\.[0-9]+)*\+/\1${{ env.VOICECHAT_VERSION }}+/" Home.md
               sed -i -E "s/(\(version )[0-9]+(\.[0-9]+)* (or higher\))/\1${{ env.MC_VERSION }} \3/" Home.md
               sed -i -E "s/(Java )[0-9]+ (or higher)/\1${{ env.JAVA_VERSION }} \2/" Home.md
