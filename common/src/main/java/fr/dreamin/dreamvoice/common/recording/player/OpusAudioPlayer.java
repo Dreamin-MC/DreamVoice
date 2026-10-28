@@ -21,22 +21,15 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public final class OpusAudioPlayer implements AudioPlayer {
 
-  private static final ScheduledExecutorService SCHEDULER = Executors.newScheduledThreadPool(2, r -> {
-    final var t = new Thread(r, "DreamVoice-OpusPlayer");
-    t.setDaemon(true);
-    return t;
-  });
-
   private final @NotNull Collection<? extends AudioChannel> channels;
   private final @NotNull List<TimedAudioFrame> frames;
   private final boolean loop;
+  private final @Nullable java.util.function.Consumer<TimedAudioFrame> frameConsumer;
   private final @NotNull AtomicBoolean started = new AtomicBoolean(false);
   private final @NotNull AtomicBoolean playing = new AtomicBoolean(false);
   private final @NotNull AtomicBoolean stopped = new AtomicBoolean(false);
   private @Nullable Runnable onStopped;
-  private @Nullable ScheduledFuture<?> scheduledTask;
-  private final @NotNull AtomicInteger currentFrameIndex = new AtomicInteger(0);
-  private long playbackStartTimeMs;
+  private @Nullable Thread playbackThread;
   private final long totalDurationMs;
 
   public OpusAudioPlayer(
@@ -44,7 +37,7 @@ public final class OpusAudioPlayer implements AudioPlayer {
     final @NotNull List<TimedAudioFrame> frames,
     final boolean loop
   ) {
-    this(channels, frames, frames.isEmpty() ? 0L : frames.get(frames.size() - 1).timestampMs() + 20L, loop);
+    this(channels, frames, frames.isEmpty() ? 0L : frames.get(frames.size() - 1).timestampMs() + 20L, loop, null);
   }
 
   public OpusAudioPlayer(
@@ -53,15 +46,26 @@ public final class OpusAudioPlayer implements AudioPlayer {
     final long totalDurationMs,
     final boolean loop
   ) {
+    this(channels, frames, totalDurationMs, loop, null);
+  }
+
+  public OpusAudioPlayer(
+    final @NotNull Collection<? extends AudioChannel> channels,
+    final @NotNull List<TimedAudioFrame> frames,
+    final long totalDurationMs,
+    final boolean loop,
+    final @Nullable java.util.function.Consumer<TimedAudioFrame> frameConsumer
+  ) {
     this.channels = channels;
     this.frames = frames;
     this.totalDurationMs = Math.max(totalDurationMs, frames.isEmpty() ? 0L : frames.get(frames.size() - 1).timestampMs() + 20L);
     this.loop = loop;
+    this.frameConsumer = frameConsumer;
   }
 
   @Override
   public void startPlaying() {
-    if (this.frames.isEmpty() || this.channels.isEmpty()) {
+    if (this.frames.isEmpty() || (this.channels.isEmpty() && this.frameConsumer == null)) {
       stopPlaying();
       return;
     }
@@ -71,46 +75,69 @@ public final class OpusAudioPlayer implements AudioPlayer {
 
     this.started.set(true);
     this.stopped.set(false);
-    this.currentFrameIndex.set(0);
-    this.playbackStartTimeMs = System.currentTimeMillis();
 
-    this.scheduledTask = SCHEDULER.scheduleAtFixedRate(this::tick, 0L, 10L, TimeUnit.MILLISECONDS);
+    this.playbackThread = new Thread(this::runPlayback, "DreamVoice-OpusPlayer-" + System.currentTimeMillis());
+    this.playbackThread.setDaemon(true);
+    this.playbackThread.start();
   }
 
-  private void tick() {
-    if (!this.playing.get() || this.stopped.get())
-      return;
+  private void runPlayback() {
+    try {
+      final var sortedFrames = new java.util.ArrayList<>(this.frames);
+      sortedFrames.sort(java.util.Comparator.comparingLong(TimedAudioFrame::timestampMs));
 
-    final var elapsedMs = System.currentTimeMillis() - this.playbackStartTimeMs;
-    var idx = this.currentFrameIndex.get();
+      do {
+        final long startNano = System.nanoTime();
 
-    while (idx < this.frames.size()) {
-      final var frame = this.frames.get(idx);
-      final var targetTimeMs = frame.timestampMs();
+        for (final var frame : sortedFrames) {
+          if (this.stopped.get() || !this.playing.get() || Thread.currentThread().isInterrupted())
+            return;
 
-      if (targetTimeMs > elapsedMs)
-        break;
+          final long targetNano = startNano + (frame.timestampMs() * 1_000_000L);
+          while (true) {
+            final long remainingNano = targetNano - System.nanoTime();
+            if (remainingNano <= 0)
+              break;
+            if (this.stopped.get() || !this.playing.get())
+              return;
+            if (remainingNano > 2_000_000L) {
+              java.util.concurrent.locks.LockSupport.parkNanos(remainingNano - 1_000_000L);
+            } else {
+              Thread.onSpinWait();
+            }
+          }
 
-      final var data = frame.data();
-      if (data != null && data.length > 0) {
-        for (final var ch : this.channels) {
-          if (!ch.isClosed()) {
-            try {
-              ch.send(data);
-            } catch (Throwable ignored) {}
+          final var data = frame.data();
+          if (data != null && data.length > 0) {
+            if (this.frameConsumer != null) {
+              try {
+                this.frameConsumer.accept(frame);
+              } catch (Throwable ignored) {}
+            }
+
+            for (final var ch : this.channels) {
+              if (!ch.isClosed()) {
+                try {
+                  ch.send(data);
+                } catch (Throwable ignored) {}
+              }
+            }
           }
         }
-      }
 
-      idx = this.currentFrameIndex.incrementAndGet();
-    }
+        final long endTargetNano = startNano + (this.totalDurationMs * 1_000_000L);
+        while (true) {
+          final long remainingNano = endTargetNano - System.nanoTime();
+          if (remainingNano <= 0)
+            break;
+          if (this.stopped.get() || !this.playing.get())
+            return;
+          java.util.concurrent.locks.LockSupport.parkNanos(Math.min(remainingNano, 50_000_000L));
+        }
 
-    if (idx >= this.frames.size() && elapsedMs >= this.totalDurationMs) {
-      if (this.loop && this.playing.get() && !this.stopped.get()) {
-        this.currentFrameIndex.set(0);
-        this.playbackStartTimeMs = System.currentTimeMillis();
-      } else
-        stopPlaying();
+      } while (this.loop && !this.stopped.get() && this.playing.get());
+    } finally {
+      stopPlaying();
     }
   }
 
@@ -121,9 +148,11 @@ public final class OpusAudioPlayer implements AudioPlayer {
 
     this.playing.set(false);
 
-    if (this.scheduledTask != null) {
-      this.scheduledTask.cancel(false);
-      this.scheduledTask = null;
+    final var t = this.playbackThread;
+    if (t != null) {
+      t.interrupt();
+      java.util.concurrent.locks.LockSupport.unpark(t);
+      this.playbackThread = null;
     }
 
     if (this.onStopped != null) {

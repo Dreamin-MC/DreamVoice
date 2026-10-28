@@ -74,7 +74,7 @@ public final class FabricRadioCmd {
     final @NotNull CommandSourceStack source,
     @Argument("channel") final @NotNull String channelName,
     @Argument(value = "filter", suggestions = "voice_filters") final @Nullable String filterName,
-    @Argument(value = "rogerBeep") @Default("true") final boolean rogerBeep
+    @Argument(value = "rogerBeep") @Default("true") final @Nullable Boolean rogerBeep
   ) {
     final var api = DreamVoiceAPI.get();
     if (api.getRadioService() == null) {
@@ -85,7 +85,7 @@ public final class FabricRadioCmd {
     final var ch = api.getRadioService().getOrCreateChannel(channelName);
     if (filterName != null && !filterName.isBlank())
       ch.setFilterId(filterName);
-    ch.setRogerBeep(rogerBeep);
+    ch.setRogerBeep(rogerBeep == null || rogerBeep);
 
     FabricCommandUtils.sendSuccess(source, "radio.created", channelName);
   }

@@ -24,6 +24,8 @@ public final class VoiceRecording {
 
   private final @NotNull List<TimedAudioFrame> audioFrames = new ArrayList<>();
   private transient volatile short[] cachedPcm = null;
+  private final transient java.util.Map<UUID, Long> lastSpeakerWallTimes = new java.util.concurrent.ConcurrentHashMap<>();
+  private final transient java.util.Map<UUID, Long> lastSpeakerAudioTimestamps = new java.util.concurrent.ConcurrentHashMap<>();
 
   public @NotNull List<TimedAudioFrame> getFrames() {
     return this.audioFrames;
@@ -49,6 +51,8 @@ public final class VoiceRecording {
     this.duration = null;
     this.audioFrames.clear();
     this.cachedPcm = null;
+    this.lastSpeakerWallTimes.clear();
+    this.lastSpeakerAudioTimestamps.clear();
   }
 
   /**
@@ -84,12 +88,88 @@ public final class VoiceRecording {
    * @param opusData the raw Opus frame bytes
    */
   public void addAudio(final byte[] opusData) {
+    addAudio(null, opusData);
+  }
+
+  /**
+   * Appends an Opus audio frame with a specific speaker UUID to this recording.
+   *
+   * @param speakerUuid the author speaker UUID, or {@code null} to default to this recording's speaker UUID
+   * @param opusData    the raw Opus frame bytes
+   */
+  public void addAudio(final @Nullable UUID speakerUuid, final byte[] opusData) {
     if (this.startTime == null)
       return;
 
-    final var offsetMs = Math.max(0, System.currentTimeMillis() - this.startTime.toEpochMilli());
-    this.audioFrames.add(new TimedAudioFrame(offsetMs, opusData.clone()));
+    final var sid = speakerUuid != null ? speakerUuid : (this.speakerUUID != null ? this.speakerUUID : new UUID(0, 0));
+    final var now = System.currentTimeMillis();
+    final var startMs = this.startTime.toEpochMilli();
+    final var realOffset = Math.max(0, now - startMs);
+
+    final var lastWall = this.lastSpeakerWallTimes.get(sid);
+    final var lastAudio = this.lastSpeakerAudioTimestamps.get(sid);
+
+    long offsetMs;
+    if (lastWall != null && lastAudio != null && (now - lastWall) <= 80L) {
+      offsetMs = lastAudio + 20L;
+    } else {
+      offsetMs = ((realOffset + 10L) / 20L) * 20L;
+    }
+
+    this.lastSpeakerWallTimes.put(sid, now);
+    this.lastSpeakerAudioTimestamps.put(sid, offsetMs);
+
+    this.audioFrames.add(new TimedAudioFrame(offsetMs, opusData.clone(), speakerUuid));
     this.cachedPcm = null;
+  }
+
+  /**
+   * Returns all unique speaker UUIDs present across all recorded audio frames.
+   *
+   * @return set of speaker UUIDs
+   */
+  public @NotNull java.util.Set<UUID> getSpeakers() {
+    final java.util.Set<UUID> set = new java.util.LinkedHashSet<>();
+    for (final var frame : this.audioFrames) {
+      if (frame.speakerUuid() != null)
+        set.add(frame.speakerUuid());
+    }
+    if (set.isEmpty() && this.speakerUUID != null)
+      set.add(this.speakerUUID);
+    return java.util.Collections.unmodifiableSet(set);
+  }
+
+  /**
+   * Returns all audio frames produced by a specific speaker.
+   *
+   * @param speakerUuid the speaker UUID to filter by
+   * @return list of frames matching this speaker
+   */
+  public @NotNull List<TimedAudioFrame> getFramesOfSpeaker(final @NotNull UUID speakerUuid) {
+    final List<TimedAudioFrame> list = new ArrayList<>();
+    for (final var frame : this.audioFrames) {
+      final var frameSpeaker = frame.speakerUuid() != null ? frame.speakerUuid() : this.speakerUUID;
+      if (speakerUuid.equals(frameSpeaker))
+        list.add(frame);
+    }
+    return list;
+  }
+
+  /**
+   * Creates a new recording containing only the audio frames of a specific speaker,
+   * retaining the original timing offsets and duration.
+   *
+   * @param speakerUuid the speaker UUID to extract
+   * @return new {@link VoiceRecording} containing only that speaker's track
+   */
+  public @NotNull VoiceRecording extractSpeakerRecording(final @NotNull UUID speakerUuid) {
+    final var extracted = new VoiceRecording(speakerUuid);
+    extracted.startTime = this.startTime;
+    extracted.duration = this.duration;
+    for (final var frame : getFramesOfSpeaker(speakerUuid)) {
+      extracted.audioFrames.add(new TimedAudioFrame(frame.timestampMs(), frame.data().clone(), speakerUuid));
+    }
+    return extracted;
   }
 
   /**
@@ -138,7 +218,7 @@ public final class VoiceRecording {
     for (final var frame : this.audioFrames) {
       if (frame.timestampMs() >= startOffsetMs && frame.timestampMs() <= endOffsetMs) {
         final var newTimestamp = frame.timestampMs() - startOffsetMs;
-        sliced.audioFrames.add(new TimedAudioFrame(newTimestamp, frame.data().clone()));
+        sliced.audioFrames.add(new TimedAudioFrame(newTimestamp, frame.data().clone(), frame.speakerUuid()));
       }
     }
 

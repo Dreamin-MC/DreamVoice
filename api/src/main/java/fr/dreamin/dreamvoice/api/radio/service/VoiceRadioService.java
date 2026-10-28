@@ -111,4 +111,110 @@ public interface VoiceRadioService {
    */
   void load();
 
+  /**
+   * Registers a listener called whenever a player transmits on a radio channel.
+   *
+   * @param listener (channelName, senderUuid)
+   */
+  default void addTransmissionListener(final @NotNull java.util.function.BiConsumer<String, UUID> listener) {}
+
+  @FunctionalInterface
+  interface RadioAudioTransmissionListener {
+    void onAudioTransmit(final @NotNull String channelName, final @NotNull UUID senderUuid, final byte[] opusData);
+  }
+
+  interface RadioPacketFilter {
+    boolean shouldDeliver(final @NotNull RadioChannel channel, final @NotNull UUID senderUuid, final @NotNull UUID recipientUuid);
+
+    default boolean shouldTransmit(final @NotNull RadioChannel channel, final @NotNull UUID senderUuid) {
+      return true;
+    }
+  }
+
+  /**
+   * Sets a packet filter to control radio voice transmission between participants (e.g. range, packet loss).
+   *
+   * @param filter the packet filter
+   */
+  default void setPacketFilter(final @Nullable RadioPacketFilter filter) {}
+
+  /**
+   * Retrieves the current radio packet filter.
+   */
+  default @Nullable RadioPacketFilter getPacketFilter() {
+    return null;
+  }
+
+  /**
+   * Registers a listener called whenever radio voice audio is transmitted, providing the processed Opus audio.
+   *
+   * @param listener (channelName, senderUuid, opusData)
+   */
+  default void addAudioTransmissionListener(final @NotNull RadioAudioTransmissionListener listener) {}
+
+  /**
+   * Checks whether a radio channel is currently receiving active voice transmission.
+   *
+   * @param channelName the channel name
+   * @return true if currently transmitting
+   */
+  default boolean isChannelActive(final @NotNull String channelName) {
+    return false;
+  }
+
+  /**
+   * Starts a voice recording session capturing all transmissions on a radio channel.
+   *
+   * @param channelName the channel name
+   * @return the started {@link fr.dreamin.dreamvoice.api.recording.model.VoiceRecording}
+   */
+  @Nullable fr.dreamin.dreamvoice.api.recording.model.VoiceRecording startRecording(final @NotNull String channelName);
+
+  /**
+   * Stops the active voice recording session on a radio channel.
+   *
+   * @param channelName the channel name
+   * @return the finished {@link fr.dreamin.dreamvoice.api.recording.model.VoiceRecording}, or {@code null} if not recording
+   */
+  @Nullable fr.dreamin.dreamvoice.api.recording.model.VoiceRecording stopRecording(final @NotNull String channelName);
+
+  /**
+   * Checks whether a radio channel is currently being recorded.
+   *
+   * @param channelName the channel name
+   * @return true if actively recording
+   */
+  boolean isRecording(final @NotNull String channelName);
+
+  /**
+   * Gets the active recording session for a radio channel, if any.
+   *
+   * @param channelName the channel name
+   * @return active {@link fr.dreamin.dreamvoice.api.recording.model.VoiceRecording}, or {@code null}
+   */
+  @Nullable fr.dreamin.dreamvoice.api.recording.model.VoiceRecording getActiveRecording(final @NotNull String channelName);
+
+  /**
+   * Broadcasts a voice recording across a radio channel to all tuned listeners and external systems.
+   *
+   * @param channelName the channel name
+   * @param recording   the recording to play
+   */
+  void playRecordingToRadio(final @NotNull String channelName, final @NotNull fr.dreamin.dreamvoice.api.recording.model.VoiceRecording recording);
+
+  /**
+   * Stops any ongoing recording playback on a radio channel.
+   *
+   * @param channelName the channel name
+   */
+  void stopRadioPlayback(final @NotNull String channelName);
+
+  /**
+   * Checks whether a radio channel is currently playing back a recording.
+   *
+   * @param channelName the channel name
+   * @return true if actively playing
+   */
+  boolean isRadioPlaying(final @NotNull String channelName);
 }
+

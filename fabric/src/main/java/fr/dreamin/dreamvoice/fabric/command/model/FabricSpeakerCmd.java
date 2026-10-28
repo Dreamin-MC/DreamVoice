@@ -254,7 +254,7 @@ public final class FabricSpeakerCmd {
     final @NotNull CommandSourceStack source,
     @Argument(value = "name", suggestions = "speakers") final @NotNull String name,
     @Argument(value = "recording", suggestions = "recordings") final @NotNull String recordingIdRaw,
-    @Argument("loop") @Default("false") final boolean loop
+    @Argument("loop") @Default("false") final @Nullable Boolean loop
   ) {
     final var api = DreamVoiceAPI.get();
     if (api.getSpeakerService() == null || api.getRecordingService() == null) {
@@ -272,11 +272,12 @@ public final class FabricSpeakerCmd {
       return;
     }
 
+    final var isLoop = Boolean.TRUE.equals(loop);
     final var s1 = "record:" + rec.getUuid().toString().substring(0, 8);
     if ("all".equalsIgnoreCase(name)) {
       final var all = api.getSpeakerService().getSpeakers();
       for (final var s : all)
-        api.getSpeakerService().playRecording(s, rec, loop);
+        api.getSpeakerService().playRecording(s, rec, isLoop);
       FabricCommandUtils.sendSuccess(source, "speaker.playing", s1, "all");
       return;
     }
@@ -287,7 +288,7 @@ public final class FabricSpeakerCmd {
       return;
     }
 
-    api.getSpeakerService().playRecording(spk, rec, loop);
+    api.getSpeakerService().playRecording(spk, rec, isLoop);
     FabricCommandUtils.sendSuccess(source, "speaker.playing", s1, name);
   }
 
@@ -298,7 +299,7 @@ public final class FabricSpeakerCmd {
     final @NotNull CommandSourceStack source,
     @Argument(value = "name", suggestions = "speakers") final @NotNull String name,
     @Argument("fileName") final @NotNull String fileName,
-    @Argument("loop") @Default("false") final boolean loop
+    @Argument("loop") @Default("false") final @Nullable Boolean loop
   ) {
     final var api = DreamVoiceAPI.get();
     if (api.getSpeakerService() == null) {
@@ -306,9 +307,10 @@ public final class FabricSpeakerCmd {
       return;
     }
 
+    final var isLoop = Boolean.TRUE.equals(loop);
     if ("all".equalsIgnoreCase(name)) {
       final var all = api.getSpeakerService().getSpeakers();
-      api.getSpeakerService().playSoundFile(all, fileName, loop);
+      api.getSpeakerService().playSoundFile(all, fileName, isLoop);
       FabricCommandUtils.sendSuccess(source, "speaker.playing", fileName, "all");
       return;
     }
@@ -319,7 +321,7 @@ public final class FabricSpeakerCmd {
       return;
     }
 
-    api.getSpeakerService().playSoundFile(spk, fileName, loop);
+    api.getSpeakerService().playSoundFile(spk, fileName, isLoop);
     FabricCommandUtils.sendSuccess(source, "speaker.playing", fileName, name);
   }
 
@@ -330,7 +332,7 @@ public final class FabricSpeakerCmd {
     final @NotNull CommandSourceStack source,
     @Argument(value = "name", suggestions = "speakers") final @NotNull String name,
     @Argument("url") final @NotNull String url,
-    @Argument("loop") @Default("false") final boolean loop
+    @Argument("loop") @Default("false") final @Nullable Boolean loop
   ) {
     final var api = DreamVoiceAPI.get();
     if (api.getSpeakerService() == null) {
@@ -338,9 +340,10 @@ public final class FabricSpeakerCmd {
       return;
     }
 
+    final var isLoop = Boolean.TRUE.equals(loop);
     if ("all".equalsIgnoreCase(name)) {
       final var all = api.getSpeakerService().getSpeakers();
-      api.getSpeakerService().playSoundUrl(all, url, loop);
+      api.getSpeakerService().playSoundUrl(all, url, isLoop);
       FabricCommandUtils.sendSuccess(source, "speaker.playing", url, "all");
       return;
     }

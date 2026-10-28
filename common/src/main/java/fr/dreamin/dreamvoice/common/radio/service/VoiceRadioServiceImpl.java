@@ -46,8 +46,14 @@ public final class VoiceRadioServiceImpl implements VoiceRadioService {
 
   private final Map<String, StaticAudioChannel> radioChannels = new ConcurrentHashMap<>();
   private final Map<String, Long> lastChannelActivity = new ConcurrentHashMap<>();
+  private final Map<String, Long> lastChannelActivityTimes = new ConcurrentHashMap<>();
+  private final java.util.List<java.util.function.BiConsumer<String, UUID>> transmissionListeners = new java.util.concurrent.CopyOnWriteArrayList<>();
+  private final java.util.List<RadioAudioTransmissionListener> audioTransmissionListeners = new java.util.concurrent.CopyOnWriteArrayList<>();
   private final Map<UUID, Long> lastSpeakingTimes = new ConcurrentHashMap<>();
   private final Map<UUID, OpusEncoder> radioEncoders = new ConcurrentHashMap<>();
+  private final Map<String, fr.dreamin.dreamvoice.api.recording.model.VoiceRecording> activeRadioRecordings = new ConcurrentHashMap<>();
+  private final Map<String, fr.dreamin.dreamvoice.common.recording.player.OpusAudioPlayer> activeRadioPlaybacks = new ConcurrentHashMap<>();
+  private volatile RadioPacketFilter packetFilter = null;
   private boolean voiceServiceMissingLogged = false;
 
   public VoiceRadioServiceImpl(final @NotNull VoicePlatform platform) {
@@ -169,6 +175,16 @@ public final class VoiceRadioServiceImpl implements VoiceRadioService {
     RadiosPersistence.load(this, moduleDir, this.platform);
   }
 
+  @Override
+  public void setPacketFilter(final @Nullable RadioPacketFilter filter) {
+    this.packetFilter = filter;
+  }
+
+  @Override
+  public @Nullable RadioPacketFilter getPacketFilter() {
+    return this.packetFilter;
+  }
+
   private void cleanupChannels() {
     final var now = System.currentTimeMillis();
     this.lastChannelActivity.entrySet().removeIf(entry -> {
@@ -251,6 +267,10 @@ public final class VoiceRadioServiceImpl implements VoiceRadioService {
     final @NotNull VoiceService voiceService,
     final @Nullable VoiceFilterService filterService
   ) {
+    final var filterId = channel.getFilterId();
+    if (filterService == null || filterId == null || filterId.equalsIgnoreCase("none"))
+      return opusData;
+
     try {
       final var decoder = voiceService.getDecoder(senderUuid);
       final var encoder = this.radioEncoders.computeIfAbsent(senderUuid, _ -> this.api.createEncoder());
@@ -259,12 +279,9 @@ public final class VoiceRadioServiceImpl implements VoiceRadioService {
         return opusData;
 
       var processed = pcm;
-      final var filterId = channel.getFilterId();
-      if (filterService != null && filterId != null && !filterId.equalsIgnoreCase("none")) {
-        final var filter = filterService.getFilter(filterId);
-        if (filter != null)
-          processed = filter.process(processed, null);
-      }
+      final var filter = filterService.getFilter(filterId);
+      if (filter != null)
+        processed = filter.process(processed, null);
 
       processed = AudioLimiter.process(processed);
       return encoder.encode(processed);
@@ -284,11 +301,15 @@ public final class VoiceRadioServiceImpl implements VoiceRadioService {
     if (channel == null)
       return;
 
-    this.lastSpeakingTimes.put(senderUuid, System.currentTimeMillis());
-
-    final var members = channel.getMembers();
-    if (members.size() <= 1)
+    final var filter = this.packetFilter;
+    if (filter != null && !filter.shouldTransmit(channel, senderUuid))
       return;
+
+    final var now = System.currentTimeMillis();
+    this.lastSpeakingTimes.put(senderUuid, now);
+    this.lastChannelActivityTimes.put(channel.getName().toLowerCase(), now);
+    for (final var l : this.transmissionListeners)
+      l.accept(channel.getName(), senderUuid);
 
     var opusData = event.getPacket().getOpusEncodedData();
     final var common = DreamVoiceCommon.getInstance();
@@ -303,10 +324,25 @@ public final class VoiceRadioServiceImpl implements VoiceRadioService {
     }
 
     final var finalOpus = opusData;
-    final var now = System.currentTimeMillis();
+
+    final var activeRec = this.activeRadioRecordings.get(channel.getName().toLowerCase());
+    if (activeRec != null && activeRec.isRecording())
+      activeRec.addAudio(senderUuid, finalOpus);
+
+    new fr.dreamin.dreamvoice.api.radio.event.RadioTransmissionEvent(channel, senderUuid, finalOpus).callEvent();
+
+    for (final var l : this.audioTransmissionListeners)
+      l.onAudioTransmit(channel.getName(), senderUuid, finalOpus);
+
+    final var members = channel.getMembers();
+    if (members.size() <= 1)
+      return;
 
     for (final var memberUuid : members) {
       if (memberUuid.equals(senderUuid))
+        continue;
+
+      if (filter != null && !filter.shouldDeliver(channel, senderUuid, memberUuid))
         continue;
 
       final var conn = this.api.getConnectionOf(memberUuid);
@@ -341,6 +377,163 @@ public final class VoiceRadioServiceImpl implements VoiceRadioService {
         enc.close();
       } catch (Throwable ignored) {}
     }
+  }
+
+  @Override
+  public void addTransmissionListener(final @NotNull java.util.function.BiConsumer<String, UUID> listener) {
+    this.transmissionListeners.add(listener);
+  }
+
+  @Override
+  public void addAudioTransmissionListener(final @NotNull RadioAudioTransmissionListener listener) {
+    this.audioTransmissionListeners.add(listener);
+  }
+
+  @Override
+  public boolean isChannelActive(final @NotNull String channelName) {
+    final var last = this.lastChannelActivityTimes.get(channelName.toLowerCase());
+    return last != null && (System.currentTimeMillis() - last < 500L);
+  }
+
+  @Override
+  public @Nullable fr.dreamin.dreamvoice.api.recording.model.VoiceRecording startRecording(final @NotNull String channelName) {
+    final var key = channelName.toLowerCase();
+    final var existing = this.activeRadioRecordings.get(key);
+    if (existing != null && existing.isRecording())
+      return existing;
+
+    final var recUuid = UUID.randomUUID();
+    final var rec = new fr.dreamin.dreamvoice.api.recording.model.VoiceRecording(recUuid);
+    rec.start();
+    this.activeRadioRecordings.put(key, rec);
+
+    final var common = DreamVoiceCommon.getInstance();
+    if (common != null) {
+      final var recService = common.getService(fr.dreamin.dreamvoice.api.recording.service.VoiceRecordingService.class);
+      if (recService != null)
+        recService.register(rec);
+    }
+    return rec;
+  }
+
+  @Override
+  public @Nullable fr.dreamin.dreamvoice.api.recording.model.VoiceRecording stopRecording(final @NotNull String channelName) {
+    final var key = channelName.toLowerCase();
+    final var rec = this.activeRadioRecordings.remove(key);
+    if (rec == null)
+      return null;
+
+    if (rec.isRecording()) {
+      rec.stop();
+      new fr.dreamin.dreamvoice.api.recording.event.VoiceRecordingStopEvent(rec).callEvent();
+      final var common = DreamVoiceCommon.getInstance();
+      if (common != null) {
+        final var recService = common.getService(fr.dreamin.dreamvoice.api.recording.service.VoiceRecordingService.class);
+        if (recService != null) {
+          recService.register(rec);
+          final var dir = new File(this.platform.getDataDirectory().toFile(), "recordings");
+          this.platform.runAsync(() -> fr.dreamin.dreamvoice.common.recording.storage.VoiceRecordingPersistence.save(rec, dir));
+        }
+      }
+    }
+    return rec;
+  }
+
+  @Override
+  public boolean isRecording(final @NotNull String channelName) {
+    final var rec = this.activeRadioRecordings.get(channelName.toLowerCase());
+    return rec != null && rec.isRecording();
+  }
+
+  @Override
+  public @Nullable fr.dreamin.dreamvoice.api.recording.model.VoiceRecording getActiveRecording(final @NotNull String channelName) {
+    return this.activeRadioRecordings.get(channelName.toLowerCase());
+  }
+
+  @Override
+  public void playRecordingToRadio(final @NotNull String channelName, final @NotNull fr.dreamin.dreamvoice.api.recording.model.VoiceRecording recording) {
+    final var key = channelName.toLowerCase();
+    stopRadioPlayback(key);
+
+    final var frames = recording.getAudioFrames();
+    if (frames.isEmpty())
+      return;
+
+    final var totalDurationMs = (long) (recording.getDurationSeconds() * 1000L);
+    final var virtualSpeaker = UUID.nameUUIDFromBytes(("radio_playback:" + key).getBytes(StandardCharsets.UTF_8));
+
+    final var player = new fr.dreamin.dreamvoice.common.recording.player.OpusAudioPlayer(
+      java.util.Collections.emptyList(),
+      frames,
+      totalDurationMs,
+      false,
+      frame -> {
+        final long now = System.currentTimeMillis();
+        this.lastChannelActivityTimes.put(key, now);
+
+        final var data = frame.data();
+        if (data == null || data.length == 0)
+          return;
+
+        for (final var l : this.audioTransmissionListeners)
+          l.onAudioTransmit(channelName, virtualSpeaker, data);
+
+        if (this.api == null)
+          return;
+
+        final var channel = getOrCreateChannel(key);
+        final var members = channel.getMembers();
+        if (members.isEmpty())
+          return;
+
+        for (final var memberUuid : members) {
+          final var filter = this.packetFilter;
+          if (filter != null && !filter.shouldDeliver(channel, virtualSpeaker, memberUuid))
+            continue;
+
+          final var conn = this.api.getConnectionOf(memberUuid);
+          if (conn == null)
+            continue;
+
+          final var streamKey = "radio_playback:" + key + ":" + memberUuid;
+          this.lastChannelActivity.put(streamKey, now);
+          final var staticChannel = this.radioChannels.computeIfAbsent(streamKey, k -> {
+            final var channelId = UUID.nameUUIDFromBytes(k.getBytes(StandardCharsets.UTF_8));
+            final var sc = this.api.createStaticAudioChannel(channelId);
+            if (sc != null)
+              sc.addTarget(conn);
+            return sc;
+          });
+
+          if (staticChannel != null)
+            staticChannel.send(data);
+        }
+      }
+    );
+
+    player.setOnStopped(() -> {
+      this.activeRadioPlaybacks.remove(key);
+      this.radioChannels.keySet().removeIf(k -> k.startsWith("radio_playback:" + key + ":"));
+      this.lastChannelActivity.keySet().removeIf(k -> k.startsWith("radio_playback:" + key + ":"));
+    });
+    this.activeRadioPlaybacks.put(key, player);
+    player.startPlaying();
+  }
+
+  @Override
+  public void stopRadioPlayback(final @NotNull String channelName) {
+    final var key = channelName.toLowerCase();
+    final var player = this.activeRadioPlaybacks.remove(key);
+    if (player != null)
+      player.stopPlaying();
+    this.radioChannels.keySet().removeIf(k -> k.startsWith("radio_playback:" + key + ":"));
+    this.lastChannelActivity.keySet().removeIf(k -> k.startsWith("radio_playback:" + key + ":"));
+  }
+
+  @Override
+  public boolean isRadioPlaying(final @NotNull String channelName) {
+    final var player = this.activeRadioPlaybacks.get(channelName.toLowerCase());
+    return player != null && player.isPlaying();
   }
 
 }

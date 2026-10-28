@@ -64,11 +64,7 @@ public final class RadioVoiceFilter implements VoiceFilter {
       var norm = peak / 18000.0f;
       norm = (float) Math.tanh(norm * 1.5f) * 0.85f;
 
-      // 4. Subtle RF carrier noise hiss (-42 dB) while speech is active
-      state.noise = state.noise * 0.88f + (state.random.nextFloat() - 0.5f) * 0.12f;
-      final var rfHiss = state.noise * 180.0f;
-
-      final var result = (norm * 24000.0f) + rfHiss;
+      final var result = norm * 24000.0f;
       output[i] = (short) Math.clamp(Math.round(result), Short.MIN_VALUE, Short.MAX_VALUE);
     }
 

@@ -22,7 +22,7 @@ public final class RadioChannel {
   @Setter
   private boolean rogerBeep = true;
   @Setter
-  private @Nullable String filterId = "radio";
+  private @Nullable String filterId = "none";
 
   public RadioChannel(final @NotNull String name) {
     this.name = name.toLowerCase();
@@ -35,6 +35,15 @@ public final class RadioChannel {
    */
   public void addMember(final @NotNull UUID playerUuid) {
     this.members.add(playerUuid);
+  }
+
+  /**
+   * Adds multiple member players to this radio channel.
+   *
+   * @param members collection of player UUIDs
+   */
+  public void addMembers(final @NotNull java.util.Collection<UUID> members) {
+    this.members.addAll(members);
   }
 
   /**

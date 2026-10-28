@@ -319,7 +319,7 @@ public final class VoiceWiretapServiceImpl implements VoiceWiretapService {
       final var finalOpus = encoder.encode(processed);
 
       if (wiretap.isRecording() && wiretap.getActiveRecording() != null)
-        wiretap.getActiveRecording().addAudio(finalOpus);
+        wiretap.getActiveRecording().addAudio(senderUuid, finalOpus);
 
       broadcastWiretapToListeners(wiretap, senderUuid, finalOpus, wiretap.getListeners());
 

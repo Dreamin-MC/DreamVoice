@@ -27,6 +27,7 @@ import java.util.stream.Stream;
 public final class RecordingCmd {
 
   private final @Nullable VoiceRecordingService recordingService = DreamVoice.getService(VoiceRecordingService.class);
+  private final @Nullable fr.dreamin.dreamvoice.api.radio.service.VoiceRadioService radioService = DreamVoice.getService(fr.dreamin.dreamvoice.api.radio.service.VoiceRadioService.class);
 
   private @Nullable VoiceRecordingService requireRecordingService(final @NotNull CommandSender sender) {
     if (this.recordingService == null) {
@@ -34,6 +35,14 @@ public final class RecordingCmd {
       return null;
     }
     return this.recordingService;
+  }
+
+  private @Nullable fr.dreamin.dreamvoice.api.radio.service.VoiceRadioService requireRadioService(final @NotNull CommandSender sender) {
+    if (this.radioService == null) {
+      sender.sendMessage(Component.translatable("common.service_unavailable"));
+      return null;
+    }
+    return this.radioService;
   }
 
   // ###############################################################
@@ -56,6 +65,17 @@ public final class RecordingCmd {
   public @NotNull List<String> suggestExportFormats(final @NotNull CommandContext<CommandSender> ctx, final @NotNull String input) {
     return Stream.of("mp3", "ogg", "wav")
       .filter(f -> f.startsWith(input.toLowerCase()))
+      .toList();
+  }
+
+  @Suggestions("radio_channels")
+  public @NotNull List<String> suggestRadioChannels(final @NotNull CommandContext<CommandSender> ctx, final @NotNull String input) {
+    if (this.radioService == null)
+      return List.of();
+
+    return this.radioService.getChannels().stream()
+      .map(fr.dreamin.dreamvoice.api.radio.model.RadioChannel::getName)
+      .filter(name -> name.toLowerCase().startsWith(input.toLowerCase()))
       .toList();
   }
 
@@ -442,6 +462,218 @@ public final class RecordingCmd {
     } catch (Exception e) {
       sender.sendMessage(Component.translatable("record.failed", Component.text(e.getMessage() != null ? e.getMessage() : "Unknown error")));
     }
+  }
+
+  @CommandMethod("record export-speaker <id> <speaker> <format> [fileName]")
+  @CommandPermission("dreamvoice.record.export")
+  @CommandDescription("Export an isolated speaker track from a recording")
+  private void exportSpeakerRecording(
+    final @NotNull CommandSender sender,
+    @Argument(value = "id", suggestions = "recordings") final @NotNull String id,
+    @Argument("speaker") final @NotNull String speakerName,
+    @Argument(value = "format", suggestions = "export_formats") final @NotNull String formatStr,
+    @Argument("fileName") @Greedy final @Nullable String customFileName
+  ) {
+    final var recordingService = requireRecordingService(sender);
+    if (recordingService == null)
+      return;
+
+    try {
+      final var uuid = parseRecordingId(id);
+      final var rec = recordingService.getVoiceRecording(uuid);
+      if (rec == null) {
+        sender.sendMessage(Component.translatable("record.not_found", Component.text(id)));
+        return;
+      }
+
+      final var speaker = resolveSpeaker(speakerName);
+      if (speaker == null) {
+        sender.sendMessage(Component.translatable("record.player_not_found", Component.text(speakerName)));
+        return;
+      }
+
+      final AudioExportFormat format;
+      try {
+        format = AudioExportFormat.fromString(formatStr);
+      } catch (IllegalArgumentException e) {
+        sender.sendMessage(Component.translatable("record.invalid_format", Component.text(formatStr)));
+        return;
+      }
+
+      sender.sendMessage(Component.translatable("record.exporting", Component.text(id + " (" + speakerName + ")"), Component.text(format.name())));
+
+      recordingService.exportRecording(rec, format, speaker, customFileName).thenAccept(exportedFile -> {
+        sender.sendMessage(Component.translatable("record.exported",
+          Component.text(exportedFile.getName()),
+          Component.text(String.format("%.1fs", rec.getDurationSeconds()))
+        ));
+      }).exceptionally(err -> {
+        sender.sendMessage(Component.translatable("record.failed", Component.text(err.getMessage() != null ? err.getMessage() : "Unknown error")));
+        return null;
+      });
+
+    } catch (Exception e) {
+      sender.sendMessage(Component.translatable("record.failed", Component.text(e.getMessage() != null ? e.getMessage() : "Unknown error")));
+    }
+  }
+
+  @CommandMethod("record extract <id> <speaker> [player]")
+  @CommandPermission("dreamvoice.record.extract")
+  @CommandDescription("Extract a single speaker track into a new recording and optionally give cassette")
+  private void extractSpeaker(
+    final @NotNull CommandSender sender,
+    @Argument(value = "id", suggestions = "recordings") final @NotNull String id,
+    @Argument("speaker") final @NotNull String speakerName,
+    @Argument("player") final @Nullable Player targetArg
+  ) {
+    final var recordingService = requireRecordingService(sender);
+    if (recordingService == null)
+      return;
+
+    try {
+      final var uuid = parseRecordingId(id);
+      final var rec = recordingService.getVoiceRecording(uuid);
+      if (rec == null) {
+        sender.sendMessage(Component.translatable("record.not_found", Component.text(id)));
+        return;
+      }
+
+      final var speaker = resolveSpeaker(speakerName);
+      if (speaker == null) {
+        sender.sendMessage(Component.translatable("record.player_not_found", Component.text(speakerName)));
+        return;
+      }
+
+      final var extracted = recordingService.extractSpeakerRecording(rec.getUuid(), speaker);
+      if (extracted == null) {
+        sender.sendMessage(Component.translatable("record.failed", Component.text("No frames found for speaker " + speakerName)));
+        return;
+      }
+
+      sender.sendMessage(Component.translatable("record.segment_sliced",
+        Component.text(extracted.getUuid().toString().substring(0, 8)),
+        Component.text(String.format("%.1f", extracted.getDurationSeconds()))
+      ));
+
+      final var target = resolvePlayer(sender, targetArg);
+      if (target != null) {
+        final var item = CassetteItem.create(extracted, target);
+        target.getInventory().addItem(item);
+        sender.sendMessage(Component.translatable("record.segment_cassette_given"));
+      }
+    } catch (Exception e) {
+      sender.sendMessage(Component.translatable("record.failed", Component.text(e.getMessage() != null ? e.getMessage() : "Unknown error")));
+    }
+  }
+
+  @CommandMethod("record radio start <channel>")
+  @CommandPermission("dreamvoice.record.radio")
+  @CommandDescription("Start recording transmissions on a radio channel")
+  private void radioStart(
+    final @NotNull CommandSender sender,
+    @Argument(value = "channel", suggestions = "radio_channels") final @NotNull String channelName
+  ) {
+    final var radioService = requireRadioService(sender);
+    if (radioService == null)
+      return;
+
+    final var rec = radioService.startRecording(channelName);
+    if (rec != null)
+      sender.sendMessage(Component.translatable("record.started", Component.text(rec.getUuid().toString().substring(0, 8) + " (" + channelName + ")")));
+    else
+      sender.sendMessage(Component.translatable("record.failed", Component.text("Could not start recording channel " + channelName)));
+  }
+
+  @CommandMethod("record radio stop <channel> [player]")
+  @CommandPermission("dreamvoice.record.radio")
+  @CommandDescription("Stop recording a radio channel and optionally give cassette")
+  private void radioStop(
+    final @NotNull CommandSender sender,
+    @Argument(value = "channel", suggestions = "radio_channels") final @NotNull String channelName,
+    @Argument("player") final @Nullable Player targetArg
+  ) {
+    final var radioService = requireRadioService(sender);
+    if (radioService == null)
+      return;
+
+    final var rec = radioService.stopRecording(channelName);
+    if (rec == null) {
+      sender.sendMessage(Component.translatable("record.none_active"));
+      return;
+    }
+
+    sender.sendMessage(Component.translatable("record.stopped", Component.text(rec.getUuid().toString().substring(0, 8) + " (" + channelName + ")")));
+
+    final var target = resolvePlayer(sender, targetArg);
+    if (target != null) {
+      final var item = CassetteItem.create(rec, target);
+      target.getInventory().addItem(item);
+      sender.sendMessage(Component.translatable("record.cassette_given", Component.text(rec.getUuid().toString().substring(0, 8)), Component.text(target.getName())));
+    }
+  }
+
+  @CommandMethod("record radio play <channel> <id>")
+  @CommandPermission("dreamvoice.record.radio")
+  @CommandDescription("Broadcast a recording across a radio channel")
+  private void radioPlay(
+    final @NotNull CommandSender sender,
+    @Argument(value = "channel", suggestions = "radio_channels") final @NotNull String channelName,
+    @Argument(value = "id", suggestions = "recordings") final @NotNull String id
+  ) {
+    final var radioService = requireRadioService(sender);
+    final var recordingService = requireRecordingService(sender);
+    if (radioService == null || recordingService == null)
+      return;
+
+    try {
+      final var uuid = parseRecordingId(id);
+      final var rec = recordingService.getVoiceRecording(uuid);
+      if (rec == null) {
+        sender.sendMessage(Component.translatable("record.not_found", Component.text(id)));
+        return;
+      }
+
+      if (!rec.isFinished() && !rec.isRecording()) {
+        sender.sendMessage(Component.translatable("record.not_finished"));
+        return;
+      }
+
+      radioService.playRecordingToRadio(channelName, rec);
+      sender.sendMessage(Component.translatable("record.playing", Component.text(id), Component.text(channelName)));
+    } catch (Exception e) {
+      sender.sendMessage(Component.translatable("record.failed", Component.text(e.getMessage() != null ? e.getMessage() : "Unknown error")));
+    }
+  }
+
+  @CommandMethod("record radio stop-play <channel>")
+  @CommandPermission("dreamvoice.record.radio")
+  @CommandDescription("Stop broadcasting on a radio channel")
+  private void radioStopPlay(
+    final @NotNull CommandSender sender,
+    @Argument(value = "channel", suggestions = "radio_channels") final @NotNull String channelName
+  ) {
+    final var radioService = requireRadioService(sender);
+    if (radioService == null)
+      return;
+
+    radioService.stopRadioPlayback(channelName);
+    sender.sendMessage(Component.translatable("record.stopped", Component.text(channelName)));
+  }
+
+  private @Nullable UUID resolveSpeaker(final @NotNull String input) {
+    try {
+      return UUID.fromString(input);
+    } catch (final IllegalArgumentException ignored) {}
+
+    final var player = Bukkit.getPlayerExact(input);
+    if (player != null)
+      return player.getUniqueId();
+
+    final var offline = Bukkit.getOfflinePlayer(input);
+    if (offline != null && offline.hasPlayedBefore())
+      return offline.getUniqueId();
+
+    return null;
   }
 
 

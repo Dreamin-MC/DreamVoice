@@ -20,7 +20,8 @@ import java.util.UUID;
 
 public final class VoiceRecordingPersistence {
 
-  private static final byte[] MAGIC = "DVREC1".getBytes(StandardCharsets.UTF_8);
+  private static final byte[] MAGIC_V1 = "DVREC1".getBytes(StandardCharsets.UTF_8);
+  private static final byte[] MAGIC_V2 = "DVREC2".getBytes(StandardCharsets.UTF_8);
 
   public static void save(final @NotNull VoiceRecording recording, final @NotNull File targetDir) {
     if (!targetDir.exists())
@@ -31,7 +32,7 @@ public final class VoiceRecordingPersistence {
     try (final var fos = new FileOutputStream(file);
          final var dos = new DataOutputStream(fos)) {
 
-      dos.write(MAGIC);
+      dos.write(MAGIC_V2);
       dos.writeLong(recording.getUuid().getMostSignificantBits());
       dos.writeLong(recording.getUuid().getLeastSignificantBits());
       dos.writeLong(recording.getSpeakerUUID().getMostSignificantBits());
@@ -46,6 +47,12 @@ public final class VoiceRecordingPersistence {
 
       for (final var frame : frames) {
         dos.writeLong(frame.timestampMs());
+        final boolean hasSpeaker = frame.speakerUuid() != null;
+        dos.writeBoolean(hasSpeaker);
+        if (hasSpeaker) {
+          dos.writeLong(frame.speakerUuid().getMostSignificantBits());
+          dos.writeLong(frame.speakerUuid().getLeastSignificantBits());
+        }
         dos.writeInt(frame.data().length);
         dos.write(frame.data());
       }
@@ -66,9 +73,11 @@ public final class VoiceRecordingPersistence {
 
       final var magic = new byte[6];
       dis.readFully(magic);
-      if (!new String(magic, StandardCharsets.UTF_8).equals("DVREC1"))
+      final var magicStr = new String(magic, StandardCharsets.UTF_8);
+      if (!magicStr.equals("DVREC1") && !magicStr.equals("DVREC2"))
         return null;
 
+      final boolean isV2 = magicStr.equals("DVREC2");
       final var recUuid = new UUID(dis.readLong(), dis.readLong());
       final var speakerUuid = new UUID(dis.readLong(), dis.readLong());
       final var durMs = dis.readLong();
@@ -90,12 +99,17 @@ public final class VoiceRecordingPersistence {
 
       for (int i = 0; i < frameCount; i++) {
         final var ts = dis.readLong();
+        UUID frameSpeaker = null;
+        if (isV2) {
+          final boolean hasSpeaker = dis.readBoolean();
+          if (hasSpeaker)
+            frameSpeaker = new UUID(dis.readLong(), dis.readLong());
+        }
         final var len = dis.readInt();
         final var data = new byte[len];
         dis.readFully(data);
-        recording.getAudioFrames().add(new TimedAudioFrame(ts, data));
+        recording.getAudioFrames().add(new TimedAudioFrame(ts, data, frameSpeaker));
       }
-
 
       return recording;
     } catch (Exception e) {

@@ -65,8 +65,10 @@ public final class RadiosPersistence {
         channel.setRogerBeep(data.rogerBeep());
         channel.setFilterId(data.filterId());
 
-        if (data.members() != null)
-          channel.getMembers().addAll(data.members());
+        if (data.members() != null) {
+          for (final var member : data.members())
+            channel.addMember(member);
+        }
 
         service.register(channel);
       }

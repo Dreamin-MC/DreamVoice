@@ -188,7 +188,9 @@ public interface VoiceRecordingService {
    * @param format        the target audio export format
    * @return CompletableFuture containing the exported File
    */
-  CompletableFuture<File> exportRecording(final @NotNull UUID recordingUuid, final @NotNull AudioExportFormat format);
+  default CompletableFuture<File> exportRecording(final @NotNull UUID recordingUuid, final @NotNull AudioExportFormat format) {
+    return exportRecording(recordingUuid, format, (UUID) null, null);
+  }
 
   /**
    * Asynchronously exports a recording into an external audio file (MP3, OGG, WAV) with an optional custom filename.
@@ -198,7 +200,9 @@ public interface VoiceRecordingService {
    * @param fileName      optional custom file name (without extension), or {@code null} to use the recording UUID
    * @return CompletableFuture containing the exported File
    */
-  CompletableFuture<File> exportRecording(final @NotNull UUID recordingUuid, final @NotNull AudioExportFormat format, final @Nullable String fileName);
+  default CompletableFuture<File> exportRecording(final @NotNull UUID recordingUuid, final @NotNull AudioExportFormat format, final @Nullable String fileName) {
+    return exportRecording(recordingUuid, format, (UUID) null, fileName);
+  }
 
   /**
    * Asynchronously exports a recording into an external audio file (MP3, OGG, WAV).
@@ -207,7 +211,9 @@ public interface VoiceRecordingService {
    * @param format    the target audio export format
    * @return CompletableFuture containing the exported File
    */
-  CompletableFuture<File> exportRecording(final @NotNull VoiceRecording recording, final @NotNull AudioExportFormat format);
+  default CompletableFuture<File> exportRecording(final @NotNull VoiceRecording recording, final @NotNull AudioExportFormat format) {
+    return exportRecording(recording, format, (UUID) null, null);
+  }
 
   /**
    * Asynchronously exports a recording into an external audio file (MP3, OGG, WAV) with an optional custom filename.
@@ -217,7 +223,43 @@ public interface VoiceRecordingService {
    * @param fileName  optional custom file name (without extension), or {@code null} to use the recording UUID
    * @return CompletableFuture containing the exported File
    */
-  CompletableFuture<File> exportRecording(final @NotNull VoiceRecording recording, final @NotNull AudioExportFormat format, final @Nullable String fileName);
+  default CompletableFuture<File> exportRecording(final @NotNull VoiceRecording recording, final @NotNull AudioExportFormat format, final @Nullable String fileName) {
+    return exportRecording(recording, format, (UUID) null, fileName);
+  }
+
+  /**
+   * Asynchronously exports a recording or a specific speaker track of it into an external audio file (MP3, OGG, WAV).
+   *
+   * @param recordingUuid the recording UUID to export
+   * @param format        the target audio export format
+   * @param speakerUuid   optional speaker UUID to export only their track, or {@code null} for all tracks mixed
+   * @param fileName      optional custom file name (without extension), or {@code null} to use recording/speaker UUID
+   * @return CompletableFuture containing the exported File
+   */
+  CompletableFuture<File> exportRecording(final @NotNull UUID recordingUuid, final @NotNull AudioExportFormat format, final @Nullable UUID speakerUuid, final @Nullable String fileName);
+
+  /**
+   * Asynchronously exports a recording or a specific speaker track of it into an external audio file (MP3, OGG, WAV).
+   *
+   * @param recording   the recording instance to export
+   * @param format      the target audio export format
+   * @param speakerUuid optional speaker UUID to export only their track, or {@code null} for all tracks mixed
+   * @param fileName    optional custom file name (without extension), or {@code null} to use recording/speaker UUID
+   * @return CompletableFuture containing the exported File
+   */
+  CompletableFuture<File> exportRecording(final @NotNull VoiceRecording recording, final @NotNull AudioExportFormat format, final @Nullable UUID speakerUuid, final @Nullable String fileName);
+
+  /**
+   * Extracts a single speaker's track from a recording into a new {@link VoiceRecording}.
+   *
+   * @param recordingUuid the source recording UUID
+   * @param speakerUuid   the speaker UUID to extract
+   * @return new {@link VoiceRecording} containing only that speaker's track, or {@code null} if not found
+   */
+  default @Nullable VoiceRecording extractSpeakerRecording(final @NotNull UUID recordingUuid, final @NotNull UUID speakerUuid) {
+    final var rec = getVoiceRecording(recordingUuid);
+    return rec != null ? rec.extractSpeakerRecording(speakerUuid) : null;
+  }
 
   /**
    * Decodes all Opus frames of a recording into continuous 48kHz mono 16-bit PCM samples.
@@ -225,6 +267,18 @@ public interface VoiceRecordingService {
    * @param recording the recording session
    * @return decoded PCM samples array, or {@code null} if empty/failed
    */
-  short @Nullable [] decodeToPcm(final @NotNull VoiceRecording recording);
+  default short @Nullable [] decodeToPcm(final @NotNull VoiceRecording recording) {
+    return decodeToPcm(recording, null);
+  }
+
+  /**
+   * Decodes Opus frames of a recording into continuous 48kHz mono 16-bit PCM samples,
+   * optionally filtering to a single speaker track.
+   *
+   * @param recording   the recording session
+   * @param speakerUuid optional speaker UUID to decode, or {@code null} to decode and mix all speakers
+   * @return decoded PCM samples array, or {@code null} if empty/failed
+   */
+  short @Nullable [] decodeToPcm(final @NotNull VoiceRecording recording, final @Nullable UUID speakerUuid);
 
 }

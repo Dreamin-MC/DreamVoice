@@ -34,6 +34,24 @@ public final class FabricRecordingCmd {
       .toList();
   }
 
+  @Suggestions("export_formats")
+  public List<String> suggestExportFormats(final @NotNull CommandContext<CommandSourceStack> ctx, final @NotNull String input) {
+    return List.of("mp3", "ogg", "wav").stream()
+      .filter(f -> f.startsWith(input.toLowerCase()))
+      .toList();
+  }
+
+  @Suggestions("radio_channels")
+  public List<String> suggestRadioChannels(final @NotNull CommandContext<CommandSourceStack> ctx, final @NotNull String input) {
+    final var api = DreamVoiceAPI.get();
+    if (api.getRadioService() == null)
+      return Collections.emptyList();
+    return api.getRadioService().getChannels().stream()
+      .map(fr.dreamin.dreamvoice.api.radio.model.RadioChannel::getName)
+      .filter(name -> name.toLowerCase().startsWith(input.toLowerCase()))
+      .toList();
+  }
+
   @Suggestions("recording_players")
   public List<String> suggestPlayers(final @NotNull CommandContext<CommandSourceStack> ctx, final @NotNull String input) {
     return FabricCommandUtils.suggestPlayers(ctx.sender(), input);
@@ -291,6 +309,324 @@ public final class FabricRecordingCmd {
         FabricCommandUtils.sendFailure(source, "record.failed", ex.getMessage() != null ? ex.getMessage() : "Unknown error");
         return null;
       });
+  }
+
+  @Command("record|recording|voicerecording export <id> <format> [fileName]")
+  @CommandDescription("Export a recording to an audio file (mp3, ogg, wav)")
+  @Permission("dreamvoice.admin.recording.export")
+  public void export(
+    final @NotNull CommandSourceStack source,
+    @Argument(value = "id", suggestions = "recordings") final @NotNull String id,
+    @Argument(value = "format", suggestions = "export_formats") final @NotNull String formatStr,
+    @Argument(value = "fileName") final @Nullable String customFileName
+  ) {
+    final var api = DreamVoiceAPI.get();
+    if (api.getRecordingService() == null) {
+      FabricCommandUtils.sendFailure(source, "common.service_unavailable");
+      return;
+    }
+
+    final var rec = findRecording(api, id);
+    if (rec == null) {
+      FabricCommandUtils.sendFailure(source, "record.not_found", id);
+      return;
+    }
+
+    final fr.dreamin.dreamvoice.api.recording.model.AudioExportFormat format;
+    try {
+      format = fr.dreamin.dreamvoice.api.recording.model.AudioExportFormat.fromString(formatStr);
+    } catch (IllegalArgumentException e) {
+      FabricCommandUtils.sendFailure(source, "record.invalid_format", formatStr);
+      return;
+    }
+
+    FabricCommandUtils.sendSuccess(source, "record.exporting", rec.getUuid().toString().substring(0, 8), format.name());
+    api.getRecordingService().exportRecording(rec, format, null, customFileName).thenAccept(exportedFile -> {
+      FabricCommandUtils.sendSuccess(source, "record.exported", exportedFile.getName(), String.format("%.1fs", rec.getDurationSeconds()));
+    }).exceptionally(err -> {
+      FabricCommandUtils.sendFailure(source, "record.failed", err.getMessage() != null ? err.getMessage() : "Unknown error");
+      return null;
+    });
+  }
+
+  @Command("record|recording|voicerecording export-speaker <id> <speaker> <format> [fileName]")
+  @CommandDescription("Export an isolated speaker track from a recording")
+  @Permission("dreamvoice.admin.recording.export")
+  public void exportSpeaker(
+    final @NotNull CommandSourceStack source,
+    @Argument(value = "id", suggestions = "recordings") final @NotNull String id,
+    @Argument(value = "speaker", suggestions = "recording_players") final @NotNull String speakerName,
+    @Argument(value = "format", suggestions = "export_formats") final @NotNull String formatStr,
+    @Argument(value = "fileName") final @Nullable String customFileName
+  ) {
+    final var api = DreamVoiceAPI.get();
+    if (api.getRecordingService() == null) {
+      FabricCommandUtils.sendFailure(source, "common.service_unavailable");
+      return;
+    }
+
+    final var rec = findRecording(api, id);
+    if (rec == null) {
+      FabricCommandUtils.sendFailure(source, "record.not_found", id);
+      return;
+    }
+
+    final var speakerUuid = resolveSpeakerUuid(source, speakerName);
+    if (speakerUuid == null) {
+      FabricCommandUtils.sendFailure(source, "record.player_not_found", speakerName);
+      return;
+    }
+
+    final fr.dreamin.dreamvoice.api.recording.model.AudioExportFormat format;
+    try {
+      format = fr.dreamin.dreamvoice.api.recording.model.AudioExportFormat.fromString(formatStr);
+    } catch (IllegalArgumentException e) {
+      FabricCommandUtils.sendFailure(source, "record.invalid_format", formatStr);
+      return;
+    }
+
+    FabricCommandUtils.sendSuccess(source, "record.exporting", rec.getUuid().toString().substring(0, 8) + " (" + speakerName + ")", format.name());
+    api.getRecordingService().exportRecording(rec, format, speakerUuid, customFileName).thenAccept(exportedFile -> {
+      FabricCommandUtils.sendSuccess(source, "record.exported", exportedFile.getName(), String.format("%.1fs", rec.getDurationSeconds()));
+    }).exceptionally(err -> {
+      FabricCommandUtils.sendFailure(source, "record.failed", err.getMessage() != null ? err.getMessage() : "Unknown error");
+      return null;
+    });
+  }
+
+  @Command("record|recording|voicerecording extract <id> <speaker> [target]")
+  @CommandDescription("Extract a single speaker track into a new recording and optionally give cassette")
+  @Permission("dreamvoice.admin.recording.extract")
+  public void extract(
+    final @NotNull CommandSourceStack source,
+    @Argument(value = "id", suggestions = "recordings") final @NotNull String id,
+    @Argument(value = "speaker", suggestions = "recording_players") final @NotNull String speakerName,
+    @Argument(value = "target", suggestions = "recording_players") final @Nullable String targetName
+  ) {
+    final var api = DreamVoiceAPI.get();
+    if (api.getRecordingService() == null) {
+      FabricCommandUtils.sendFailure(source, "common.service_unavailable");
+      return;
+    }
+
+    final var rec = findRecording(api, id);
+    if (rec == null) {
+      FabricCommandUtils.sendFailure(source, "record.not_found", id);
+      return;
+    }
+
+    final var speakerUuid = resolveSpeakerUuid(source, speakerName);
+    if (speakerUuid == null) {
+      FabricCommandUtils.sendFailure(source, "record.player_not_found", speakerName);
+      return;
+    }
+
+    final var extracted = api.getRecordingService().extractSpeakerRecording(rec.getUuid(), speakerUuid);
+    if (extracted == null) {
+      FabricCommandUtils.sendFailure(source, "record.failed", "No frames found for speaker " + speakerName);
+      return;
+    }
+
+    FabricCommandUtils.sendSuccess(source, "record.segment_sliced", extracted.getUuid().toString().substring(0, 8), String.format("%.1f", extracted.getDurationSeconds()));
+
+    final var targetPlayer = FabricCommandUtils.resolvePlayer(source, targetName);
+    if (targetPlayer != null) {
+      final var item = FabricCassetteItem.create(extracted, speakerName, targetPlayer);
+      targetPlayer.getInventory().add(item);
+      FabricCommandUtils.sendSuccess(source, "record.segment_cassette_given");
+    }
+  }
+
+  @Command("record|recording|voicerecording slice <id> <startMs> <durationMs> [target]")
+  @CommandDescription("Slice a segment from an existing recording")
+  @Permission("dreamvoice.admin.recording.slice")
+  public void slice(
+    final @NotNull CommandSourceStack source,
+    @Argument(value = "id", suggestions = "recordings") final @NotNull String id,
+    @Argument("startMs") final long startMs,
+    @Argument("durationMs") final long durationMs,
+    @Argument(value = "target", suggestions = "recording_players") final @Nullable String targetName
+  ) {
+    final var api = DreamVoiceAPI.get();
+    if (api.getRecordingService() == null) {
+      FabricCommandUtils.sendFailure(source, "common.service_unavailable");
+      return;
+    }
+
+    final var rec = findRecording(api, id);
+    if (rec == null) {
+      FabricCommandUtils.sendFailure(source, "record.not_found", id);
+      return;
+    }
+
+    final var sliced = api.getRecordingService().sliceRecording(rec.getUuid(), startMs, durationMs);
+    if (sliced == null) {
+      FabricCommandUtils.sendFailure(source, "record.not_found", id);
+      return;
+    }
+
+    FabricCommandUtils.sendSuccess(source, "record.segment_sliced", sliced.getUuid().toString().substring(0, 8), String.format("%.1f", sliced.getDurationSeconds()));
+
+    final var targetPlayer = FabricCommandUtils.resolvePlayer(source, targetName);
+    if (targetPlayer != null) {
+      final var author = resolveSpeakerName(source, sliced.getSpeakerUUID());
+      final var item = FabricCassetteItem.create(sliced, author, targetPlayer);
+      targetPlayer.getInventory().add(item);
+      FabricCommandUtils.sendSuccess(source, "record.segment_cassette_given");
+    }
+  }
+
+  @Command("record|recording|voicerecording slice-last <id> <durationMs> [target]")
+  @CommandDescription("Extract the last X milliseconds from an existing recording")
+  @Permission("dreamvoice.admin.recording.slice")
+  public void sliceLast(
+    final @NotNull CommandSourceStack source,
+    @Argument(value = "id", suggestions = "recordings") final @NotNull String id,
+    @Argument("durationMs") final long durationMs,
+    @Argument(value = "target", suggestions = "recording_players") final @Nullable String targetName
+  ) {
+    final var api = DreamVoiceAPI.get();
+    if (api.getRecordingService() == null) {
+      FabricCommandUtils.sendFailure(source, "common.service_unavailable");
+      return;
+    }
+
+    final var rec = findRecording(api, id);
+    if (rec == null) {
+      FabricCommandUtils.sendFailure(source, "record.not_found", id);
+      return;
+    }
+
+    final var sliced = api.getRecordingService().sliceLastRecording(rec.getUuid(), durationMs);
+    if (sliced == null) {
+      FabricCommandUtils.sendFailure(source, "record.not_found", id);
+      return;
+    }
+
+    FabricCommandUtils.sendSuccess(source, "record.segment_sliced", sliced.getUuid().toString().substring(0, 8), String.format("%.1f", sliced.getDurationSeconds()));
+
+    final var targetPlayer = FabricCommandUtils.resolvePlayer(source, targetName);
+    if (targetPlayer != null) {
+      final var author = resolveSpeakerName(source, sliced.getSpeakerUUID());
+      final var item = FabricCassetteItem.create(sliced, author, targetPlayer);
+      targetPlayer.getInventory().add(item);
+      FabricCommandUtils.sendSuccess(source, "record.segment_cassette_given");
+    }
+  }
+
+  @Command("record|recording|voicerecording radio start <channel>")
+  @CommandDescription("Start recording transmissions on a radio channel")
+  @Permission("dreamvoice.admin.recording.radio")
+  public void radioStart(
+    final @NotNull CommandSourceStack source,
+    @Argument(value = "channel", suggestions = "radio_channels") final @NotNull String channelName
+  ) {
+    final var api = DreamVoiceAPI.get();
+    if (api.getRadioService() == null) {
+      FabricCommandUtils.sendFailure(source, "common.service_unavailable");
+      return;
+    }
+
+    final var rec = api.getRadioService().startRecording(channelName);
+    if (rec != null)
+      FabricCommandUtils.sendSuccess(source, "record.started", rec.getUuid().toString().substring(0, 8) + " (" + channelName + ")");
+    else
+      FabricCommandUtils.sendFailure(source, "record.failed", "Could not start recording channel " + channelName);
+  }
+
+  @Command("record|recording|voicerecording radio stop <channel> [target]")
+  @CommandDescription("Stop recording transmissions on a radio channel and optionally give cassette")
+  @Permission("dreamvoice.admin.recording.radio")
+  public void radioStop(
+    final @NotNull CommandSourceStack source,
+    @Argument(value = "channel", suggestions = "radio_channels") final @NotNull String channelName,
+    @Argument(value = "target", suggestions = "recording_players") final @Nullable String targetName
+  ) {
+    final var api = DreamVoiceAPI.get();
+    if (api.getRadioService() == null) {
+      FabricCommandUtils.sendFailure(source, "common.service_unavailable");
+      return;
+    }
+
+    final var rec = api.getRadioService().stopRecording(channelName);
+    if (rec == null) {
+      FabricCommandUtils.sendFailure(source, "record.none_active");
+      return;
+    }
+
+    FabricCommandUtils.sendSuccess(source, "record.stopped", rec.getUuid().toString().substring(0, 8) + " (" + channelName + ")");
+
+    final var targetPlayer = FabricCommandUtils.resolvePlayer(source, targetName);
+    if (targetPlayer != null) {
+      final var item = FabricCassetteItem.create(rec, "Radio " + channelName, targetPlayer);
+      targetPlayer.getInventory().add(item);
+      FabricCommandUtils.sendSuccess(source, "record.cassette_given", rec.getUuid().toString().substring(0, 8), targetPlayer.getName().getString());
+    }
+  }
+
+  @Command("record|recording|voicerecording radio play <channel> <id>")
+  @CommandDescription("Broadcast a recording across a radio channel")
+  @Permission("dreamvoice.admin.recording.radio")
+  public void radioPlay(
+    final @NotNull CommandSourceStack source,
+    @Argument(value = "channel", suggestions = "radio_channels") final @NotNull String channelName,
+    @Argument(value = "id", suggestions = "recordings") final @NotNull String id
+  ) {
+    final var api = DreamVoiceAPI.get();
+    if (api.getRadioService() == null || api.getRecordingService() == null) {
+      FabricCommandUtils.sendFailure(source, "common.service_unavailable");
+      return;
+    }
+
+    final var rec = findRecording(api, id);
+    if (rec == null) {
+      FabricCommandUtils.sendFailure(source, "record.not_found", id);
+      return;
+    }
+
+    if (!rec.isFinished() && !rec.isRecording()) {
+      FabricCommandUtils.sendFailure(source, "record.not_finished");
+      return;
+    }
+
+    api.getRadioService().playRecordingToRadio(channelName, rec);
+    FabricCommandUtils.sendSuccess(source, "record.playing", id, channelName);
+  }
+
+  @Command("record|recording|voicerecording radio stop-play <channel>")
+  @CommandDescription("Stop broadcasting on a radio channel")
+  @Permission("dreamvoice.admin.recording.radio")
+  public void radioStopPlay(
+    final @NotNull CommandSourceStack source,
+    @Argument(value = "channel", suggestions = "radio_channels") final @NotNull String channelName
+  ) {
+    final var api = DreamVoiceAPI.get();
+    if (api.getRadioService() == null) {
+      FabricCommandUtils.sendFailure(source, "common.service_unavailable");
+      return;
+    }
+
+    api.getRadioService().stopRadioPlayback(channelName);
+    FabricCommandUtils.sendSuccess(source, "record.stopped", channelName);
+  }
+
+  private static UUID resolveSpeakerUuid(final @NotNull CommandSourceStack source, final @NotNull String input) {
+    try {
+      return UUID.fromString(input);
+    } catch (final IllegalArgumentException ignored) {}
+
+    final var server = source.getServer();
+    final var online = server.getPlayerList().getPlayerByName(input);
+    if (online != null)
+      return online.getUUID();
+
+    try {
+      final var cached = server.services().profileResolver().fetchByName(input);
+      if (cached.isPresent())
+        return cached.get().id();
+    } catch (final Exception ignored) {}
+
+    return null;
   }
 
   private static String resolveSpeakerName(final @NotNull CommandSourceStack source, final @Nullable UUID uuid) {
