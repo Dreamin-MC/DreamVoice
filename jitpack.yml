@@ -1,0 +1,7 @@
+jdk:
+  - openjdk25
+before_install:
+  - sdk install java 25.0.2-open || true
+  - sdk use java 25.0.2-open || true
+install:
+  - ./gradlew :api:build :api:publishToMavenLocal -Pgroup=com.github.Dreamin-MC -Pversion=$VERSION -x test --no-daemon

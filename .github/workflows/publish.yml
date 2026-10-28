@@ -67,7 +67,7 @@ jobs:
           echo "Found valid changelog: ${CHANGELOG}"
           echo "CHANGELOG_FILE=${CHANGELOG}" >> $GITHUB_ENV
 
-      - name: Configure Gradle and optimize repositories
+      - name: Configure Gradle
         run: |
           chmod +x gradlew
           mkdir -p ~/.gradle
@@ -78,33 +78,6 @@ jobs:
           systemProp.org.gradle.internal.http.connectionTimeout=15000
           systemProp.org.gradle.internal.http.socketTimeout=15000
           EOF
-
-          python3 -c '
-          import re
-          with open("build.gradle", "r", encoding="utf-8") as f:
-              content = f.read()
-          fast_repos = """  repositories {
-              mavenCentral()
-              maven { url = "https://maven.fabricmc.net/" }
-              maven { url = "https://repo.papermc.io/repository/maven-public/" }
-              maven {
-                url = "https://maven.maxhenkel.de/repository/public"
-                content { includeGroupAndSubgroups("de.maxhenkel") }
-              }
-              maven {
-                url = "https://api.modrinth.com/maven"
-                content { includeGroup("maven.modrinth") }
-              }
-              maven { url = "https://maven.neoforged.net/releases" }
-              maven {
-                url = "https://jitpack.io"
-                content { includeGroupAndSubgroups("com.github") }
-              }
-            }"""
-          content = re.sub(r"  repositories \{.*?\n  \}", lambda _: fast_repos, content, count=1, flags=re.DOTALL)
-          with open("build.gradle", "w", encoding="utf-8") as f:
-              f.write(content)
-          '
 
       - name: Publish API to GitHub Packages
         env:
@@ -125,7 +98,6 @@ jobs:
         run: |
           ./gradlew :neoforge:build -Pversion="${{ env.VERSION }}" --console=plain
           ./gradlew --stop
-          git checkout -- build.gradle
 
       - name: Publish Paper to Modrinth
         uses: Kir-Antipov/mc-publish@v3.3

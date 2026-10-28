@@ -20,4 +20,8 @@ pluginManagement {
 }
 
 rootProject.name = 'DreamVoice'
-include("api", "common", "paper", "fabric", "neoforge")
+if (System.getenv("JITPACK") != null) {
+  include("api")
+} else {
+  include("api", "common", "paper", "fabric", "neoforge")
+}
