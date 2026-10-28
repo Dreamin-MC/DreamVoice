@@ -97,10 +97,10 @@ jobs:
               }
               maven {
                 url = "https://jitpack.io"
-                content { includeGroupByRegex("com\\\\.github\\\\..*") }
+                content { includeGroupAndSubgroups("com.github") }
               }
             }"""
-          content = re.sub(r"  repositories \{.*?\n  \}", fast_repos, content, count=1, flags=re.DOTALL)
+          content = re.sub(r"  repositories \{.*?\n  \}", lambda _: fast_repos, content, count=1, flags=re.DOTALL)
           with open("build.gradle", "w", encoding="utf-8") as f:
               f.write(content)
           '
