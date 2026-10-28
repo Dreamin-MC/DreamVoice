@@ -1,4 +1,4 @@
-﻿# 🎙️ DreamVoice
+# 🎙️ DreamVoice
 
 <p align="center">
   <strong>Spatialized Audio Framework, Acoustic Physics Engine, Speech Recognition & Comms for Minecraft (Paper, Fabric & NeoForge)</strong>
@@ -14,7 +14,7 @@
   <img src="https://img.shields.io/badge/NeoForge-26.1.2+-orange.svg" alt="NeoForge" />
   <img src="https://img.shields.io/badge/Simple%20Voice%20Chat-2.6.20+-green.svg" alt="Simple Voice Chat" />
   <a href="https://jitpack.io/#Dreamin-MC/DreamVoice"><img src="https://jitpack.io/v/Dreamin-MC/DreamVoice.svg" alt="JitPack" /></a>
-  <a href="https://modrinth.com/plugin/dreamvoice"><img src="https://img.shields.io/badge/Modrinth-2.0.3-00AF5C?logo=modrinth&logoColor=white" alt="Modrinth" /></a>
+  <a href="https://modrinth.com/plugin/dreamvoice"><img src="https://img.shields.io/badge/Modrinth-2.0.4-00AF5C?logo=modrinth&logoColor=white" alt="Modrinth" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-GPL%20v3-blue.svg" alt="License: GPL v3" /></a>
 </p>
 
@@ -188,13 +188,13 @@ Explore the comprehensive guides on our **[Official GitHub Wiki](https://github.
 ### For Fabric Servers:
 1. Make sure your server runs **Fabric Loader 0.19.3+** for Minecraft 26.1.2+ with **Java 25+**.
 2. Install **Fabric API** and **[Simple Voice Chat Fabric](https://modrinth.com/plugin/simple-voice-chat)**.
-3. Drop `DreamVoice-fabric-2.0.3.jar` into your server's `mods/` directory.
+3. Drop `DreamVoice-fabric-2.0.4.jar` into your server's `mods/` directory.
 4. Restart your server.
 
 ### For NeoForge Servers:
 1. Make sure your server runs **NeoForge 26.1.2+** for Minecraft 26.1.2+ with **Java 25+**.
 2. Install **[Simple Voice Chat NeoForge](https://modrinth.com/plugin/simple-voice-chat)**.
-3. Drop `DreamVoice-neoforge-2.0.3.jar` into your server's `mods/` directory.
+3. Drop `DreamVoice-neoforge-2.0.4.jar` into your server's `mods/` directory.
 4. Restart your server.
 
 ---
@@ -213,7 +213,7 @@ repositories {
 }
 
 dependencies {
-    compileOnly("com.github.Dreamin-MC.DreamVoice:api:2.0.3")
+    compileOnly("com.github.Dreamin-MC.DreamVoice:api:2.0.4")
 }
 ```
 
@@ -227,7 +227,7 @@ repositories {
 }
 
 dependencies {
-    compileOnly "com.github.Dreamin-MC.DreamVoice:api:2.0.3"
+    compileOnly "com.github.Dreamin-MC.DreamVoice:api:2.0.4"
 }
 ```
 
@@ -240,7 +240,7 @@ repositories {
 }
 
 dependencies {
-    modCompileOnly "com.github.Dreamin-MC.DreamVoice:api:2.0.3"
+    modCompileOnly "com.github.Dreamin-MC.DreamVoice:api:2.0.4"
 }
 ```
 
@@ -262,7 +262,7 @@ dependencies {
     <dependency>
         <groupId>com.github.Dreamin-MC.DreamVoice</groupId>
         <artifactId>api</artifactId>
-        <version>2.0.3</version>
+        <version>2.0.4</version>
         <scope>provided</scope>
     </dependency>
 </dependencies>
@@ -284,7 +284,7 @@ repositories {
 }
 
 dependencies {
-    compileOnly "fr.dreamin:dreamvoice-api:2.0.3"
+    compileOnly "fr.dreamin:dreamvoice-api:2.0.4"
 }
 ```
 
