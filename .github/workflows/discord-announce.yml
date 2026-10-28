@@ -122,7 +122,7 @@ jobs:
                               "content": (
                                   f"# 🚀 DreamVoice `v{clean_version}`\n"
                                   f"> *Acoustic Soundproofing, Diffraction & 3D Spatial Audio for Minecraft*\n\n"
-                                  f"🎮 **Minecraft :** `{mc_ver}`   •   🔊 **VoiceChat :** `{vc_ver}`   •   ☕ **Java :** `{java_ver}`   •   🧱 **Platforms :** `Paper / Fabric`"
+                                  f"🎮 **Minecraft :** `{mc_ver}`   •   🔊 **VoiceChat :** `{vc_ver}`   •   ☕ **Java :** `{java_ver}`   •   🧱 **Platforms :** `Paper / Fabric / NeoForge`"
                               )
                           },
                           {
@@ -183,7 +183,7 @@ jobs:
                           {"name": "🎮 Minecraft", "value": f"`{mc_ver}`", "inline": True},
                           {"name": "🔊 VoiceChat", "value": f"`{vc_ver}`", "inline": True},
                           {"name": "☕ Java", "value": f"`{java_ver}`", "inline": True},
-                          {"name": "🧱 Platforms", "value": "`Paper / Fabric`", "inline": True},
+                          {"name": "🧱 Platforms", "value": "`Paper / Fabric / NeoForge`", "inline": True},
                       ],
                       "footer": {
                           "text": "Dreamin' Studios • DreamVoice"

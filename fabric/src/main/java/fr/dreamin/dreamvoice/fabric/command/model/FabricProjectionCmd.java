@@ -24,6 +24,7 @@ public final class FabricProjectionCmd {
     return FabricCommandUtils.suggestPlayers(ctx.sender(), input);
   }
 
+  @Command("voice projection list")
   @Command("projection|voiceprojection list")
   @CommandDescription("List all active voice projections")
   @Permission("dreamvoice.admin.projection.list")
@@ -45,7 +46,9 @@ public final class FabricProjectionCmd {
       FabricCommandUtils.sendSuccess(source, "projection.list_item", FabricCommandUtils.resolvePlayerName(source.getServer(), prj.getPlayerUuid()), prj.getDistance());
   }
 
+  @Command("voice projection create [distance]")
   @Command("projection|voiceprojection create [distance]")
+  @Command("voice projection add [distance]")
   @Command("projection|voiceprojection add [distance]")
   @CommandDescription("Create a voice projection at your current position")
   @Permission("dreamvoice.admin.projection.create")
@@ -77,7 +80,9 @@ public final class FabricProjectionCmd {
     FabricCommandUtils.sendSuccess(source, "projection.created", p.getName().getString(), (int) p.getX(), (int) p.getY(), (int) p.getZ());
   }
 
+  @Command("voice projection remove [target]")
   @Command("projection|voiceprojection remove [target]")
+  @Command("voice projection delete [target]")
   @Command("projection|voiceprojection delete [target]")
   @CommandDescription("Remove a player's voice projection")
   @Permission("dreamvoice.admin.projection.remove")

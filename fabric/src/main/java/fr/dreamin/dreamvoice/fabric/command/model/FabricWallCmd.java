@@ -33,6 +33,7 @@ public final class FabricWallCmd {
     return FabricCommandUtils.suggestPlayers(ctx.sender(), input);
   }
 
+  @Command("voice wall info")
   @Command("wall|voicewall info")
   @CommandDescription("Show voice wall occlusion configuration")
   @Permission("dreamvoice.admin.wall.info")
@@ -51,6 +52,7 @@ public final class FabricWallCmd {
     FabricCommandUtils.sendSuccess(source, "wall.info_airdamping", svc.isAirDampingEnabled());
   }
 
+  @Command("voice wall toggle")
   @Command("wall|voicewall toggle")
   @CommandDescription("Toggle voice wall occlusion calculation")
   @Permission("dreamvoice.admin.wall.toggle")
@@ -67,6 +69,7 @@ public final class FabricWallCmd {
     FabricCommandUtils.sendSuccess(source, "wall.toggle", newState ? "ENABLED (Mode " + wallService.getMode() + ")" : "DISABLED");
   }
 
+  @Command("voice wall mode <mode>")
   @Command("wall|voicewall mode <mode>")
   @CommandDescription("Set voice wall occlusion mode")
   @Permission("dreamvoice.admin.wall.mode")
@@ -89,6 +92,7 @@ public final class FabricWallCmd {
     }
   }
 
+  @Command("voice wall airdamping <airDamping>")
   @Command("wall|voicewall airdamping <airDamping>")
   @CommandDescription("Toggle or set air damping for wall occlusion")
   @Permission("dreamvoice.admin.wall.airdamping")
@@ -106,6 +110,7 @@ public final class FabricWallCmd {
     FabricCommandUtils.sendSuccess(source, "wall.airdamping", airDamping ? "ENABLED" : "DISABLED");
   }
 
+  @Command("voice wall debug [target]")
   @Command("wall|voicewall debug [target]")
   @CommandDescription("Toggle wall occlusion raycast debugging for a player")
   @Permission("dreamvoice.admin.wall.debug")

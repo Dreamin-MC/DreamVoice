@@ -44,6 +44,7 @@ public final class FabricBroadcastCmd {
       .toList();
   }
 
+  @Command("voice broadcast list")
   @Command("broadcast|voicebroadcast list")
   @CommandDescription("List all active broadcast points")
   @Permission("dreamvoice.admin.broadcast.list")
@@ -65,6 +66,7 @@ public final class FabricBroadcastCmd {
       FabricCommandUtils.sendSuccess(source, "broadcast.list_item", pt.getName(), pt.isEnabled() ? "ENABLED" : "DISABLED", pt.getRadius(), pt.getTargetSpeakers().size(), pt.getFilterId() != null ? pt.getFilterId() : "none");
   }
 
+  @Command("voice broadcast create <name> [radius]")
   @Command("broadcast|voicebroadcast create <name> [radius]")
   @CommandDescription("Create a new broadcast point at your current position")
   @Permission("dreamvoice.admin.broadcast.create")
@@ -102,7 +104,9 @@ public final class FabricBroadcastCmd {
     FabricCommandUtils.sendSuccess(source, "broadcast.created", name, radius);
   }
 
+  @Command("voice broadcast delete <name>")
   @Command("broadcast|voicebroadcast delete <name>")
+  @Command("voice broadcast remove <name>")
   @Command("broadcast|voicebroadcast remove <name>")
   @CommandDescription("Delete a broadcast point by name")
   @Permission("dreamvoice.admin.broadcast.delete")
@@ -126,6 +130,7 @@ public final class FabricBroadcastCmd {
     FabricCommandUtils.sendSuccess(source, "broadcast.removed", name);
   }
 
+  @Command("voice broadcast toggle <name>")
   @Command("broadcast|voicebroadcast toggle <name>")
   @CommandDescription("Toggle a broadcast point active state")
   @Permission("dreamvoice.admin.broadcast.toggle")
@@ -151,6 +156,7 @@ public final class FabricBroadcastCmd {
     FabricCommandUtils.sendSuccess(source, "broadcast.toggled", name, newState ? "ENABLED" : "DISABLED");
   }
 
+  @Command("voice broadcast link <name> <speaker>")
   @Command("broadcast|voicebroadcast link <name> <speaker>")
   @CommandDescription("Link a speaker to a broadcast point")
   @Permission("dreamvoice.admin.broadcast.link")
@@ -175,6 +181,7 @@ public final class FabricBroadcastCmd {
     FabricCommandUtils.sendSuccess(source, "broadcast.linked", name, speakerName);
   }
 
+  @Command("voice broadcast unlink <name> <speaker>")
   @Command("broadcast|voicebroadcast unlink <name> <speaker>")
   @CommandDescription("Unlink a speaker from a broadcast point")
   @Permission("dreamvoice.admin.broadcast.unlink")

@@ -30,6 +30,8 @@ public final class FabricDreamVoiceCmd {
       .toList();
   }
 
+  @Command("voice status")
+  @Command("dv status")
   @Command("dreamvoice status")
   @CommandDescription("Show DreamVoice global status")
   @Permission("dreamvoice.admin.status")
@@ -52,6 +54,8 @@ public final class FabricDreamVoiceCmd {
     FabricCommandUtils.sendSuccess(source, "dreamvoice.status_broadcasts", broadcastCount);
   }
 
+  @Command("voice save [module]")
+  @Command("dv save [module]")
   @Command("dreamvoice save [module]")
   @CommandDescription("Save all or specific DreamVoice data module")
   @Permission("dreamvoice.admin.save")
@@ -68,6 +72,8 @@ public final class FabricDreamVoiceCmd {
     FabricCommandUtils.sendSuccess(source, "persistence.all_saved");
   }
 
+  @Command("voice load [module]")
+  @Command("dv load [module]")
   @Command("dreamvoice load [module]")
   @CommandDescription("Load all or specific DreamVoice data module")
   @Permission("dreamvoice.admin.load")
@@ -89,6 +95,8 @@ public final class FabricDreamVoiceCmd {
     FabricCommandUtils.sendSuccess(source, "persistence.all_reloaded");
   }
 
+  @Command("voice reload [module]")
+  @Command("dv reload [module]")
   @Command("dreamvoice reload [module]")
   @CommandDescription("Reload all or specific DreamVoice data module")
   @Permission("dreamvoice.admin.reload")

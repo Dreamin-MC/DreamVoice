@@ -38,6 +38,7 @@ public final class FabricWiretapCmd {
     return FabricCommandUtils.suggestPlayers(ctx.sender(), input);
   }
 
+  @Command("voice wiretap list")
   @Command("wiretap|voicewiretap list")
   @CommandDescription("List all active wiretaps")
   @Permission("dreamvoice.admin.wiretap.list")
@@ -54,7 +55,9 @@ public final class FabricWiretapCmd {
       FabricCommandUtils.sendSuccess(source, "wiretap.list_item", wt.getName(), wt.getDistance(), wt.getListeners().size());
   }
 
+  @Command("voice wiretap create <name> [radius]")
   @Command("wiretap|voicewiretap create <name> [radius]")
+  @Command("voice wiretap add <name> [radius]")
   @Command("wiretap|voicewiretap add <name> [radius]")
   @CommandDescription("Create a new wiretap at your current position")
   @Permission("dreamvoice.admin.wiretap.create")
@@ -87,7 +90,9 @@ public final class FabricWiretapCmd {
     FabricCommandUtils.sendSuccess(source, "wiretap.created", name);
   }
 
+  @Command("voice wiretap delete <name>")
   @Command("wiretap|voicewiretap delete <name>")
+  @Command("voice wiretap remove <name>")
   @Command("wiretap|voicewiretap remove <name>")
   @CommandDescription("Delete a wiretap by name")
   @Permission("dreamvoice.admin.wiretap.delete")
@@ -111,7 +116,9 @@ public final class FabricWiretapCmd {
     FabricCommandUtils.sendSuccess(source, "wiretap.removed", name);
   }
 
+  @Command("voice wiretap sub <name> [target]")
   @Command("wiretap|voicewiretap sub <name> [target]")
+  @Command("voice wiretap listen <name> [target]")
   @Command("wiretap|voicewiretap listen <name> [target]")
   @CommandDescription("Subscribe a player to a wiretap")
   @Permission("dreamvoice.admin.wiretap.sub")
@@ -139,7 +146,9 @@ public final class FabricWiretapCmd {
       FabricCommandUtils.sendFailure(source, "wiretap.not_found", name);
   }
 
+  @Command("voice wiretap unsub <name> [target]")
   @Command("wiretap|voicewiretap unsub <name> [target]")
+  @Command("voice wiretap unlisten <name> [target]")
   @Command("wiretap|voicewiretap unlisten <name> [target]")
   @CommandDescription("Unsubscribe a player from a wiretap")
   @Permission("dreamvoice.admin.wiretap.unsub")
@@ -164,6 +173,7 @@ public final class FabricWiretapCmd {
     FabricCommandUtils.sendSuccess(source, "wiretap.unsubscribed", target.getName().getString(), name);
   }
 
+  @Command("voice wiretap cassette <name> [target]")
   @Command("wiretap|voicewiretap cassette <name> [target]")
   @CommandDescription("Give a cassette of the latest wiretap recording")
   @Permission("dreamvoice.admin.wiretap.record")

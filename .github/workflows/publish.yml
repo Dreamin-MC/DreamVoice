@@ -4,6 +4,7 @@ on:
   push:
     tags:
       - '**'
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -95,6 +96,7 @@ jobs:
                 url = "https://api.modrinth.com/maven"
                 content { includeGroup("maven.modrinth") }
               }
+              maven { url = "https://maven.neoforged.net/releases" }
               maven {
                 url = "https://jitpack.io"
                 content { includeGroupAndSubgroups("com.github") }
@@ -119,6 +121,10 @@ jobs:
       - name: Build Fabric Mod Jar
         run: |
           ./gradlew :fabric:build -Pversion="${{ env.VERSION }}" --console=plain
+
+      - name: Build NeoForge Mod Jar
+        run: |
+          ./gradlew :neoforge:build -Pversion="${{ env.VERSION }}" --console=plain
           ./gradlew --stop
           git checkout -- build.gradle
 
@@ -159,6 +165,23 @@ jobs:
             fabric-api(required)
             simple-voice-chat(required)
 
+      - name: Publish NeoForge to Modrinth
+        uses: Kir-Antipov/mc-publish@v3.3
+        with:
+          modrinth-id: ${{ secrets.MODRINTH_PROJECT_ID || vars.MODRINTH_PROJECT_ID || 'dreamvoice' }}
+          modrinth-token: ${{ secrets.MODRINTH_TOKEN }}
+          files: neoforge/build/libs/DreamVoice-neoforge-${{ env.VERSION }}.jar
+          name: DreamVoice NeoForge ${{ env.VERSION }}
+          version: ${{ env.VERSION }}+neoforge
+          version-type: release
+          changelog-file: ${{ env.CHANGELOG_FILE }}
+          loaders: |
+            neoforge
+          game-versions: |
+            ${{ env.MC_VERSION }}
+          dependencies: |
+            simple-voice-chat(required)
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -170,6 +193,7 @@ jobs:
           files: |
             paper/build/libs/DreamVoice.jar
             fabric/build/libs/DreamVoice-fabric-${{ env.VERSION }}.jar
+            neoforge/build/libs/DreamVoice-neoforge-${{ env.VERSION }}.jar
             api/build/libs/dreamvoice-api-${{ env.VERSION }}.jar
             api/build/libs/dreamvoice-api-${{ env.VERSION }}-sources.jar
             api/build/libs/dreamvoice-api-${{ env.VERSION }}-javadoc.jar

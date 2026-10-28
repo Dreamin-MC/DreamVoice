@@ -2,6 +2,7 @@ pluginManagement {
   plugins {
     id 'com.gradleup.shadow' version "${shadow_version}"
     id 'net.fabricmc.fabric-loom' version "${loom_version}"
+    id 'net.neoforged.moddev' version "${moddev_version}"
     id 'xyz.jpenilla.run-paper' version "${run_paper_version}"
   }
   repositories {
@@ -9,10 +10,14 @@ pluginManagement {
       name = 'Fabric'
       url = 'https://maven.fabricmc.net/'
     }
+    maven {
+      name = 'NeoForged'
+      url = 'https://maven.neoforged.net/releases'
+    }
     mavenCentral()
     gradlePluginPortal()
   }
 }
 
 rootProject.name = 'DreamVoice'
-include("api", "common", "paper", "fabric")
+include("api", "common", "paper", "fabric", "neoforge")

@@ -1,0 +1,87 @@
+plugins {
+  id 'net.neoforged.moddev'
+}
+
+base {
+  archivesName = "DreamVoice-neoforge"
+}
+
+sourceSets {
+  main {
+    java.srcDirs += project(':api').sourceSets.main.java.srcDirs
+    java.srcDirs += project(':common').sourceSets.main.java.srcDirs
+    resources.srcDirs += project(':common').sourceSets.main.resources.srcDirs
+  }
+}
+
+neoForge {
+  version = project.neoforge_version
+
+  runs {
+    client {
+      client()
+      systemProperty 'neoforge.logging.console.level', 'info'
+    }
+    server {
+      server()
+      systemProperty 'neoforge.logging.console.level', 'info'
+    }
+  }
+
+  mods {
+    "dreamvoice" {
+      sourceSet sourceSets.main
+    }
+  }
+}
+
+dependencies {
+  compileOnly "de.maxhenkel.voicechat:voicechat-api:${project.voicechat_api_version}"
+  runtimeOnly "maven.modrinth:simple-voice-chat:${project.voicechat_neoforge_modrinth_version}"
+
+  // Jackson
+  implementation "com.fasterxml.jackson.core:jackson-annotations:${project.jackson_version}"
+  jarJar("com.fasterxml.jackson.core:jackson-annotations:${project.jackson_version}")
+  implementation "com.fasterxml.jackson.core:jackson-databind:${project.jackson_version}"
+  jarJar("com.fasterxml.jackson.core:jackson-databind:${project.jackson_version}")
+  implementation "com.fasterxml.jackson.core:jackson-core:${project.jackson_version}"
+  jarJar("com.fasterxml.jackson.core:jackson-core:${project.jackson_version}")
+
+  // SnakeYAML
+  implementation "org.yaml:snakeyaml:${project.snakeyaml_version}"
+  jarJar("org.yaml:snakeyaml:${project.snakeyaml_version}")
+
+  // Audio Decoders
+  implementation "com.googlecode.soundlibs:mp3spi:${project.mp3spi_version}"
+  jarJar("com.googlecode.soundlibs:mp3spi:${project.mp3spi_version}")
+  implementation "com.googlecode.soundlibs:jlayer:${project.jlayer_version}"
+  jarJar("com.googlecode.soundlibs:jlayer:${project.jlayer_version}")
+  implementation "com.googlecode.soundlibs:tritonus-share:${project.tritonus_version}"
+  jarJar("com.googlecode.soundlibs:tritonus-share:${project.tritonus_version}")
+
+  // Vosk / JNA
+  implementation "net.java.dev.jna:jna:${project.jna_version}"
+  jarJar("net.java.dev.jna:jna:${project.jna_version}")
+  implementation "com.alphacephei:vosk:${project.vosk_version}"
+  jarJar("com.alphacephei:vosk:${project.vosk_version}")
+
+  // Annotations
+  implementation "org.jetbrains:annotations:${project.annotations_version}"
+
+  // Cloud Framework
+  implementation "org.incendo:cloud-neoforge:${project.cloud_neoforge_version}"
+  jarJar("org.incendo:cloud-neoforge:${project.cloud_neoforge_version}")
+  implementation "org.incendo:cloud-annotations:${project.cloud_core_version}"
+  jarJar("org.incendo:cloud-annotations:${project.cloud_core_version}")
+}
+
+processResources {
+  inputs.property "version", project.version
+  filesMatching("META-INF/neoforge.mods.toml") {
+    expand "version": project.version
+  }
+}
+
+tasks.withType(JavaCompile).configureEach {
+  it.options.release = project.property("java_version") as int
+}

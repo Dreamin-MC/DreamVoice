@@ -45,6 +45,7 @@ public final class FabricRadioCmd {
       .toList();
   }
 
+  @Command("voice radio list")
   @Command("radio|voiceradio list")
   @CommandDescription("List all active radio channels")
   @Permission("dreamvoice.radio.list")
@@ -66,7 +67,9 @@ public final class FabricRadioCmd {
       FabricCommandUtils.sendSuccess(source, "radio.list_item", ch.getName(), ch.getMembers().size(), ch.isRogerBeep(), ch.getFilterId() != null ? ch.getFilterId() : "none");
   }
 
+  @Command("voice radio create <channel> [filter] [rogerBeep]")
   @Command("radio|voiceradio create <channel> [filter] [rogerBeep]")
+  @Command("voice radio add <channel> [filter] [rogerBeep]")
   @Command("radio|voiceradio add <channel> [filter] [rogerBeep]")
   @CommandDescription("Create a new radio channel")
   @Permission("dreamvoice.admin.radio.create")
@@ -90,7 +93,9 @@ public final class FabricRadioCmd {
     FabricCommandUtils.sendSuccess(source, "radio.created", channelName);
   }
 
+  @Command("voice radio delete <channel>")
   @Command("radio|voiceradio delete <channel>")
+  @Command("voice radio remove <channel>")
   @Command("radio|voiceradio remove <channel>")
   @CommandDescription("Delete an existing radio channel")
   @Permission("dreamvoice.admin.radio.delete")
@@ -114,6 +119,7 @@ public final class FabricRadioCmd {
     FabricCommandUtils.sendSuccess(source, "radio.removed", channelName);
   }
 
+  @Command("voice radio join <channel>")
   @Command("radio|voiceradio join <channel>")
   @CommandDescription("Join a radio channel")
   @Permission("dreamvoice.radio.join")
@@ -142,6 +148,7 @@ public final class FabricRadioCmd {
     FabricCommandUtils.sendSuccess(source, "radio.connected", channelName);
   }
 
+  @Command("voice radio leave")
   @Command("radio|voiceradio leave")
   @CommandDescription("Leave your current radio channel")
   @Permission("dreamvoice.radio.leave")

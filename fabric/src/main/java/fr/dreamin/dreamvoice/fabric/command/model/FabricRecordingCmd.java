@@ -57,6 +57,7 @@ public final class FabricRecordingCmd {
     return FabricCommandUtils.suggestPlayers(ctx.sender(), input);
   }
 
+  @Command("voice record list")
   @Command("record|recording|voicerecording list")
   @CommandDescription("List active voice recordings")
   @Permission("dreamvoice.admin.recording.list")
@@ -88,6 +89,7 @@ public final class FabricRecordingCmd {
     }
   }
 
+  @Command("voice record start")
   @Command("record|recording|voicerecording start")
   @CommandDescription("Start voice recording")
   @Permission("dreamvoice.admin.recording.start")
@@ -108,6 +110,7 @@ public final class FabricRecordingCmd {
       FabricCommandUtils.sendSuccess(source, "record.started", rec.getUuid().toString().substring(0, 8));
   }
 
+  @Command("voice record stop [id]")
   @Command("record|recording|voicerecording stop [id]")
   @CommandDescription("Stop voice recording")
   @Permission("dreamvoice.admin.recording.stop")
@@ -141,6 +144,7 @@ public final class FabricRecordingCmd {
     FabricCommandUtils.sendSuccess(source, "record.stopped", source.getPlayer().getName().getString());
   }
 
+  @Command("voice record play <id> [target]")
   @Command("record|recording|voicerecording play <id> [target]")
   @CommandDescription("Play a recording to a player")
   @Permission("dreamvoice.admin.recording.play")
@@ -188,6 +192,7 @@ public final class FabricRecordingCmd {
     FabricCommandUtils.sendSuccess(source, "record.playing", id, targetPlayer.getName().getString());
   }
 
+  @Command("voice record delete <id>")
   @Command("record|recording|voicerecording delete <id>")
   @CommandDescription("Delete a recording")
   @Permission("dreamvoice.admin.recording.delete")
@@ -211,6 +216,7 @@ public final class FabricRecordingCmd {
     FabricCommandUtils.sendSuccess(source, "record.deleted", id);
   }
 
+  @Command("voice record cassette <id> [target]")
   @Command("record|recording|voicerecording cassette <id> [target]")
   @CommandDescription("Give a physical cassette item of a recording to a player")
   @Permission("dreamvoice.admin.recording.cassette")
@@ -243,6 +249,7 @@ public final class FabricRecordingCmd {
     FabricCommandUtils.sendSuccess(source, "record.cassette_given", rec.getUuid().toString().substring(0, 8), targetPlayer.getName().getString());
   }
 
+  @Command("voice record cassette file <fileName> [target]")
   @Command("record|recording|voicerecording cassette file <fileName> [target]")
   @CommandDescription("Create and give a cassette linked to a local audio file")
   @Permission("dreamvoice.admin.recording.cassette")
@@ -277,6 +284,7 @@ public final class FabricRecordingCmd {
       });
   }
 
+  @Command("voice record cassette url <url> [target]")
   @Command("record|recording|voicerecording cassette url <url> [target]")
   @CommandDescription("Create and give a cassette linked to a web audio URL")
   @Permission("dreamvoice.admin.recording.cassette")
@@ -311,6 +319,7 @@ public final class FabricRecordingCmd {
       });
   }
 
+  @Command("voice record export <id> <format> [fileName]")
   @Command("record|recording|voicerecording export <id> <format> [fileName]")
   @CommandDescription("Export a recording to an audio file (mp3, ogg, wav)")
   @Permission("dreamvoice.admin.recording.export")
@@ -349,6 +358,7 @@ public final class FabricRecordingCmd {
     });
   }
 
+  @Command("voice record export-speaker <id> <speaker> <format> [fileName]")
   @Command("record|recording|voicerecording export-speaker <id> <speaker> <format> [fileName]")
   @CommandDescription("Export an isolated speaker track from a recording")
   @Permission("dreamvoice.admin.recording.export")
@@ -394,6 +404,7 @@ public final class FabricRecordingCmd {
     });
   }
 
+  @Command("voice record extract <id> <speaker> [target]")
   @Command("record|recording|voicerecording extract <id> <speaker> [target]")
   @CommandDescription("Extract a single speaker track into a new recording and optionally give cassette")
   @Permission("dreamvoice.admin.recording.extract")
@@ -437,6 +448,7 @@ public final class FabricRecordingCmd {
     }
   }
 
+  @Command("voice record slice <id> <startMs> <durationMs> [target]")
   @Command("record|recording|voicerecording slice <id> <startMs> <durationMs> [target]")
   @CommandDescription("Slice a segment from an existing recording")
   @Permission("dreamvoice.admin.recording.slice")
@@ -476,6 +488,7 @@ public final class FabricRecordingCmd {
     }
   }
 
+  @Command("voice record slice-last <id> <durationMs> [target]")
   @Command("record|recording|voicerecording slice-last <id> <durationMs> [target]")
   @CommandDescription("Extract the last X milliseconds from an existing recording")
   @Permission("dreamvoice.admin.recording.slice")
@@ -514,6 +527,7 @@ public final class FabricRecordingCmd {
     }
   }
 
+  @Command("voice record radio start <channel>")
   @Command("record|recording|voicerecording radio start <channel>")
   @CommandDescription("Start recording transmissions on a radio channel")
   @Permission("dreamvoice.admin.recording.radio")
@@ -534,6 +548,7 @@ public final class FabricRecordingCmd {
       FabricCommandUtils.sendFailure(source, "record.failed", "Could not start recording channel " + channelName);
   }
 
+  @Command("voice record radio stop <channel> [target]")
   @Command("record|recording|voicerecording radio stop <channel> [target]")
   @CommandDescription("Stop recording transmissions on a radio channel and optionally give cassette")
   @Permission("dreamvoice.admin.recording.radio")
@@ -564,6 +579,7 @@ public final class FabricRecordingCmd {
     }
   }
 
+  @Command("voice record radio play <channel> <id>")
   @Command("record|recording|voicerecording radio play <channel> <id>")
   @CommandDescription("Broadcast a recording across a radio channel")
   @Permission("dreamvoice.admin.recording.radio")
@@ -593,6 +609,7 @@ public final class FabricRecordingCmd {
     FabricCommandUtils.sendSuccess(source, "record.playing", id, channelName);
   }
 
+  @Command("voice record radio stop-play <channel>")
   @Command("record|recording|voicerecording radio stop-play <channel>")
   @CommandDescription("Stop broadcasting on a radio channel")
   @Permission("dreamvoice.admin.recording.radio")

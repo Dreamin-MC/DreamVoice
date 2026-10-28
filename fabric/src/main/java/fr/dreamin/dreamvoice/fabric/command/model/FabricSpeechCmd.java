@@ -12,6 +12,7 @@ import org.jetbrains.annotations.NotNull;
 @DreamCmd
 public final class FabricSpeechCmd {
 
+  @Command("voice speech status")
   @Command("speech|voicespeech status")
   @CommandDescription("Check speech-to-text service status")
   @Permission("dreamvoice.admin.speech.status")
@@ -28,6 +29,7 @@ public final class FabricSpeechCmd {
     FabricCommandUtils.sendSuccess(source, "speech.installed_models", svc.getInstalledModels().size());
   }
 
+  @Command("voice speech keywords")
   @Command("speech|voicespeech keywords")
   @CommandDescription("List registered speech recognition keywords")
   @Permission("dreamvoice.admin.speech.keywords")

@@ -12,6 +12,7 @@ import org.jetbrains.annotations.NotNull;
 @DreamCmd
 public final class FabricDebugCmd {
 
+  @Command("voice debug status")
   @Command("debug|voicedebug|debugvoice status")
   @CommandDescription("Display general debug information for DreamVoice")
   @Permission("dreamvoice.admin.debug")
@@ -23,6 +24,7 @@ public final class FabricDebugCmd {
     FabricCommandUtils.sendSuccess(source, "debug.players_online", source.getServer().getPlayerCount());
   }
 
+  @Command("voice debug raycast")
   @Command("debug|voicedebug|debugvoice raycast")
   @CommandDescription("Test acoustic raycast from your current position")
   @Permission("dreamvoice.admin.debug")

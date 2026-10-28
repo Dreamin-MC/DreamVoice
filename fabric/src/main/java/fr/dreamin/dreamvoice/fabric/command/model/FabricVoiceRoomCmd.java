@@ -30,6 +30,7 @@ public final class FabricVoiceRoomCmd {
       .toList();
   }
 
+  @Command("voice room list")
   @Command("room|voiceroom list")
   @CommandDescription("List all active acoustic rooms")
   @Permission("dreamvoice.admin.room.list")
@@ -51,7 +52,9 @@ public final class FabricVoiceRoomCmd {
       FabricCommandUtils.sendSuccess(source, "room.list_item", rm.getId(), rm.getId(), rm.getPresetId(), 100);
   }
 
+  @Command("voice room delete <id>")
   @Command("room|voiceroom delete <id>")
+  @Command("voice room remove <id>")
   @Command("room|voiceroom remove <id>")
   @CommandDescription("Delete an acoustic room by ID")
   @Permission("dreamvoice.admin.room.delete")

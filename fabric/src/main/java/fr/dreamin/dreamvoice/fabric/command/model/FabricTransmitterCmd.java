@@ -24,6 +24,7 @@ public final class FabricTransmitterCmd {
     return FabricCommandUtils.suggestPlayers(ctx.sender(), input);
   }
 
+  @Command("voice transmitter enable")
   @Command("transmitter|voicetransmitter enable")
   @CommandDescription("Enable global voice transmitter")
   @Permission("dreamvoice.admin.transmitter.toggle")
@@ -43,6 +44,7 @@ public final class FabricTransmitterCmd {
     FabricCommandUtils.sendSuccess(source, "transmitter.enabled");
   }
 
+  @Command("voice transmitter disable")
   @Command("transmitter|voicetransmitter disable")
   @CommandDescription("Disable global voice transmitter")
   @Permission("dreamvoice.admin.transmitter.toggle")
@@ -62,6 +64,7 @@ public final class FabricTransmitterCmd {
     FabricCommandUtils.sendSuccess(source, "transmitter.disabled");
   }
 
+  @Command("voice transmitter list")
   @Command("transmitter|voicetransmitter list")
   @CommandDescription("List all active transmitter targets")
   @Permission("dreamvoice.admin.transmitter.list")
@@ -88,6 +91,7 @@ public final class FabricTransmitterCmd {
       FabricCommandUtils.sendSuccess(source, "transmitter.list_item", r.getUuid().toString(), (r.getMaxDistance() != null ? r.getMaxDistance() + "m" : "infinite"));
   }
 
+  @Command("voice transmitter clear")
   @Command("transmitter|voicetransmitter clear")
   @CommandDescription("Clear all transmitters")
   @Permission("dreamvoice.admin.transmitter.clear")
@@ -107,6 +111,7 @@ public final class FabricTransmitterCmd {
     FabricCommandUtils.sendSuccess(source, "transmitter.cleared");
   }
 
+  @Command("voice transmitter add <target> [distance]")
   @Command("transmitter|voicetransmitter add <target> [distance]")
   @CommandDescription("Add a transmitter target")
   @Permission("dreamvoice.admin.transmitter.add")
@@ -136,6 +141,7 @@ public final class FabricTransmitterCmd {
     FabricCommandUtils.sendSuccess(source, "transmitter.receiver_added_range", target.getName().getString(), (int) distance);
   }
 
+  @Command("voice transmitter remove <target>")
   @Command("transmitter|voicetransmitter remove <target>")
   @CommandDescription("Remove a transmitter target")
   @Permission("dreamvoice.admin.transmitter.remove")

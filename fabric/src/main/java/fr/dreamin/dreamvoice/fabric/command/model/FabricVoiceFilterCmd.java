@@ -36,6 +36,7 @@ public final class FabricVoiceFilterCmd {
     return FabricCommandUtils.suggestPlayers(ctx.sender(), input);
   }
 
+  @Command("voice filter list")
   @Command("filter|voicefilter list")
   @CommandDescription("List all registered voice filters")
   @Permission("dreamvoice.filter.list")
@@ -52,6 +53,7 @@ public final class FabricVoiceFilterCmd {
       FabricCommandUtils.sendSuccess(source, "filter.list_item", f.getId(), f.getName(), f.getPriority());
   }
 
+  @Command("voice filter clear [target]")
   @Command("filter|voicefilter clear [target]")
   @CommandDescription("Clear all voice filters from a player")
   @Permission("dreamvoice.admin.filter.clear")
@@ -75,7 +77,9 @@ public final class FabricVoiceFilterCmd {
     FabricCommandUtils.sendSuccess(source, "filter.cleared", target.getName().getString());
   }
 
+  @Command("voice filter apply <filter> [target]")
   @Command("filter|voicefilter apply <filter> [target]")
+  @Command("voice filter set <filter> [target]")
   @Command("filter|voicefilter set <filter> [target]")
   @CommandDescription("Apply a voice filter to a player")
   @Permission("dreamvoice.admin.filter.apply")
@@ -106,6 +110,7 @@ public final class FabricVoiceFilterCmd {
     FabricCommandUtils.sendSuccess(source, "filter.applied_to", filter.getId(), target.getName().getString());
   }
 
+  @Command("voice filter remove <filter> [target]")
   @Command("filter|voicefilter remove <filter> [target]")
   @CommandDescription("Remove a voice filter from a player")
   @Permission("dreamvoice.admin.filter.remove")

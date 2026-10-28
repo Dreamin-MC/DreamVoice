@@ -1,9 +1,9 @@
-# 🎙️ DreamVoice
+﻿# 🎙️ DreamVoice
 
 <p align="center">
-  <strong>Spatialized Audio Framework, Acoustic Physics Engine, Speech Recognition & Comms for Minecraft (Paper & Fabric)</strong>
+  <strong>Spatialized Audio Framework, Acoustic Physics Engine, Speech Recognition & Comms for Minecraft (Paper, Fabric & NeoForge)</strong>
   <br />
-  <i>Developed by Dreamin’ Studios for the PaperMC, Fabric & Simple Voice Chat ecosystem</i>
+  <i>Developed by Dreamin’ Studios for the PaperMC, Fabric, NeoForge & Simple Voice Chat ecosystem</i>
 </p>
 
 <p align="center">
@@ -11,6 +11,7 @@
   <img src="https://img.shields.io/badge/Minecraft-26.1.2+-blue.svg" alt="Minecraft 26.1.2+" />
   <img src="https://img.shields.io/badge/Paper-26.1.2+-blue.svg" alt="Paper 26.1.2+" />
   <img src="https://img.shields.io/badge/Fabric-0.155+-purple.svg" alt="Fabric" />
+  <img src="https://img.shields.io/badge/NeoForge-26.1.2+-orange.svg" alt="NeoForge" />
   <img src="https://img.shields.io/badge/Simple%20Voice%20Chat-2.6.20+-green.svg" alt="Simple Voice Chat" />
   <a href="https://jitpack.io/#Dreamin-MC/DreamVoice"><img src="https://jitpack.io/v/Dreamin-MC/DreamVoice.svg" alt="JitPack" /></a>
   <a href="https://modrinth.com/plugin/dreamvoice"><img src="https://img.shields.io/badge/Modrinth-2.0.2-00AF5C?logo=modrinth&logoColor=white" alt="Modrinth" /></a>
@@ -23,7 +24,7 @@
 
 **DreamVoice** is an enterprise-grade spatialized voice, acoustics, and speech intelligence solution built on top of **Simple Voice Chat (SVC)**. Designed for immersive gamemodes, roleplay servers, and narrative minigames (such as **Danganronpa**, Murder Mystery, and investigation games), it delivers realistic acoustic physics, 3D directional speakers, voice projections, covert wiretaps, dynamic file-based DSP voice filters (`.yml`, `.json`, `.java`), real-time offline speech recognition and keyword spotting, soundproof acoustic rooms, interactive cassette recordings, a live 3D acoustic visualizer, and independent per-module persistent data storage surviving server reboots.
 
-Starting with **v2.0.1**, DreamVoice is fully **dual-platform**: it runs natively on **Paper / Purpur servers** (as a plugin) and **Fabric servers** (as a mod), sharing an identical high-performance core engine and unified API (`DreamVoiceAPI.get()`).
+Starting with **v2.0.2**, DreamVoice is fully **triple-platform**: it runs natively on **Paper / Purpur servers** (as a plugin), **Fabric servers**, and **NeoForge servers** (as a mod), sharing an identical high-performance core engine and unified API (`DreamVoiceAPI.get()`).
 
 ---
 
@@ -31,7 +32,7 @@ Starting with **v2.0.1**, DreamVoice is fully **dual-platform**: it runs nativel
 
 ```
  🎙️ DREAMVOICE CORE ARCHITECTURE
- ├── 🚀 Dual-Platform Engine (Paper plugin & Fabric mod, shared core architecture)
+ ├── 🚀 Triple-Platform Engine (Paper plugin, Fabric mod & NeoForge mod, shared core architecture)
  ├── 🧱 VoiceWall (Acoustic Engine, Material Attenuation, Open Door Bypass, Particle Raycasts)
  ├── 👁️ 3D Acoustic Visualizer (Real-time particle sound paths, diffraction routes & speaker bubbles)
  ├── 🏰 Acoustic Rooms (Soundproof booths, Acoustic zones, Dynamic reverb & Cuboid bounds)
@@ -181,13 +182,19 @@ Explore the comprehensive guides on our **[Official GitHub Wiki](https://github.
 ### For Paper / Purpur Servers:
 1. Make sure your server runs **Paper** or **Purpur** (version 26.1.2+ with **Java 25+**).
 2. Install **[Simple Voice Chat](https://modrinth.com/plugin/simple-voice-chat)** (2.6.20+).
-3. Drop `DreamVoice-paper-2.0.1.jar` into your server's `plugins/` directory.
+3. Drop `DreamVoice.jar` into your server's `plugins/` directory.
 4. Restart your server.
 
 ### For Fabric Servers:
 1. Make sure your server runs **Fabric Loader 0.19.3+** for Minecraft 26.1.2+ with **Java 25+**.
 2. Install **Fabric API** and **[Simple Voice Chat Fabric](https://modrinth.com/plugin/simple-voice-chat)**.
-3. Drop `DreamVoice-fabric-2.0.1.jar` into your server's `mods/` directory.
+3. Drop `DreamVoice-fabric-2.0.2.jar` into your server's `mods/` directory.
+4. Restart your server.
+
+### For NeoForge Servers:
+1. Make sure your server runs **NeoForge 26.1.2+** for Minecraft 26.1.2+ with **Java 25+**.
+2. Install **[Simple Voice Chat NeoForge](https://modrinth.com/plugin/simple-voice-chat)**.
+3. Drop `DreamVoice-neoforge-2.0.2.jar` into your server's `mods/` directory.
 4. Restart your server.
 
 ---
@@ -206,7 +213,7 @@ repositories {
 }
 
 dependencies {
-    compileOnly("com.github.Dreamin-MC.DreamVoice:api:2.0.1")
+    compileOnly("com.github.Dreamin-MC.DreamVoice:api:2.0.2")
 }
 ```
 
@@ -233,7 +240,7 @@ repositories {
 }
 
 dependencies {
-    modCompileOnly "com.github.Dreamin-MC.DreamVoice:api:2.0.1"
+    modCompileOnly "com.github.Dreamin-MC.DreamVoice:api:2.0.2"
 }
 ```
 

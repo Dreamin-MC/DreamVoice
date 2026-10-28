@@ -49,6 +49,7 @@ public final class FabricSpeakerCmd {
       .toList();
   }
 
+  @Command("voice speaker list")
   @Command("speaker|voicespeaker list")
   @CommandDescription("List all active speakers")
   @Permission("dreamvoice.admin.speaker.list")
@@ -73,7 +74,9 @@ public final class FabricSpeakerCmd {
     }
   }
 
+  @Command("voice speaker create <name> [range]")
   @Command("speaker|voicespeaker create <name> [range]")
+  @Command("voice speaker add <name> [range]")
   @Command("speaker|voicespeaker add <name> [range]")
   @CommandDescription("Create a new speaker at current position")
   @Permission("dreamvoice.admin.speaker.create")
@@ -115,7 +118,9 @@ public final class FabricSpeakerCmd {
     FabricCommandUtils.sendSuccess(source, "speaker.created", name, range);
   }
 
+  @Command("voice speaker delete <name>")
   @Command("speaker|voicespeaker delete <name>")
+  @Command("voice speaker remove <name>")
   @Command("speaker|voicespeaker remove <name>")
   @CommandDescription("Delete a speaker by name")
   @Permission("dreamvoice.admin.speaker.delete")
@@ -139,6 +144,7 @@ public final class FabricSpeakerCmd {
     FabricCommandUtils.sendSuccess(source, "speaker.removed", name);
   }
 
+  @Command("voice speaker distance <name> <distance>")
   @Command("speaker|voicespeaker distance <name> <distance>")
   @CommandDescription("Set the broadcast distance of a speaker")
   @Permission("dreamvoice.admin.speaker.distance")
@@ -163,6 +169,7 @@ public final class FabricSpeakerCmd {
     FabricCommandUtils.sendSuccess(source, "speaker.distance_set", name, distance);
   }
 
+  @Command("voice speaker mode <name> <mode>")
   @Command("speaker|voicespeaker mode <name> <mode>")
   @CommandDescription("Set speaker access mode (GLOBAL or RESTRICTED)")
   @Permission("dreamvoice.admin.speaker.mode")
@@ -187,6 +194,7 @@ public final class FabricSpeakerCmd {
     FabricCommandUtils.sendSuccess(source, "speaker.mode_set", name, mode.name());
   }
 
+  @Command("voice speaker link <name> [target]")
   @Command("speaker|voicespeaker link <name> [target]")
   @CommandDescription("Link a speaker to a player's audio stream")
   @Permission("dreamvoice.admin.speaker.link")
@@ -218,6 +226,7 @@ public final class FabricSpeakerCmd {
     FabricCommandUtils.sendSuccess(source, "speaker.linked", name, target.getName().getString());
   }
 
+  @Command("voice speaker unlink <name> [target]")
   @Command("speaker|voicespeaker unlink <name> [target]")
   @CommandDescription("Unlink a speaker from a player")
   @Permission("dreamvoice.admin.speaker.unlink")
@@ -247,6 +256,7 @@ public final class FabricSpeakerCmd {
     FabricCommandUtils.sendSuccess(source, "speaker.unlinked", name);
   }
 
+  @Command("voice speaker play record <name> <recording> [loop]")
   @Command("speaker|voicespeaker play record <name> <recording> [loop]")
   @CommandDescription("Play a voice recording through a speaker")
   @Permission("dreamvoice.admin.speaker.play")
@@ -292,6 +302,7 @@ public final class FabricSpeakerCmd {
     FabricCommandUtils.sendSuccess(source, "speaker.playing", s1, name);
   }
 
+  @Command("voice speaker play file <name> <fileName> [loop]")
   @Command("speaker|voicespeaker play file <name> <fileName> [loop]")
   @CommandDescription("Play an audio file through a speaker")
   @Permission("dreamvoice.admin.speaker.play")
@@ -325,6 +336,7 @@ public final class FabricSpeakerCmd {
     FabricCommandUtils.sendSuccess(source, "speaker.playing", fileName, name);
   }
 
+  @Command("voice speaker play url <name> <url> [loop]")
   @Command("speaker|voicespeaker play url <name> <url> [loop]")
   @CommandDescription("Stream audio from a URL through a speaker")
   @Permission("dreamvoice.admin.speaker.play")
@@ -358,6 +370,7 @@ public final class FabricSpeakerCmd {
     FabricCommandUtils.sendSuccess(source, "speaker.playing", url, name);
   }
 
+  @Command("voice speaker stop <name>")
   @Command("speaker|voicespeaker stop <name>")
   @CommandDescription("Stop sound on a speaker")
   @Permission("dreamvoice.admin.speaker.stop")
